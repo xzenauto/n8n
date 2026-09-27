@@ -1,0 +1,1519 @@
+{
+  "name": "Lucía – Seguimientos y recordatorios (Agencia Prueba)",
+  "nodes": [
+    {
+      "id": "9886572c-a002-4d50-98e2-efcbd1e20ad8",
+      "name": "Cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        600
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "56edddbd-bf70-4298-a6e2-9c0bcea0f9d1",
+      "name": "GHL opps en Cotización enviada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/opportunities/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "location_id",
+              "value": "7Nt4ISuJNkwzED4xLICK"
+            },
+            {
+              "name": "pipeline_id",
+              "value": "Zd13RBajMPAv1iHBAse1"
+            },
+            {
+              "name": "pipeline_stage_id",
+              "value": "d729d68d-d054-4316-aa3b-f550f220214d"
+            },
+            {
+              "name": "status",
+              "value": "open"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      }
+    },
+    {
+      "id": "b1eeb35a-c68e-4345-85e1-005b2c95e166",
+      "name": "Series de cotización",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst opps = $input.first().json.opportunities || [];\nconst items = opps.map(o => ({ contact_id: o.contactId || (o.contact && o.contact.id), opportunity_id: o.id,\n  desde: o.lastStageChangeAt || o.updatedAt || o.createdAt, nombre: (o.contact && o.contact.name) || o.name }))\n  .filter(x => x.contact_id);\nreturn [{ json: { items } }];\n"
+      }
+    },
+    {
+      "id": "5a2b840f-d156-4c58-8323-e0ce61f649c6",
+      "name": "SB programar cotización",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_programar_cotizacion",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_items: $json.items }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "a2b5b3a4-0cd0-486a-9d0b-ebbf31e3b247",
+      "name": "GHL opps abiertas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/opportunities/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "location_id",
+              "value": "7Nt4ISuJNkwzED4xLICK"
+            },
+            {
+              "name": "pipeline_id",
+              "value": "Zd13RBajMPAv1iHBAse1"
+            },
+            {
+              "name": "status",
+              "value": "open"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      }
+    },
+    {
+      "id": "86760021-cca1-4334-9f07-d8878c19c28d",
+      "name": "Filtrar pagos y viajes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"7Nt4ISuJNkwzED4xLICK\", \"pipelineId\": \"Zd13RBajMPAv1iHBAse1\", \"S\": {\"nuevo\": \"65f25778-1816-434f-841d-330d52c6484f\", \"incompletos\": \"43b2808d-b0f1-4fd5-b6c7-b8bd921e17b7\", \"completos\": \"6f1a3ff4-1a4c-4c4a-b22a-278429f2338a\", \"urgente\": \"bc2b90c9-4bbe-40c2-b328-4aa74432e9a2\", \"humano\": \"a0a4f235-36c1-4e22-9b1b-bbcf7af0733d\", \"cotizacion\": \"d729d68d-d054-4316-aa3b-f550f220214d\", \"respondio\": \"165fddf1-d0c0-473b-b182-6c2a8a7f4b70\", \"apartado\": \"f268113e-0366-4d10-9bab-0f2208bc5e36\", \"pagado\": \"c5173012-9493-4230-8875-e00ff95b9b3a\", \"completado\": \"b89799a4-477b-4c29-8609-71886479c991\", \"perdido\": \"03c9ff5a-cb38-4d10-9fd5-5ab6fbe52361\"}, \"F\": {\"IA Destino\": \"QXkrdR15b1rtrXTBzW5c\", \"IA Fecha salida\": \"yzuEwrtPo3foh4CScn0d\", \"IA Fecha regreso\": \"b0niJ5J39pQPO7joeWYm\", \"IA Fechas (texto)\": \"kLnHA2oerdYuF026PXY1\", \"IA Adultos\": \"IE7Nf1nDny2GOqdbkZqM\", \"IA Niños\": \"K2tdgRNturi9uY7WHJQW\", \"IA Edades niños\": \"Np2V37pJFmiztGoGoEKF\", \"IA Promo de interés\": \"2Vq4SyelqC1EVGssHuh3\", \"IA Ad ID\": \"LuC8o2FrU9kmhNGQaRkX\", \"IA Canal de origen\": \"1GAatSb5VFhj2M8gPd37\", \"IA Viaja en menos de 15 días\": \"2rdsWeZdAyk7FUguRcVL\", \"IA Resumen conversación\": \"gNtvo2YVxQJhUlH5LBFG\", \"Cot Vendedora\": \"yjUvsjChids4KgOmT28B\", \"Cot Fecha de envío\": \"WvMTMNDgNWqYkvyR4O3M\", \"Cot Destino\": \"CEXBx0gxzHIrfVjEphfr\", \"Cot Hotel\": \"7kULKnmCm1PBibGHeNpU\", \"Cot Plan de alimentos\": \"nF9lDKpfidbduRIAM8aV\", \"Cot Habitaciones\": \"EBwPByI6ulPYSzRw1gqP\", \"Cot Monto total MXN\": \"robeVaGvsyRuDV3C344t\", \"Cot Incluye\": \"HrwThz9BEEwgA65ZRoAi\", \"Cot Link o archivo\": \"AQdTKV3Vd1t7BINY1vSh\", \"Cot Vigencia\": \"ViN9RpdFF5QXEAczBC1L\", \"Cot Notas\": \"ZaXqt852Gv78vzjB14n9\", \"Ida V1 - Aerolínea y número\": \"GROYLxjZZQZ1eYexrVVN\", \"Ida V1 - Ruta (origen → destino)\": \"Pf1LtwPiFRdryxnQRsUq\", \"Ida V1 - Salida (fecha y hora)\": \"89e7lsehDf6kt06lhdwg\", \"Ida V1 - Llegada (fecha y hora)\": \"8VzIjf593226NkfyaX1D\", \"Ida V2 - Aerolínea y número\": \"2fzCPj3hj21NmtVYvFU3\", \"Ida V2 - Ruta (origen → destino)\": \"xsfRkDRPnv1mfClkgo8O\", \"Ida V2 - Salida (fecha y hora)\": \"rgTNWOVUo6b7UrEcHjm0\", \"Ida V2 - Llegada (fecha y hora)\": \"3fXAm1XpwCBaXUOIHaES\", \"Ida V3 - Aerolínea y número\": \"NGAorYPVgG1DQIF2YX6j\", \"Ida V3 - Ruta (origen → destino)\": \"QJvLLBkbCmcfwkoC8v1i\", \"Ida V3 - Salida (fecha y hora)\": \"bMQ7G7IJPnEuX6K1onfK\", \"Ida V3 - Llegada (fecha y hora)\": \"ciW1FfTRNhfsykBgwjf8\", \"Ida - Clave de reservación\": \"SEWw4uUvoMN0WAxbmhcL\", \"Regreso V1 - Aerolínea y número\": \"GMQ6Lt7HTUbHSYytHcH5\", \"Regreso V1 - Ruta (origen → destino)\": \"lFTYdSi5rqoE7pgpvqo3\", \"Regreso V1 - Salida (fecha y hora)\": \"0rf4aoMBR1JTUZZhBVqU\", \"Regreso V1 - Llegada (fecha y hora)\": \"rhh5PtqhM9ZC9Da0VRXA\", \"Regreso V2 - Aerolínea y número\": \"whYaOjE9871hsI3vGDOk\", \"Regreso V2 - Ruta (origen → destino)\": \"c3liqGH8TwUzEQzTOejA\", \"Regreso V2 - Salida (fecha y hora)\": \"DU0gFSoj9LdyTJFyxkW1\", \"Regreso V2 - Llegada (fecha y hora)\": \"yWtvdHs3m1N0lkEbzhRI\", \"Regreso V3 - Aerolínea y número\": \"TKg7Et4rfFQGUaAzEhZ5\", \"Regreso V3 - Ruta (origen → destino)\": \"933p6b4qzbHh1HMX04R8\", \"Regreso V3 - Salida (fecha y hora)\": \"iBtKXxa8f3APalXsySM8\", \"Regreso V3 - Llegada (fecha y hora)\": \"ygFZk6mWuPUe5RVsLnj6\", \"Regreso - Clave de reservación\": \"gOEgBeKgzzbxRk4odESJ\", \"Vuelos - Equipaje incluido\": \"UFunURlsbXvfOO8niAeE\", \"Pago Precio total MXN\": \"AgiyTRsIzNaj61qqOd87\", \"Pago Anticipo MXN\": \"PTcIbTzTIJrN41cw7TS9\", \"Pago Saldo pendiente MXN\": \"S6s3XS8AiuR73rSNwRRv\", \"Pago Método\": \"ytI62Z0zadRuFUR6Aw25\", \"Pago 1 - Fecha límite\": \"nxrhYpEcZzee7xVEJlWg\", \"Pago 1 - Monto MXN\": \"Ul3wCwJBwK4lWIMUGSF0\", \"Pago 1 - Estatus\": \"CBnvaeN2j7rjw846kDlQ\", \"Pago 2 - Fecha límite\": \"U6tQKAH4Ipj0CT4D6AYf\", \"Pago 2 - Monto MXN\": \"1FeldccXH8mi57Z58HJF\", \"Pago 2 - Estatus\": \"AVY7ltCuWn0XdX2OBXPV\", \"Pago 3 - Fecha límite\": \"ugFNDkfSUyrRvgia3LIo\", \"Pago 3 - Monto MXN\": \"iMB7uLM9fm22zZDKqlDu\", \"Pago 3 - Estatus\": \"g10IZpuhzfAneOvoVIUC\", \"Pago 4 - Fecha límite\": \"48WtsmRMKJ9oFjgBO19e\", \"Pago 4 - Monto MXN\": \"YQZTKmJdbGOb3tnLVaOZ\", \"Pago 4 - Estatus\": \"i6nkLLuS30j0S0OmY9O0\", \"Pago 5 - Fecha límite\": \"YnwUAMls1g42Vaeo3L5Q\", \"Pago 5 - Monto MXN\": \"Zxh8MwOIkHzeRBU7mL3X\", \"Pago 5 - Estatus\": \"VO1nhi8a4wgnLH9psB32\", \"Pago 6 - Fecha límite\": \"166AXZn57aFMFQ9flBUb\", \"Pago 6 - Monto MXN\": \"axozralZmHRpXb34QEMP\", \"Pago 6 - Estatus\": \"D4X2rwLqisAy3XqUwJri\", \"Viaje Destino\": \"FHWLsbXATasVSXNkyXUN\", \"Viaje Fecha salida\": \"1Q8mRyxy6BF4mllV4cbT\", \"Viaje Fecha regreso\": \"Orttpu4e0tI9ipEVGHoA\", \"Viaje Hotel\": \"09nHZi6kHhe4qnGMZTH0\", \"Viaje Check-in\": \"hxi2VIpqpp8sssInLQtN\", \"Viaje Check-out\": \"j3thSKPVapkEWlvA13AR\", \"Viaje Confirmación hotel\": \"BW9E82efSIhJubOSltuM\", \"Viaje Plan de alimentos\": \"HO9knr9yZ6nvglj8wO76\", \"Viaje Habitaciones\": \"Kw20goM2qW6IPX8phDOk\", \"Viaje Pasajeros\": \"RA4nIg3Y95SsmyL60HnW\", \"Viaje Traslados\": \"2PFchfgQde3HHZlBwEnD\", \"Viaje Tours y extras\": \"aO5EeFwImjKuScNONeRG\", \"Viaje Seguro\": \"ItPrHOiPql2Oe2bVv31A\", \"Viaje Notas para el cliente\": \"xFw4WDCEMUN12C0T9z4n\"}, \"agencia\": \"Agencia Prueba\", \"modelo\": \"gpt-4.1-mini\"};\n\nconst opps = ($input.first().json.opportunities || []).filter(o => [CFG.S.apartado, CFG.S.pagado].includes(o.pipelineStageId));\nreturn opps.map(o => ({ json: { contact_id: o.contactId || (o.contact && o.contact.id), opportunity_id: o.id,\n  stage_id: o.pipelineStageId, nombre: (o.contact && o.contact.name) || o.name } })).filter(i => i.json.contact_id);\n"
+      }
+    },
+    {
+      "id": "a718e7ab-e151-40a4-a2f7-72dd8d1cdf25",
+      "name": "GHL contacto (recordatorios)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a398b038-4003-41e1-8b4b-685817b10fc0",
+      "name": "Armar recordatorios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"7Nt4ISuJNkwzED4xLICK\", \"pipelineId\": \"Zd13RBajMPAv1iHBAse1\", \"S\": {\"nuevo\": \"65f25778-1816-434f-841d-330d52c6484f\", \"incompletos\": \"43b2808d-b0f1-4fd5-b6c7-b8bd921e17b7\", \"completos\": \"6f1a3ff4-1a4c-4c4a-b22a-278429f2338a\", \"urgente\": \"bc2b90c9-4bbe-40c2-b328-4aa74432e9a2\", \"humano\": \"a0a4f235-36c1-4e22-9b1b-bbcf7af0733d\", \"cotizacion\": \"d729d68d-d054-4316-aa3b-f550f220214d\", \"respondio\": \"165fddf1-d0c0-473b-b182-6c2a8a7f4b70\", \"apartado\": \"f268113e-0366-4d10-9bab-0f2208bc5e36\", \"pagado\": \"c5173012-9493-4230-8875-e00ff95b9b3a\", \"completado\": \"b89799a4-477b-4c29-8609-71886479c991\", \"perdido\": \"03c9ff5a-cb38-4d10-9fd5-5ab6fbe52361\"}, \"F\": {\"IA Destino\": \"QXkrdR15b1rtrXTBzW5c\", \"IA Fecha salida\": \"yzuEwrtPo3foh4CScn0d\", \"IA Fecha regreso\": \"b0niJ5J39pQPO7joeWYm\", \"IA Fechas (texto)\": \"kLnHA2oerdYuF026PXY1\", \"IA Adultos\": \"IE7Nf1nDny2GOqdbkZqM\", \"IA Niños\": \"K2tdgRNturi9uY7WHJQW\", \"IA Edades niños\": \"Np2V37pJFmiztGoGoEKF\", \"IA Promo de interés\": \"2Vq4SyelqC1EVGssHuh3\", \"IA Ad ID\": \"LuC8o2FrU9kmhNGQaRkX\", \"IA Canal de origen\": \"1GAatSb5VFhj2M8gPd37\", \"IA Viaja en menos de 15 días\": \"2rdsWeZdAyk7FUguRcVL\", \"IA Resumen conversación\": \"gNtvo2YVxQJhUlH5LBFG\", \"Cot Vendedora\": \"yjUvsjChids4KgOmT28B\", \"Cot Fecha de envío\": \"WvMTMNDgNWqYkvyR4O3M\", \"Cot Destino\": \"CEXBx0gxzHIrfVjEphfr\", \"Cot Hotel\": \"7kULKnmCm1PBibGHeNpU\", \"Cot Plan de alimentos\": \"nF9lDKpfidbduRIAM8aV\", \"Cot Habitaciones\": \"EBwPByI6ulPYSzRw1gqP\", \"Cot Monto total MXN\": \"robeVaGvsyRuDV3C344t\", \"Cot Incluye\": \"HrwThz9BEEwgA65ZRoAi\", \"Cot Link o archivo\": \"AQdTKV3Vd1t7BINY1vSh\", \"Cot Vigencia\": \"ViN9RpdFF5QXEAczBC1L\", \"Cot Notas\": \"ZaXqt852Gv78vzjB14n9\", \"Ida V1 - Aerolínea y número\": \"GROYLxjZZQZ1eYexrVVN\", \"Ida V1 - Ruta (origen → destino)\": \"Pf1LtwPiFRdryxnQRsUq\", \"Ida V1 - Salida (fecha y hora)\": \"89e7lsehDf6kt06lhdwg\", \"Ida V1 - Llegada (fecha y hora)\": \"8VzIjf593226NkfyaX1D\", \"Ida V2 - Aerolínea y número\": \"2fzCPj3hj21NmtVYvFU3\", \"Ida V2 - Ruta (origen → destino)\": \"xsfRkDRPnv1mfClkgo8O\", \"Ida V2 - Salida (fecha y hora)\": \"rgTNWOVUo6b7UrEcHjm0\", \"Ida V2 - Llegada (fecha y hora)\": \"3fXAm1XpwCBaXUOIHaES\", \"Ida V3 - Aerolínea y número\": \"NGAorYPVgG1DQIF2YX6j\", \"Ida V3 - Ruta (origen → destino)\": \"QJvLLBkbCmcfwkoC8v1i\", \"Ida V3 - Salida (fecha y hora)\": \"bMQ7G7IJPnEuX6K1onfK\", \"Ida V3 - Llegada (fecha y hora)\": \"ciW1FfTRNhfsykBgwjf8\", \"Ida - Clave de reservación\": \"SEWw4uUvoMN0WAxbmhcL\", \"Regreso V1 - Aerolínea y número\": \"GMQ6Lt7HTUbHSYytHcH5\", \"Regreso V1 - Ruta (origen → destino)\": \"lFTYdSi5rqoE7pgpvqo3\", \"Regreso V1 - Salida (fecha y hora)\": \"0rf4aoMBR1JTUZZhBVqU\", \"Regreso V1 - Llegada (fecha y hora)\": \"rhh5PtqhM9ZC9Da0VRXA\", \"Regreso V2 - Aerolínea y número\": \"whYaOjE9871hsI3vGDOk\", \"Regreso V2 - Ruta (origen → destino)\": \"c3liqGH8TwUzEQzTOejA\", \"Regreso V2 - Salida (fecha y hora)\": \"DU0gFSoj9LdyTJFyxkW1\", \"Regreso V2 - Llegada (fecha y hora)\": \"yWtvdHs3m1N0lkEbzhRI\", \"Regreso V3 - Aerolínea y número\": \"TKg7Et4rfFQGUaAzEhZ5\", \"Regreso V3 - Ruta (origen → destino)\": \"933p6b4qzbHh1HMX04R8\", \"Regreso V3 - Salida (fecha y hora)\": \"iBtKXxa8f3APalXsySM8\", \"Regreso V3 - Llegada (fecha y hora)\": \"ygFZk6mWuPUe5RVsLnj6\", \"Regreso - Clave de reservación\": \"gOEgBeKgzzbxRk4odESJ\", \"Vuelos - Equipaje incluido\": \"UFunURlsbXvfOO8niAeE\", \"Pago Precio total MXN\": \"AgiyTRsIzNaj61qqOd87\", \"Pago Anticipo MXN\": \"PTcIbTzTIJrN41cw7TS9\", \"Pago Saldo pendiente MXN\": \"S6s3XS8AiuR73rSNwRRv\", \"Pago Método\": \"ytI62Z0zadRuFUR6Aw25\", \"Pago 1 - Fecha límite\": \"nxrhYpEcZzee7xVEJlWg\", \"Pago 1 - Monto MXN\": \"Ul3wCwJBwK4lWIMUGSF0\", \"Pago 1 - Estatus\": \"CBnvaeN2j7rjw846kDlQ\", \"Pago 2 - Fecha límite\": \"U6tQKAH4Ipj0CT4D6AYf\", \"Pago 2 - Monto MXN\": \"1FeldccXH8mi57Z58HJF\", \"Pago 2 - Estatus\": \"AVY7ltCuWn0XdX2OBXPV\", \"Pago 3 - Fecha límite\": \"ugFNDkfSUyrRvgia3LIo\", \"Pago 3 - Monto MXN\": \"iMB7uLM9fm22zZDKqlDu\", \"Pago 3 - Estatus\": \"g10IZpuhzfAneOvoVIUC\", \"Pago 4 - Fecha límite\": \"48WtsmRMKJ9oFjgBO19e\", \"Pago 4 - Monto MXN\": \"YQZTKmJdbGOb3tnLVaOZ\", \"Pago 4 - Estatus\": \"i6nkLLuS30j0S0OmY9O0\", \"Pago 5 - Fecha límite\": \"YnwUAMls1g42Vaeo3L5Q\", \"Pago 5 - Monto MXN\": \"Zxh8MwOIkHzeRBU7mL3X\", \"Pago 5 - Estatus\": \"VO1nhi8a4wgnLH9psB32\", \"Pago 6 - Fecha límite\": \"166AXZn57aFMFQ9flBUb\", \"Pago 6 - Monto MXN\": \"axozralZmHRpXb34QEMP\", \"Pago 6 - Estatus\": \"D4X2rwLqisAy3XqUwJri\", \"Viaje Destino\": \"FHWLsbXATasVSXNkyXUN\", \"Viaje Fecha salida\": \"1Q8mRyxy6BF4mllV4cbT\", \"Viaje Fecha regreso\": \"Orttpu4e0tI9ipEVGHoA\", \"Viaje Hotel\": \"09nHZi6kHhe4qnGMZTH0\", \"Viaje Check-in\": \"hxi2VIpqpp8sssInLQtN\", \"Viaje Check-out\": \"j3thSKPVapkEWlvA13AR\", \"Viaje Confirmación hotel\": \"BW9E82efSIhJubOSltuM\", \"Viaje Plan de alimentos\": \"HO9knr9yZ6nvglj8wO76\", \"Viaje Habitaciones\": \"Kw20goM2qW6IPX8phDOk\", \"Viaje Pasajeros\": \"RA4nIg3Y95SsmyL60HnW\", \"Viaje Traslados\": \"2PFchfgQde3HHZlBwEnD\", \"Viaje Tours y extras\": \"aO5EeFwImjKuScNONeRG\", \"Viaje Seguro\": \"ItPrHOiPql2Oe2bVv31A\", \"Viaje Notas para el cliente\": \"xFw4WDCEMUN12C0T9z4n\"}, \"agencia\": \"Agencia Prueba\", \"modelo\": \"gpt-4.1-mini\"};\n\nconst OFFSET = -6; // CDMX sin horario de verano\nfunction hoyCdmx() { return new Date(Date.now() + OFFSET * 3600e3).toISOString().slice(0, 10); }\nfunction fechaCampo(v) { // valor de campo DATE de GHL -> 'YYYY-MM-DD'\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number' || /^\\d{10,}$/.test(String(v))) {\n    const d = new Date(Number(v));\n    return (d.getUTCHours() === 0 ? d : new Date(d.getTime() + OFFSET * 3600e3)).toISOString().slice(0, 10);\n  }\n  const s = String(v);\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})/);\n  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;\n  const d = new Date(s); return isNaN(d) ? null : d.toISOString().slice(0, 10);\n}\nconst MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\nconst DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];\nfunction fechaLarga(iso) { const d = new Date(iso + 'T12:00:00Z'); return `${DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`; }\nfunction diasEntre(a, b) { return Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5); }\n\nconst base = $('Filtrar pagos y viajes').all().map(i => i.json);\nconst out = { contactos: [], items: [], completar: [] };\nconst hoy = hoyCdmx();\n$input.all().forEach((it, i) => {\n  const o = base[i]; const c = it.json.contact; if (!o || !c) return;\n  const val = {}; for (const f of (c.customFields || [])) val[f.id] = f.value;\n  const g = n => val[CFG.F[n]];\n  out.contactos.push(o.contact_id);\n  const etapa = o.stage_id === CFG.S.pagado ? 'pagado' : 'apartado';\n  for (let n = 1; n <= 6; n++) {\n    const fecha = fechaCampo(g(`Pago ${n} - Fecha límite`));\n    const estatus = String(g(`Pago ${n} - Estatus`) || '').toLowerCase();\n    if (fecha && estatus !== 'pagado') out.items.push({ contact_id: o.contact_id, opportunity_id: o.opportunity_id,\n      nombre: o.nombre, etapa, tipo: 'pago', referencia: `Pago ${n}`, fecha });\n  }\n  const salida = fechaCampo(g('Viaje Fecha salida'));\n  if (salida) out.items.push({ contact_id: o.contact_id, opportunity_id: o.opportunity_id, nombre: o.nombre, etapa,\n    tipo: 'viaje', referencia: 'viaje', fecha: salida });\n  const regreso = fechaCampo(g('Viaje Fecha regreso'));\n  if (o.stage_id === CFG.S.pagado && regreso && regreso < hoy) out.completar.push(o.opportunity_id);\n});\nreturn [{ json: out }];\n"
+      }
+    },
+    {
+      "id": "f643e4fc-cb55-4192-a718-59e065b74b3c",
+      "name": "SB sincronizar recordatorios",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_sync_recordatorios",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contactos: $json.contactos, p_items: $json.items }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "beb7704c-0ef3-402d-8077-1a99f9363908",
+      "name": "Viajes terminados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return ($('Armar recordatorios').first().json.completar || []).map(id => ({ json: { opportunity_id: id } }));"
+      }
+    },
+    {
+      "id": "b60ee903-4f06-4a0e-897e-9c516a1de57c",
+      "name": "GHL mover a Viaje completado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunity_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pipelineStageId: 'b89799a4-477b-4c29-8609-71886479c991' }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "d83ebb4a-00a7-4666-a6e5-116cec109ea2",
+      "name": "¿Horario hábil?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        700
+      ],
+      "parameters": {
+        "jsCode": "\nconst d = new Date(Date.now() - 6 * 3600e3); const dia = d.getUTCDay(), h = d.getUTCHours() + d.getUTCMinutes() / 60;\nconst abierto = false || (dia >= 1 && dia <= 5 && h >= 9 && h < 18) || (dia === 6 && h >= 10 && h < 14);\nreturn abierto ? [{ json: { abierto } }] : [];\n"
+      }
+    },
+    {
+      "id": "6d266c59-9d72-48d5-9fdf-3ed640736db5",
+      "name": "SB tomar pendientes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        700
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_tomar_pendientes",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_limit: 25 }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "d3604847-0d0a-4d02-8beb-1ff7ac6cda92",
+      "name": "Quitar vacíos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        550,
+        820
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().filter(i => i.json && i.json.id);"
+      }
+    },
+    {
+      "id": "e89a628f-1431-4e90-aac7-4cbe454fa915",
+      "name": "GHL contacto (envío)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        700
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "b4493c80-6418-4c28-856e-814ffef28a97",
+      "name": "GHL oportunidad (envío)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        700
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Quitar vacíos').item.json.opportunity_id || 'sin-oportunidad' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "6f0430a6-66ac-4096-b9b4-9e19dabf9cb1",
+      "name": "Decidir envío",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        700
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"7Nt4ISuJNkwzED4xLICK\", \"pipelineId\": \"Zd13RBajMPAv1iHBAse1\", \"S\": {\"nuevo\": \"65f25778-1816-434f-841d-330d52c6484f\", \"incompletos\": \"43b2808d-b0f1-4fd5-b6c7-b8bd921e17b7\", \"completos\": \"6f1a3ff4-1a4c-4c4a-b22a-278429f2338a\", \"urgente\": \"bc2b90c9-4bbe-40c2-b328-4aa74432e9a2\", \"humano\": \"a0a4f235-36c1-4e22-9b1b-bbcf7af0733d\", \"cotizacion\": \"d729d68d-d054-4316-aa3b-f550f220214d\", \"respondio\": \"165fddf1-d0c0-473b-b182-6c2a8a7f4b70\", \"apartado\": \"f268113e-0366-4d10-9bab-0f2208bc5e36\", \"pagado\": \"c5173012-9493-4230-8875-e00ff95b9b3a\", \"completado\": \"b89799a4-477b-4c29-8609-71886479c991\", \"perdido\": \"03c9ff5a-cb38-4d10-9fd5-5ab6fbe52361\"}, \"F\": {\"IA Destino\": \"QXkrdR15b1rtrXTBzW5c\", \"IA Fecha salida\": \"yzuEwrtPo3foh4CScn0d\", \"IA Fecha regreso\": \"b0niJ5J39pQPO7joeWYm\", \"IA Fechas (texto)\": \"kLnHA2oerdYuF026PXY1\", \"IA Adultos\": \"IE7Nf1nDny2GOqdbkZqM\", \"IA Niños\": \"K2tdgRNturi9uY7WHJQW\", \"IA Edades niños\": \"Np2V37pJFmiztGoGoEKF\", \"IA Promo de interés\": \"2Vq4SyelqC1EVGssHuh3\", \"IA Ad ID\": \"LuC8o2FrU9kmhNGQaRkX\", \"IA Canal de origen\": \"1GAatSb5VFhj2M8gPd37\", \"IA Viaja en menos de 15 días\": \"2rdsWeZdAyk7FUguRcVL\", \"IA Resumen conversación\": \"gNtvo2YVxQJhUlH5LBFG\", \"Cot Vendedora\": \"yjUvsjChids4KgOmT28B\", \"Cot Fecha de envío\": \"WvMTMNDgNWqYkvyR4O3M\", \"Cot Destino\": \"CEXBx0gxzHIrfVjEphfr\", \"Cot Hotel\": \"7kULKnmCm1PBibGHeNpU\", \"Cot Plan de alimentos\": \"nF9lDKpfidbduRIAM8aV\", \"Cot Habitaciones\": \"EBwPByI6ulPYSzRw1gqP\", \"Cot Monto total MXN\": \"robeVaGvsyRuDV3C344t\", \"Cot Incluye\": \"HrwThz9BEEwgA65ZRoAi\", \"Cot Link o archivo\": \"AQdTKV3Vd1t7BINY1vSh\", \"Cot Vigencia\": \"ViN9RpdFF5QXEAczBC1L\", \"Cot Notas\": \"ZaXqt852Gv78vzjB14n9\", \"Ida V1 - Aerolínea y número\": \"GROYLxjZZQZ1eYexrVVN\", \"Ida V1 - Ruta (origen → destino)\": \"Pf1LtwPiFRdryxnQRsUq\", \"Ida V1 - Salida (fecha y hora)\": \"89e7lsehDf6kt06lhdwg\", \"Ida V1 - Llegada (fecha y hora)\": \"8VzIjf593226NkfyaX1D\", \"Ida V2 - Aerolínea y número\": \"2fzCPj3hj21NmtVYvFU3\", \"Ida V2 - Ruta (origen → destino)\": \"xsfRkDRPnv1mfClkgo8O\", \"Ida V2 - Salida (fecha y hora)\": \"rgTNWOVUo6b7UrEcHjm0\", \"Ida V2 - Llegada (fecha y hora)\": \"3fXAm1XpwCBaXUOIHaES\", \"Ida V3 - Aerolínea y número\": \"NGAorYPVgG1DQIF2YX6j\", \"Ida V3 - Ruta (origen → destino)\": \"QJvLLBkbCmcfwkoC8v1i\", \"Ida V3 - Salida (fecha y hora)\": \"bMQ7G7IJPnEuX6K1onfK\", \"Ida V3 - Llegada (fecha y hora)\": \"ciW1FfTRNhfsykBgwjf8\", \"Ida - Clave de reservación\": \"SEWw4uUvoMN0WAxbmhcL\", \"Regreso V1 - Aerolínea y número\": \"GMQ6Lt7HTUbHSYytHcH5\", \"Regreso V1 - Ruta (origen → destino)\": \"lFTYdSi5rqoE7pgpvqo3\", \"Regreso V1 - Salida (fecha y hora)\": \"0rf4aoMBR1JTUZZhBVqU\", \"Regreso V1 - Llegada (fecha y hora)\": \"rhh5PtqhM9ZC9Da0VRXA\", \"Regreso V2 - Aerolínea y número\": \"whYaOjE9871hsI3vGDOk\", \"Regreso V2 - Ruta (origen → destino)\": \"c3liqGH8TwUzEQzTOejA\", \"Regreso V2 - Salida (fecha y hora)\": \"DU0gFSoj9LdyTJFyxkW1\", \"Regreso V2 - Llegada (fecha y hora)\": \"yWtvdHs3m1N0lkEbzhRI\", \"Regreso V3 - Aerolínea y número\": \"TKg7Et4rfFQGUaAzEhZ5\", \"Regreso V3 - Ruta (origen → destino)\": \"933p6b4qzbHh1HMX04R8\", \"Regreso V3 - Salida (fecha y hora)\": \"iBtKXxa8f3APalXsySM8\", \"Regreso V3 - Llegada (fecha y hora)\": \"ygFZk6mWuPUe5RVsLnj6\", \"Regreso - Clave de reservación\": \"gOEgBeKgzzbxRk4odESJ\", \"Vuelos - Equipaje incluido\": \"UFunURlsbXvfOO8niAeE\", \"Pago Precio total MXN\": \"AgiyTRsIzNaj61qqOd87\", \"Pago Anticipo MXN\": \"PTcIbTzTIJrN41cw7TS9\", \"Pago Saldo pendiente MXN\": \"S6s3XS8AiuR73rSNwRRv\", \"Pago Método\": \"ytI62Z0zadRuFUR6Aw25\", \"Pago 1 - Fecha límite\": \"nxrhYpEcZzee7xVEJlWg\", \"Pago 1 - Monto MXN\": \"Ul3wCwJBwK4lWIMUGSF0\", \"Pago 1 - Estatus\": \"CBnvaeN2j7rjw846kDlQ\", \"Pago 2 - Fecha límite\": \"U6tQKAH4Ipj0CT4D6AYf\", \"Pago 2 - Monto MXN\": \"1FeldccXH8mi57Z58HJF\", \"Pago 2 - Estatus\": \"AVY7ltCuWn0XdX2OBXPV\", \"Pago 3 - Fecha límite\": \"ugFNDkfSUyrRvgia3LIo\", \"Pago 3 - Monto MXN\": \"iMB7uLM9fm22zZDKqlDu\", \"Pago 3 - Estatus\": \"g10IZpuhzfAneOvoVIUC\", \"Pago 4 - Fecha límite\": \"48WtsmRMKJ9oFjgBO19e\", \"Pago 4 - Monto MXN\": \"YQZTKmJdbGOb3tnLVaOZ\", \"Pago 4 - Estatus\": \"i6nkLLuS30j0S0OmY9O0\", \"Pago 5 - Fecha límite\": \"YnwUAMls1g42Vaeo3L5Q\", \"Pago 5 - Monto MXN\": \"Zxh8MwOIkHzeRBU7mL3X\", \"Pago 5 - Estatus\": \"VO1nhi8a4wgnLH9psB32\", \"Pago 6 - Fecha límite\": \"166AXZn57aFMFQ9flBUb\", \"Pago 6 - Monto MXN\": \"axozralZmHRpXb34QEMP\", \"Pago 6 - Estatus\": \"D4X2rwLqisAy3XqUwJri\", \"Viaje Destino\": \"FHWLsbXATasVSXNkyXUN\", \"Viaje Fecha salida\": \"1Q8mRyxy6BF4mllV4cbT\", \"Viaje Fecha regreso\": \"Orttpu4e0tI9ipEVGHoA\", \"Viaje Hotel\": \"09nHZi6kHhe4qnGMZTH0\", \"Viaje Check-in\": \"hxi2VIpqpp8sssInLQtN\", \"Viaje Check-out\": \"j3thSKPVapkEWlvA13AR\", \"Viaje Confirmación hotel\": \"BW9E82efSIhJubOSltuM\", \"Viaje Plan de alimentos\": \"HO9knr9yZ6nvglj8wO76\", \"Viaje Habitaciones\": \"Kw20goM2qW6IPX8phDOk\", \"Viaje Pasajeros\": \"RA4nIg3Y95SsmyL60HnW\", \"Viaje Traslados\": \"2PFchfgQde3HHZlBwEnD\", \"Viaje Tours y extras\": \"aO5EeFwImjKuScNONeRG\", \"Viaje Seguro\": \"ItPrHOiPql2Oe2bVv31A\", \"Viaje Notas para el cliente\": \"xFw4WDCEMUN12C0T9z4n\"}, \"agencia\": \"Agencia Prueba\", \"modelo\": \"gpt-4.1-mini\"};\n\nconst OFFSET = -6; // CDMX sin horario de verano\nfunction hoyCdmx() { return new Date(Date.now() + OFFSET * 3600e3).toISOString().slice(0, 10); }\nfunction fechaCampo(v) { // valor de campo DATE de GHL -> 'YYYY-MM-DD'\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number' || /^\\d{10,}$/.test(String(v))) {\n    const d = new Date(Number(v));\n    return (d.getUTCHours() === 0 ? d : new Date(d.getTime() + OFFSET * 3600e3)).toISOString().slice(0, 10);\n  }\n  const s = String(v);\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})/);\n  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;\n  const d = new Date(s); return isNaN(d) ? null : d.toISOString().slice(0, 10);\n}\nconst MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\nconst DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];\nfunction fechaLarga(iso) { const d = new Date(iso + 'T12:00:00Z'); return `${DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`; }\nfunction diasEntre(a, b) { return Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5); }\n\nconst p = $('Quitar vacíos').item.json;\nconst c = $('GHL contacto (envío)').item.json.contact || null;\nconst o = $json.opportunity || null;\nconst val = {}; for (const f of ((c && c.customFields) || [])) val[f.id] = f.value;\nconst g = n => { const v = val[CFG.F[n]]; return (v === undefined || v === null) ? '' : String(v).trim(); };\nconst tags = ((c && c.tags) || []).map(t => String(t).toLowerCase());\nconst stage = o && o.status === 'open' ? o.pipelineStageId : null;\nconst nombre = (c && (c.firstName || c.contactName)) || p.nombre || '';\nconst r = { tabla: p.tabla, id: p.id, lead_id: p.lead_id, contact_id: p.contact_id, tipo: p.tipo, numero: p.numero,\n  canal: p.canal || 'WhatsApp', opportunity_id: p.opportunity_id, assigned_to: (o && o.assignedTo) || null,\n  nombre, accion: 'cancelar', estado: 'cancelado', error: null, texto: '', nueva_etapa: null, etapa: null };\nconst cancelar = motivo => { r.error = motivo; return { json: r }; };\nif (!c) return cancelar('contacto no encontrado');\n\nif (p.tabla === 'seguimiento') {\n  if (tags.includes('seguimiento-pausado')) return cancelar('seguimientos pausados por la vendedora');\n  if (p.tipo === 'datos') {\n    if (![CFG.S.nuevo, CFG.S.incompletos].includes(stage)) return cancelar('el lead ya no está recopilando datos');\n    if (tags.includes('ia-pausada')) return cancelar('IA pausada');\n    if (p.numero === 99) { r.accion = 'mover'; r.estado = 'enviado'; r.texto = '(sin respuesta: movido a Perdido / frío)';\n      r.nueva_etapa = CFG.S.perdido; r.etapa = 'perdido'; return { json: r }; }\n    if (p.numero === 1) { r.nueva_etapa = CFG.S.incompletos; r.etapa = 'datos_incompletos'; }\n  } else if (stage !== CFG.S.cotizacion) return cancelar('el lead ya no está en Cotización enviada');\n  const l = p.lead || {};\n  const falta = [];\n  if (!l.destino) falta.push('destino');\n  if (!(l.fecha_salida || l.fechas_texto || l.fechas_sin_definir)) falta.push('fechas aproximadas');\n  if (!l.adultos) falta.push('cuántos adultos viajan');\n  if (l.ninos === null || l.ninos === undefined) falta.push('si viajan niños');\n  else if (l.ninos > 0 && !((l.edades_ninos || []).length >= l.ninos)) falta.push('edades de los niños');\n  r.accion = 'ia';\n  r.contexto = p.tipo === 'datos'\n    ? { datos: { destino: l.destino, fecha_salida: l.fecha_salida, fechas_texto: l.fechas_texto, adultos: l.adultos, ninos: l.ninos, edades_ninos: l.edades_ninos }, falta }\n    : { cotizacion: { destino: g('Cot Destino') || l.destino, hotel: g('Cot Hotel'), plan: g('Cot Plan de alimentos'),\n        monto_total_mxn: g('Cot Monto total MXN'), incluye: g('Cot Incluye'), vendedora: g('Cot Vendedora'),\n        vigencia: fechaCampo(g('Cot Vigencia')) } };\n  return { json: r };\n}\n\n// ---- Recordatorios\nif (![CFG.S.apartado, CFG.S.pagado].includes(stage)) return cancelar('la oportunidad ya no está en pagos/viaje');\nconst evento = new Date(new Date(p.fecha_evento).getTime() - 6 * 3600e3).toISOString().slice(0, 10);\nconst cuando = diasEntre(hoyCdmx(), evento) === 1 ? 'mañana' : 'el ' + fechaLarga(evento);\nif (p.tipo === 'pago') {\n  const n = (p.referencia || '').replace(/\\D/g, '');\n  if (String(g(`Pago ${n} - Estatus`)).toLowerCase() === 'pagado') return cancelar('pago ya marcado como Pagado');\n  const monto = Number(g(`Pago ${n} - Monto MXN`) || 0);\n  const destino = g('Viaje Destino') || g('Cot Destino') || (p.lead && p.lead.destino) || 'tu viaje';\n  r.texto = `¡Hola${nombre ? ' ' + nombre : ''}! 👋 Te recuerdo que ${cuando} vence tu ${p.referencia.toLowerCase()}` +\n    (monto ? ` por $${monto.toLocaleString('es-MX')} MXN` : '') + ` de tu viaje a ${destino} 🧳✨\\n` +\n    `Si ya lo realizaste, compártenos tu comprobante por aquí para registrarlo 🙌 ¡Gracias!`;\n} else {\n  const L = [];\n  const add = (e, t, v) => { if (v) L.push(`${e} ${t}: ${v}`); };\n  const destino = g('Viaje Destino') || g('Cot Destino') || (p.lead && p.lead.destino) || '';\n  add('🏨', 'Hotel', g('Viaje Hotel'));\n  const ci = fechaCampo(g('Viaje Check-in')), co = fechaCampo(g('Viaje Check-out'));\n  if (ci || co) L.push(`📅 Check-in: ${ci ? fechaLarga(ci) : '-'} | Check-out: ${co ? fechaLarga(co) : '-'}`);\n  add('🔖', 'Confirmación del hotel', g('Viaje Confirmación hotel'));\n  add('🍽️', 'Plan', g('Viaje Plan de alimentos'));\n  add('🛏️', 'Habitaciones', g('Viaje Habitaciones'));\n  add('👥', 'Pasajeros', g('Viaje Pasajeros'));\n  for (const tramo of ['Ida', 'Regreso']) {\n    const vs = [];\n    for (let i = 1; i <= 3; i++) {\n      const pre = `${tramo} V${i} - `; const a = g(pre + 'Aerolínea y número'), ru = g(pre + 'Ruta (origen → destino)');\n      const s = g(pre + 'Salida (fecha y hora)'), ll = g(pre + 'Llegada (fecha y hora)');\n      if (a || ru || s) vs.push(`   ${i}. ${[a, ru].filter(Boolean).join(' · ')}${s ? ' | Sale: ' + s : ''}${ll ? ' | Llega: ' + ll : ''}`);\n    }\n    if (vs.length) L.push(`✈️ Vuelo${vs.length > 1 ? 's' : ''} de ${tramo.toLowerCase()}:\\n` + vs.join('\\n'));\n    add('🔑', `Clave de reservación (${tramo.toLowerCase()})`, g(`${tramo} - Clave de reservación`));\n  }\n  add('🧳', 'Equipaje', g('Vuelos - Equipaje incluido'));\n  add('🚐', 'Traslados', g('Viaje Traslados'));\n  add('🎟️', 'Tours y extras', g('Viaje Tours y extras'));\n  add('🛡️', 'Seguro de viaje', g('Viaje Seguro'));\n  add('📝', 'Notas', g('Viaje Notas para el cliente'));\n  const hayVuelo = L.some(x => x.startsWith('✈️'));\n  r.texto = `¡Hola${nombre ? ' ' + nombre : ''}! 🌴 ${cuando.charAt(0).toUpperCase() + cuando.slice(1)} comienza tu viaje${destino ? ' a ' + destino : ''} ✈️\\nAquí tienes el resumen de tu viaje:\\n\\n` +\n    (L.join('\\n') || 'Tu asesora te compartirá los detalles finales.') +\n    `\\n\\n✅ Lleva tu identificación oficial${hayVuelo ? ' (pasaporte vigente si es internacional) y llega al aeropuerto con 2 horas de anticipación (3 horas en vuelos internacionales)' : ''}.\\n¡Te deseamos un viaje increíble! 🧳✨`;\n}\nr.accion = 'plantilla';\nreturn { json: r };\n",
+        "mode": "runOnceForEachItem"
+      }
+    },
+    {
+      "id": "d11d8c4e-d2fd-451d-a45b-0bed78142d9b",
+      "name": "Tipo de envío",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1320,
+        700
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "016a900b-6ba5-4a61-be04-2946e47e9f77",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "ia",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ia"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d770a54f-7218-4a29-9472-c8ba8291323f",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "plantilla",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "plantilla"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "48715711-56fe-4ad9-9f1d-d147370e9057",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "mover",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mover"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0ddd1fc4-37e5-4f42-b668-521757f228f8",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "cancelar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancelar"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "77bf8dcb-ffdd-4739-a816-74f01315cf6f",
+      "name": "GHL conversación (seg)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        500
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "7Nt4ISuJNkwzED4xLICK"
+            },
+            {
+              "name": "contactId",
+              "value": "={{ $json.contact_id }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "b55e704a-c7c0-4a50-91a1-6062718beb22",
+      "name": "GHL mensajes (seg)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        500
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "9a0f33aa-dcb6-4a74-9eff-c5faac0c8962",
+      "name": "Prompt seguimiento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        500
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"7Nt4ISuJNkwzED4xLICK\", \"pipelineId\": \"Zd13RBajMPAv1iHBAse1\", \"S\": {\"nuevo\": \"65f25778-1816-434f-841d-330d52c6484f\", \"incompletos\": \"43b2808d-b0f1-4fd5-b6c7-b8bd921e17b7\", \"completos\": \"6f1a3ff4-1a4c-4c4a-b22a-278429f2338a\", \"urgente\": \"bc2b90c9-4bbe-40c2-b328-4aa74432e9a2\", \"humano\": \"a0a4f235-36c1-4e22-9b1b-bbcf7af0733d\", \"cotizacion\": \"d729d68d-d054-4316-aa3b-f550f220214d\", \"respondio\": \"165fddf1-d0c0-473b-b182-6c2a8a7f4b70\", \"apartado\": \"f268113e-0366-4d10-9bab-0f2208bc5e36\", \"pagado\": \"c5173012-9493-4230-8875-e00ff95b9b3a\", \"completado\": \"b89799a4-477b-4c29-8609-71886479c991\", \"perdido\": \"03c9ff5a-cb38-4d10-9fd5-5ab6fbe52361\"}, \"F\": {\"IA Destino\": \"QXkrdR15b1rtrXTBzW5c\", \"IA Fecha salida\": \"yzuEwrtPo3foh4CScn0d\", \"IA Fecha regreso\": \"b0niJ5J39pQPO7joeWYm\", \"IA Fechas (texto)\": \"kLnHA2oerdYuF026PXY1\", \"IA Adultos\": \"IE7Nf1nDny2GOqdbkZqM\", \"IA Niños\": \"K2tdgRNturi9uY7WHJQW\", \"IA Edades niños\": \"Np2V37pJFmiztGoGoEKF\", \"IA Promo de interés\": \"2Vq4SyelqC1EVGssHuh3\", \"IA Ad ID\": \"LuC8o2FrU9kmhNGQaRkX\", \"IA Canal de origen\": \"1GAatSb5VFhj2M8gPd37\", \"IA Viaja en menos de 15 días\": \"2rdsWeZdAyk7FUguRcVL\", \"IA Resumen conversación\": \"gNtvo2YVxQJhUlH5LBFG\", \"Cot Vendedora\": \"yjUvsjChids4KgOmT28B\", \"Cot Fecha de envío\": \"WvMTMNDgNWqYkvyR4O3M\", \"Cot Destino\": \"CEXBx0gxzHIrfVjEphfr\", \"Cot Hotel\": \"7kULKnmCm1PBibGHeNpU\", \"Cot Plan de alimentos\": \"nF9lDKpfidbduRIAM8aV\", \"Cot Habitaciones\": \"EBwPByI6ulPYSzRw1gqP\", \"Cot Monto total MXN\": \"robeVaGvsyRuDV3C344t\", \"Cot Incluye\": \"HrwThz9BEEwgA65ZRoAi\", \"Cot Link o archivo\": \"AQdTKV3Vd1t7BINY1vSh\", \"Cot Vigencia\": \"ViN9RpdFF5QXEAczBC1L\", \"Cot Notas\": \"ZaXqt852Gv78vzjB14n9\", \"Ida V1 - Aerolínea y número\": \"GROYLxjZZQZ1eYexrVVN\", \"Ida V1 - Ruta (origen → destino)\": \"Pf1LtwPiFRdryxnQRsUq\", \"Ida V1 - Salida (fecha y hora)\": \"89e7lsehDf6kt06lhdwg\", \"Ida V1 - Llegada (fecha y hora)\": \"8VzIjf593226NkfyaX1D\", \"Ida V2 - Aerolínea y número\": \"2fzCPj3hj21NmtVYvFU3\", \"Ida V2 - Ruta (origen → destino)\": \"xsfRkDRPnv1mfClkgo8O\", \"Ida V2 - Salida (fecha y hora)\": \"rgTNWOVUo6b7UrEcHjm0\", \"Ida V2 - Llegada (fecha y hora)\": \"3fXAm1XpwCBaXUOIHaES\", \"Ida V3 - Aerolínea y número\": \"NGAorYPVgG1DQIF2YX6j\", \"Ida V3 - Ruta (origen → destino)\": \"QJvLLBkbCmcfwkoC8v1i\", \"Ida V3 - Salida (fecha y hora)\": \"bMQ7G7IJPnEuX6K1onfK\", \"Ida V3 - Llegada (fecha y hora)\": \"ciW1FfTRNhfsykBgwjf8\", \"Ida - Clave de reservación\": \"SEWw4uUvoMN0WAxbmhcL\", \"Regreso V1 - Aerolínea y número\": \"GMQ6Lt7HTUbHSYytHcH5\", \"Regreso V1 - Ruta (origen → destino)\": \"lFTYdSi5rqoE7pgpvqo3\", \"Regreso V1 - Salida (fecha y hora)\": \"0rf4aoMBR1JTUZZhBVqU\", \"Regreso V1 - Llegada (fecha y hora)\": \"rhh5PtqhM9ZC9Da0VRXA\", \"Regreso V2 - Aerolínea y número\": \"whYaOjE9871hsI3vGDOk\", \"Regreso V2 - Ruta (origen → destino)\": \"c3liqGH8TwUzEQzTOejA\", \"Regreso V2 - Salida (fecha y hora)\": \"DU0gFSoj9LdyTJFyxkW1\", \"Regreso V2 - Llegada (fecha y hora)\": \"yWtvdHs3m1N0lkEbzhRI\", \"Regreso V3 - Aerolínea y número\": \"TKg7Et4rfFQGUaAzEhZ5\", \"Regreso V3 - Ruta (origen → destino)\": \"933p6b4qzbHh1HMX04R8\", \"Regreso V3 - Salida (fecha y hora)\": \"iBtKXxa8f3APalXsySM8\", \"Regreso V3 - Llegada (fecha y hora)\": \"ygFZk6mWuPUe5RVsLnj6\", \"Regreso - Clave de reservación\": \"gOEgBeKgzzbxRk4odESJ\", \"Vuelos - Equipaje incluido\": \"UFunURlsbXvfOO8niAeE\", \"Pago Precio total MXN\": \"AgiyTRsIzNaj61qqOd87\", \"Pago Anticipo MXN\": \"PTcIbTzTIJrN41cw7TS9\", \"Pago Saldo pendiente MXN\": \"S6s3XS8AiuR73rSNwRRv\", \"Pago Método\": \"ytI62Z0zadRuFUR6Aw25\", \"Pago 1 - Fecha límite\": \"nxrhYpEcZzee7xVEJlWg\", \"Pago 1 - Monto MXN\": \"Ul3wCwJBwK4lWIMUGSF0\", \"Pago 1 - Estatus\": \"CBnvaeN2j7rjw846kDlQ\", \"Pago 2 - Fecha límite\": \"U6tQKAH4Ipj0CT4D6AYf\", \"Pago 2 - Monto MXN\": \"1FeldccXH8mi57Z58HJF\", \"Pago 2 - Estatus\": \"AVY7ltCuWn0XdX2OBXPV\", \"Pago 3 - Fecha límite\": \"ugFNDkfSUyrRvgia3LIo\", \"Pago 3 - Monto MXN\": \"iMB7uLM9fm22zZDKqlDu\", \"Pago 3 - Estatus\": \"g10IZpuhzfAneOvoVIUC\", \"Pago 4 - Fecha límite\": \"48WtsmRMKJ9oFjgBO19e\", \"Pago 4 - Monto MXN\": \"YQZTKmJdbGOb3tnLVaOZ\", \"Pago 4 - Estatus\": \"i6nkLLuS30j0S0OmY9O0\", \"Pago 5 - Fecha límite\": \"YnwUAMls1g42Vaeo3L5Q\", \"Pago 5 - Monto MXN\": \"Zxh8MwOIkHzeRBU7mL3X\", \"Pago 5 - Estatus\": \"VO1nhi8a4wgnLH9psB32\", \"Pago 6 - Fecha límite\": \"166AXZn57aFMFQ9flBUb\", \"Pago 6 - Monto MXN\": \"axozralZmHRpXb34QEMP\", \"Pago 6 - Estatus\": \"D4X2rwLqisAy3XqUwJri\", \"Viaje Destino\": \"FHWLsbXATasVSXNkyXUN\", \"Viaje Fecha salida\": \"1Q8mRyxy6BF4mllV4cbT\", \"Viaje Fecha regreso\": \"Orttpu4e0tI9ipEVGHoA\", \"Viaje Hotel\": \"09nHZi6kHhe4qnGMZTH0\", \"Viaje Check-in\": \"hxi2VIpqpp8sssInLQtN\", \"Viaje Check-out\": \"j3thSKPVapkEWlvA13AR\", \"Viaje Confirmación hotel\": \"BW9E82efSIhJubOSltuM\", \"Viaje Plan de alimentos\": \"HO9knr9yZ6nvglj8wO76\", \"Viaje Habitaciones\": \"Kw20goM2qW6IPX8phDOk\", \"Viaje Pasajeros\": \"RA4nIg3Y95SsmyL60HnW\", \"Viaje Traslados\": \"2PFchfgQde3HHZlBwEnD\", \"Viaje Tours y extras\": \"aO5EeFwImjKuScNONeRG\", \"Viaje Seguro\": \"ItPrHOiPql2Oe2bVv31A\", \"Viaje Notas para el cliente\": \"xFw4WDCEMUN12C0T9z4n\"}, \"agencia\": \"Agencia Prueba\", \"modelo\": \"gpt-4.1-mini\"};\n\nconst r = $('Decidir envío').item.json;\nlet msgs = []; try { const m = $json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\nif (!Array.isArray(msgs)) msgs = [];\nconst hist = msgs.filter(m => m.body && /WHATSAPP|INSTAGRAM|FACEBOOK|SMS|CHAT|TIKTOK/.test(m.messageType || ''))\n  .sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded)).slice(-12)\n  .map(m => `${m.direction === 'inbound' ? 'Cliente' : 'Agencia'}: ${m.body.slice(0, 500)}`).join('\\n');\nconst guia = r.tipo === 'datos'\n  ? `Es el seguimiento ${r.numero} de 3 a un cliente que dejó de responder mientras recopilábamos sus datos de viaje. Datos que faltan: ${r.contexto.falta.join(', ') || 'ninguno'}. Datos que ya tenemos: ${JSON.stringify(r.contexto.datos)}. Retoma la conversación de forma natural y pide lo que falta.${r.numero === 3 ? ' Es el último seguimiento: cierra con amabilidad diciendo que aquí estaremos cuando quiera retomar.' : ''}`\n  : `Es el seguimiento ${r.numero} de 4 a un cliente al que su asesora ya le envió una cotización y no ha respondido. Datos de la cotización: ${JSON.stringify(r.contexto.cotizacion)}. ${['Pregunta con amabilidad si pudo revisar su cotización.', 'Pregunta si tiene dudas o si quiere ajustar algo (fechas, hotel, número de personas).', 'Menciona que los precios y la disponibilidad pueden cambiar pronto, sin presionar.', 'Último seguimiento: ofrece opciones alternativas si la cotización no le convenció y deja la puerta abierta.'][r.numero - 1] || ''}`;\nconst system = `Eres Lucía, del equipo de \"${CFG.agencia}\", agencia de viajes en México. Tono cercano, tuteas, usas 1 o 2 emojis de viajes. Solo español. Escribe ÚNICAMENTE el texto del mensaje de WhatsApp (máximo 3 líneas), sin comillas ni explicaciones. No inventes precios, disponibilidad ni datos que no estén aquí. No repitas textualmente mensajes anteriores.`;\nreturn { json: { ...r, request: { model: CFG.modelo, temperature: 0.7, messages: [\n  { role: 'system', content: system },\n  { role: 'user', content: `Nombre del cliente: ${r.nombre || 'desconocido'}\\n${guia}\\n\\nÚltimos mensajes de la conversación:\\n${hist || '(sin historial)'}` } ] } } };\n",
+        "mode": "runOnceForEachItem"
+      }
+    },
+    {
+      "id": "b9ba7289-6bc3-44ed-a689-5c8a77b71a7f",
+      "name": "OpenAI seguimiento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "W5zBaQ7k25sn9YQz",
+          "name": "RsViaje Independencia"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "24f16e5b-6da0-486a-b535-fc7e93962cb5",
+      "name": "Texto IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        500
+      ],
+      "parameters": {
+        "jsCode": "\nconst r = $('Prompt seguimiento').item.json;\nconst t = (($json.choices || [])[0]?.message?.content || '').trim().replace(/^\"|\"$/g, '');\nconst { request, ...resto } = r;\nif (!t) return { json: { ...resto, accion: 'error', estado: 'fallido', error: 'OpenAI no generó texto' } };\nreturn { json: { ...resto, texto: t } };\n",
+        "mode": "runOnceForEachItem"
+      }
+    },
+    {
+      "id": "b637a017-10f2-45b5-a3ba-7cb232f779af",
+      "name": "¿Hay texto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        500
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "93d71fe3-cf18-4c3f-9cf1-3caaee62af28",
+              "leftValue": "={{ !!$json.texto }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c219e0b9-4973-46c5-815d-ef8c2b0d4508",
+      "name": "GHL enviar mensaje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        700
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/conversations/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: $json.canal, contactId: $json.contact_id, message: $json.texto }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "fbb55539-b10a-4fff-a281-28da47e182ee",
+      "name": "Esperar entrega (20 s)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2970,
+        850
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 20,
+        "unit": "seconds"
+      },
+      "webhookId": "710e3159-6957-4a5b-9ae2-6e9a1c600af2"
+    },
+    {
+      "id": "f29002b5-f0aa-4776-a10e-6b1d7f96930e",
+      "name": "GHL estado del mensaje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        1000
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/messages/{{ $json.messageId || 'sin-id' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "3afd8fe5-00ab-4ca3-a882-5af30e81bcb8",
+      "name": "Resultado envío",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        700
+      ],
+      "parameters": {
+        "jsCode": "\nconst d = $('Decidir envío').item.json;\nlet base = null; try { base = $('Texto IA').item.json; } catch (e) {}\nif (!base || base.id !== d.id) base = d;\nconst envio = $('GHL enviar mensaje').item.json;\nconst msg = ($json && $json.message) || {};\nconst errEnvio = envio.error ? String(envio.error.message || envio.error) : null;\nconst errEntrega = (String(msg.status || '').toLowerCase() === 'failed' || String(msg.status || '').toLowerCase() === 'undelivered') ? String(msg.error || msg.status) : null;\nconst fallo = !!(errEnvio || errEntrega);\nreturn { json: { ...base, estado: fallo ? 'manual' : 'enviado',\n  error: fallo ? ('No se pudo entregar automáticamente (' + String(errEnvio || errEntrega).slice(0, 200) + '). Se creó tarea para envío manual.') : null } };\n",
+        "mode": "runOnceForEachItem"
+      }
+    },
+    {
+      "id": "474555e5-d53d-424a-9c95-32778c3988dc",
+      "name": "¿Envío manual?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3300,
+        700
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "239d00c1-09a6-4716-abea-2dacf3e500a7",
+              "leftValue": "={{ $json.estado === 'manual' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1fd206ed-45cf-44a6-9faf-986491315f3e",
+      "name": "GHL tarea envío manual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3520,
+        550
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contact_id }}/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: '📲 Enviar mensaje manual (' + $json.canal + ')', body: 'Lucía no pudo enviar este mensaje automáticamente (posible ventana de 24 h de WhatsApp). Cópialo y envíalo desde el celular:\\n\\n' + $json.texto, dueDate: new Date(Date.now() + 3600e3).toISOString(), completed: false, ...($json.assigned_to ? { assignedTo: $json.assigned_to } : {}) }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "da1508af-b8d4-4b44-9c5d-2af682e685da",
+      "name": "¿Mover etapa?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3740,
+        700
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "45dd982c-88f9-4fba-b814-e335c2ad4aa2",
+              "leftValue": "={{ !!$('Resultado envío').item.json.nueva_etapa }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f8e76af5-bb9d-406b-9d8e-3d6fc099e0b6",
+      "name": "GHL mover etapa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3960,
+        550
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Resultado envío').item.json.opportunity_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pipelineStageId: $('Resultado envío').item.json.nueva_etapa }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "5135b304-c231-44bf-9392-8fe724c3a198",
+      "name": "Resultado final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        700
+      ],
+      "parameters": {
+        "jsCode": "\nconst d = $('Decidir envío').item.json;\nlet r = null; try { r = $('Resultado envío').item.json; } catch (e) {}\nif (!r || r.id !== d.id) { r = null; try { r = $('Texto IA').item.json; } catch (e) {} }\nif (!r || r.id !== d.id) r = d;\nreturn { json: { tabla: r.tabla, id: r.id, lead_id: r.lead_id, contact_id: r.contact_id, estado: r.estado,\n  mensaje: r.texto || null, error: r.error || null, etapa: r.estado === 'enviado' ? r.etapa : null } };\n",
+        "mode": "runOnceForEachItem"
+      }
+    },
+    {
+      "id": "60d25502-5962-4539-92db-ea46e6eadb3b",
+      "name": "SB registrar resultado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4400,
+        700
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_marcar_envio",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_items: [$json] }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "158c3895-ab7d-4275-9613-1d90f621fa47",
+      "name": "Mover (cierre)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        950
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunity_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pipelineStageId: $json.nueva_etapa }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "GHL opps en Cotización enviada",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GHL opps abiertas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "¿Horario hábil?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL opps en Cotización enviada": {
+      "main": [
+        [
+          {
+            "node": "Series de cotización",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Series de cotización": {
+      "main": [
+        [
+          {
+            "node": "SB programar cotización",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL opps abiertas": {
+      "main": [
+        [
+          {
+            "node": "Filtrar pagos y viajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar pagos y viajes": {
+      "main": [
+        [
+          {
+            "node": "GHL contacto (recordatorios)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL contacto (recordatorios)": {
+      "main": [
+        [
+          {
+            "node": "Armar recordatorios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar recordatorios": {
+      "main": [
+        [
+          {
+            "node": "SB sincronizar recordatorios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB sincronizar recordatorios": {
+      "main": [
+        [
+          {
+            "node": "Viajes terminados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Viajes terminados": {
+      "main": [
+        [
+          {
+            "node": "GHL mover a Viaje completado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado final": {
+      "main": [
+        [
+          {
+            "node": "SB registrar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Horario hábil?": {
+      "main": [
+        [
+          {
+            "node": "SB tomar pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB tomar pendientes": {
+      "main": [
+        [
+          {
+            "node": "Quitar vacíos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quitar vacíos": {
+      "main": [
+        [
+          {
+            "node": "GHL contacto (envío)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL contacto (envío)": {
+      "main": [
+        [
+          {
+            "node": "GHL oportunidad (envío)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL oportunidad (envío)": {
+      "main": [
+        [
+          {
+            "node": "Decidir envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decidir envío": {
+      "main": [
+        [
+          {
+            "node": "Tipo de envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de envío": {
+      "main": [
+        [
+          {
+            "node": "GHL conversación (seg)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GHL enviar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mover (cierre)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL conversación (seg)": {
+      "main": [
+        [
+          {
+            "node": "GHL mensajes (seg)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL mensajes (seg)": {
+      "main": [
+        [
+          {
+            "node": "Prompt seguimiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt seguimiento": {
+      "main": [
+        [
+          {
+            "node": "OpenAI seguimiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI seguimiento": {
+      "main": [
+        [
+          {
+            "node": "Texto IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Texto IA": {
+      "main": [
+        [
+          {
+            "node": "¿Hay texto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay texto?": {
+      "main": [
+        [
+          {
+            "node": "GHL enviar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL enviar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Esperar entrega (20 s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar entrega (20 s)": {
+      "main": [
+        [
+          {
+            "node": "GHL estado del mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL estado del mensaje": {
+      "main": [
+        [
+          {
+            "node": "Resultado envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado envío": {
+      "main": [
+        [
+          {
+            "node": "¿Envío manual?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Envío manual?": {
+      "main": [
+        [
+          {
+            "node": "GHL tarea envío manual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Mover etapa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL tarea envío manual": {
+      "main": [
+        [
+          {
+            "node": "¿Mover etapa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Mover etapa?": {
+      "main": [
+        [
+          {
+            "node": "GHL mover etapa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL mover etapa": {
+      "main": [
+        [
+          {
+            "node": "Resultado final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover (cierre)": {
+      "main": [
+        [
+          {
+            "node": "Resultado final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "availableInMCP": true
+  }
+}

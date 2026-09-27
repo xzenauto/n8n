@@ -1,0 +1,385 @@
+{
+  "locationId": "7Nt4ISuJNkwzED4xLICK",
+  "pipelineId": "Zd13RBajMPAv1iHBAse1",
+  "stages": {
+    "🤖 Nuevo – Lucía recopilando": "65f25778-1816-434f-841d-330d52c6484f",
+    "⏳ Datos incompletos – sin respuesta": "43b2808d-b0f1-4fd5-b6c7-b8bd921e17b7",
+    "✅ Datos completos": "6f1a3ff4-1a4c-4c4a-b22a-278429f2338a",
+    "🔥 Datos completos – viaja en menos de 15 días": "bc2b90c9-4bbe-40c2-b328-4aa74432e9a2",
+    "🙋 Atención humana": "a0a4f235-36c1-4e22-9b1b-bbcf7af0733d",
+    "📩 Cotización enviada": "d729d68d-d054-4316-aa3b-f550f220214d",
+    "💬 Cliente respondió / negociando": "165fddf1-d0c0-473b-b182-6c2a8a7f4b70",
+    "💳 Apartado / pagos en curso": "f268113e-0366-4d10-9bab-0f2208bc5e36",
+    "✈️ Pagado – viaje confirmado": "c5173012-9493-4230-8875-e00ff95b9b3a",
+    "🏁 Viaje completado": "b89799a4-477b-4c29-8609-71886479c991",
+    "❌ Perdido / frío": "03c9ff5a-cb38-4d10-9fd5-5ab6fbe52361"
+  },
+  "folders": {
+    "1. Datos IA (Lucía)": "pdgscsV7zU7Cw6eEOW2E",
+    "2. Cotización (Ventas)": "fyQOUZtFzlmeRVYUvyyE",
+    "3. Vuelos": "xBUY2SRD6vc4YE7oxcrs",
+    "4. Pagos": "fWR0dbcBokOB58cUuQ2z",
+    "5. Datos definitivos del viaje": "iH4VN0AaafoWbuqaahal"
+  },
+  "fields": {
+    "IA Destino": {
+      "id": "QXkrdR15b1rtrXTBzW5c",
+      "key": "contact.ia_destino"
+    },
+    "IA Fecha salida": {
+      "id": "yzuEwrtPo3foh4CScn0d",
+      "key": "contact.ia_fecha_salida"
+    },
+    "IA Fecha regreso": {
+      "id": "b0niJ5J39pQPO7joeWYm",
+      "key": "contact.ia_fecha_regreso"
+    },
+    "IA Fechas (texto)": {
+      "id": "kLnHA2oerdYuF026PXY1",
+      "key": "contact.ia_fechas_texto"
+    },
+    "IA Adultos": {
+      "id": "IE7Nf1nDny2GOqdbkZqM",
+      "key": "contact.ia_adultos"
+    },
+    "IA Niños": {
+      "id": "K2tdgRNturi9uY7WHJQW",
+      "key": "contact.ia_nios"
+    },
+    "IA Edades niños": {
+      "id": "Np2V37pJFmiztGoGoEKF",
+      "key": "contact.ia_edades_nios"
+    },
+    "IA Promo de interés": {
+      "id": "2Vq4SyelqC1EVGssHuh3",
+      "key": "contact.ia_promo_de_inters"
+    },
+    "IA Ad ID": {
+      "id": "LuC8o2FrU9kmhNGQaRkX",
+      "key": "contact.ia_ad_id"
+    },
+    "IA Canal de origen": {
+      "id": "1GAatSb5VFhj2M8gPd37",
+      "key": "contact.ia_canal_de_origen"
+    },
+    "IA Viaja en menos de 15 días": {
+      "id": "2rdsWeZdAyk7FUguRcVL",
+      "key": "contact.ia_viaja_en_menos_de_15_das"
+    },
+    "IA Resumen conversación": {
+      "id": "gNtvo2YVxQJhUlH5LBFG",
+      "key": "contact.ia_resumen_conversacin"
+    },
+    "Cot Vendedora": {
+      "id": "yjUvsjChids4KgOmT28B",
+      "key": "contact.cot_vendedora"
+    },
+    "Cot Fecha de envío": {
+      "id": "WvMTMNDgNWqYkvyR4O3M",
+      "key": "contact.cot_fecha_de_envo"
+    },
+    "Cot Destino": {
+      "id": "CEXBx0gxzHIrfVjEphfr",
+      "key": "contact.cot_destino"
+    },
+    "Cot Hotel": {
+      "id": "7kULKnmCm1PBibGHeNpU",
+      "key": "contact.cot_hotel"
+    },
+    "Cot Plan de alimentos": {
+      "id": "nF9lDKpfidbduRIAM8aV",
+      "key": "contact.cot_plan_de_alimentos"
+    },
+    "Cot Habitaciones": {
+      "id": "EBwPByI6ulPYSzRw1gqP",
+      "key": "contact.cot_habitaciones"
+    },
+    "Cot Monto total MXN": {
+      "id": "robeVaGvsyRuDV3C344t",
+      "key": "contact.cot_monto_total_mxn"
+    },
+    "Cot Incluye": {
+      "id": "HrwThz9BEEwgA65ZRoAi",
+      "key": "contact.cot_incluye"
+    },
+    "Cot Link o archivo": {
+      "id": "AQdTKV3Vd1t7BINY1vSh",
+      "key": "contact.cot_link_o_archivo"
+    },
+    "Cot Vigencia": {
+      "id": "ViN9RpdFF5QXEAczBC1L",
+      "key": "contact.cot_vigencia"
+    },
+    "Cot Notas": {
+      "id": "ZaXqt852Gv78vzjB14n9",
+      "key": "contact.cot_notas"
+    },
+    "Ida V1 - Aerolínea y número": {
+      "id": "GROYLxjZZQZ1eYexrVVN",
+      "key": "contact.ida_v1__aerolnea_y_nmero"
+    },
+    "Ida V1 - Ruta (origen → destino)": {
+      "id": "Pf1LtwPiFRdryxnQRsUq",
+      "key": "contact.ida_v1__ruta_origen__destino"
+    },
+    "Ida V1 - Salida (fecha y hora)": {
+      "id": "89e7lsehDf6kt06lhdwg",
+      "key": "contact.ida_v1__salida_fecha_y_hora"
+    },
+    "Ida V1 - Llegada (fecha y hora)": {
+      "id": "8VzIjf593226NkfyaX1D",
+      "key": "contact.ida_v1__llegada_fecha_y_hora"
+    },
+    "Ida V2 - Aerolínea y número": {
+      "id": "2fzCPj3hj21NmtVYvFU3",
+      "key": "contact.ida_v2__aerolnea_y_nmero"
+    },
+    "Ida V2 - Ruta (origen → destino)": {
+      "id": "xsfRkDRPnv1mfClkgo8O",
+      "key": "contact.ida_v2__ruta_origen__destino"
+    },
+    "Ida V2 - Salida (fecha y hora)": {
+      "id": "rgTNWOVUo6b7UrEcHjm0",
+      "key": "contact.ida_v2__salida_fecha_y_hora"
+    },
+    "Ida V2 - Llegada (fecha y hora)": {
+      "id": "3fXAm1XpwCBaXUOIHaES",
+      "key": "contact.ida_v2__llegada_fecha_y_hora"
+    },
+    "Ida V3 - Aerolínea y número": {
+      "id": "NGAorYPVgG1DQIF2YX6j",
+      "key": "contact.ida_v3__aerolnea_y_nmero"
+    },
+    "Ida V3 - Ruta (origen → destino)": {
+      "id": "QJvLLBkbCmcfwkoC8v1i",
+      "key": "contact.ida_v3__ruta_origen__destino"
+    },
+    "Ida V3 - Salida (fecha y hora)": {
+      "id": "bMQ7G7IJPnEuX6K1onfK",
+      "key": "contact.ida_v3__salida_fecha_y_hora"
+    },
+    "Ida V3 - Llegada (fecha y hora)": {
+      "id": "ciW1FfTRNhfsykBgwjf8",
+      "key": "contact.ida_v3__llegada_fecha_y_hora"
+    },
+    "Ida - Clave de reservación": {
+      "id": "SEWw4uUvoMN0WAxbmhcL",
+      "key": "contact.ida__clave_de_reservacin"
+    },
+    "Regreso V1 - Aerolínea y número": {
+      "id": "GMQ6Lt7HTUbHSYytHcH5",
+      "key": "contact.regreso_v1__aerolnea_y_nmero"
+    },
+    "Regreso V1 - Ruta (origen → destino)": {
+      "id": "lFTYdSi5rqoE7pgpvqo3",
+      "key": "contact.regreso_v1__ruta_origen__destino"
+    },
+    "Regreso V1 - Salida (fecha y hora)": {
+      "id": "0rf4aoMBR1JTUZZhBVqU",
+      "key": "contact.regreso_v1__salida_fecha_y_hora"
+    },
+    "Regreso V1 - Llegada (fecha y hora)": {
+      "id": "rhh5PtqhM9ZC9Da0VRXA",
+      "key": "contact.regreso_v1__llegada_fecha_y_hora"
+    },
+    "Regreso V2 - Aerolínea y número": {
+      "id": "whYaOjE9871hsI3vGDOk",
+      "key": "contact.regreso_v2__aerolnea_y_nmero"
+    },
+    "Regreso V2 - Ruta (origen → destino)": {
+      "id": "c3liqGH8TwUzEQzTOejA",
+      "key": "contact.regreso_v2__ruta_origen__destino"
+    },
+    "Regreso V2 - Salida (fecha y hora)": {
+      "id": "DU0gFSoj9LdyTJFyxkW1",
+      "key": "contact.regreso_v2__salida_fecha_y_hora"
+    },
+    "Regreso V2 - Llegada (fecha y hora)": {
+      "id": "yWtvdHs3m1N0lkEbzhRI",
+      "key": "contact.regreso_v2__llegada_fecha_y_hora"
+    },
+    "Regreso V3 - Aerolínea y número": {
+      "id": "TKg7Et4rfFQGUaAzEhZ5",
+      "key": "contact.regreso_v3__aerolnea_y_nmero"
+    },
+    "Regreso V3 - Ruta (origen → destino)": {
+      "id": "933p6b4qzbHh1HMX04R8",
+      "key": "contact.regreso_v3__ruta_origen__destino"
+    },
+    "Regreso V3 - Salida (fecha y hora)": {
+      "id": "iBtKXxa8f3APalXsySM8",
+      "key": "contact.regreso_v3__salida_fecha_y_hora"
+    },
+    "Regreso V3 - Llegada (fecha y hora)": {
+      "id": "ygFZk6mWuPUe5RVsLnj6",
+      "key": "contact.regreso_v3__llegada_fecha_y_hora"
+    },
+    "Regreso - Clave de reservación": {
+      "id": "gOEgBeKgzzbxRk4odESJ",
+      "key": "contact.regreso__clave_de_reservacin"
+    },
+    "Vuelos - Equipaje incluido": {
+      "id": "UFunURlsbXvfOO8niAeE",
+      "key": "contact.vuelos__equipaje_incluido"
+    },
+    "Pago Precio total MXN": {
+      "id": "AgiyTRsIzNaj61qqOd87",
+      "key": "contact.pago_precio_total_mxn"
+    },
+    "Pago Anticipo MXN": {
+      "id": "PTcIbTzTIJrN41cw7TS9",
+      "key": "contact.pago_anticipo_mxn"
+    },
+    "Pago Saldo pendiente MXN": {
+      "id": "S6s3XS8AiuR73rSNwRRv",
+      "key": "contact.pago_saldo_pendiente_mxn"
+    },
+    "Pago Método": {
+      "id": "ytI62Z0zadRuFUR6Aw25",
+      "key": "contact.pago_mtodo"
+    },
+    "Pago 1 - Fecha límite": {
+      "id": "nxrhYpEcZzee7xVEJlWg",
+      "key": "contact.pago_1__fecha_lmite"
+    },
+    "Pago 1 - Monto MXN": {
+      "id": "Ul3wCwJBwK4lWIMUGSF0",
+      "key": "contact.pago_1__monto_mxn"
+    },
+    "Pago 1 - Estatus": {
+      "id": "CBnvaeN2j7rjw846kDlQ",
+      "key": "contact.pago_1__estatus"
+    },
+    "Pago 2 - Fecha límite": {
+      "id": "U6tQKAH4Ipj0CT4D6AYf",
+      "key": "contact.pago_2__fecha_lmite"
+    },
+    "Pago 2 - Monto MXN": {
+      "id": "1FeldccXH8mi57Z58HJF",
+      "key": "contact.pago_2__monto_mxn"
+    },
+    "Pago 2 - Estatus": {
+      "id": "AVY7ltCuWn0XdX2OBXPV",
+      "key": "contact.pago_2__estatus"
+    },
+    "Pago 3 - Fecha límite": {
+      "id": "ugFNDkfSUyrRvgia3LIo",
+      "key": "contact.pago_3__fecha_lmite"
+    },
+    "Pago 3 - Monto MXN": {
+      "id": "iMB7uLM9fm22zZDKqlDu",
+      "key": "contact.pago_3__monto_mxn"
+    },
+    "Pago 3 - Estatus": {
+      "id": "g10IZpuhzfAneOvoVIUC",
+      "key": "contact.pago_3__estatus"
+    },
+    "Pago 4 - Fecha límite": {
+      "id": "48WtsmRMKJ9oFjgBO19e",
+      "key": "contact.pago_4__fecha_lmite"
+    },
+    "Pago 4 - Monto MXN": {
+      "id": "YQZTKmJdbGOb3tnLVaOZ",
+      "key": "contact.pago_4__monto_mxn"
+    },
+    "Pago 4 - Estatus": {
+      "id": "i6nkLLuS30j0S0OmY9O0",
+      "key": "contact.pago_4__estatus"
+    },
+    "Pago 5 - Fecha límite": {
+      "id": "YnwUAMls1g42Vaeo3L5Q",
+      "key": "contact.pago_5__fecha_lmite"
+    },
+    "Pago 5 - Monto MXN": {
+      "id": "Zxh8MwOIkHzeRBU7mL3X",
+      "key": "contact.pago_5__monto_mxn"
+    },
+    "Pago 5 - Estatus": {
+      "id": "VO1nhi8a4wgnLH9psB32",
+      "key": "contact.pago_5__estatus"
+    },
+    "Pago 6 - Fecha límite": {
+      "id": "166AXZn57aFMFQ9flBUb",
+      "key": "contact.pago_6__fecha_lmite"
+    },
+    "Pago 6 - Monto MXN": {
+      "id": "axozralZmHRpXb34QEMP",
+      "key": "contact.pago_6__monto_mxn"
+    },
+    "Pago 6 - Estatus": {
+      "id": "D4X2rwLqisAy3XqUwJri",
+      "key": "contact.pago_6__estatus"
+    },
+    "Viaje Destino": {
+      "id": "FHWLsbXATasVSXNkyXUN",
+      "key": "contact.viaje_destino"
+    },
+    "Viaje Fecha salida": {
+      "id": "1Q8mRyxy6BF4mllV4cbT",
+      "key": "contact.viaje_fecha_salida"
+    },
+    "Viaje Fecha regreso": {
+      "id": "Orttpu4e0tI9ipEVGHoA",
+      "key": "contact.viaje_fecha_regreso"
+    },
+    "Viaje Hotel": {
+      "id": "09nHZi6kHhe4qnGMZTH0",
+      "key": "contact.viaje_hotel"
+    },
+    "Viaje Check-in": {
+      "id": "hxi2VIpqpp8sssInLQtN",
+      "key": "contact.viaje_checkin"
+    },
+    "Viaje Check-out": {
+      "id": "j3thSKPVapkEWlvA13AR",
+      "key": "contact.viaje_checkout"
+    },
+    "Viaje Confirmación hotel": {
+      "id": "BW9E82efSIhJubOSltuM",
+      "key": "contact.viaje_confirmacin_hotel"
+    },
+    "Viaje Plan de alimentos": {
+      "id": "HO9knr9yZ6nvglj8wO76",
+      "key": "contact.viaje_plan_de_alimentos"
+    },
+    "Viaje Habitaciones": {
+      "id": "Kw20goM2qW6IPX8phDOk",
+      "key": "contact.viaje_habitaciones"
+    },
+    "Viaje Pasajeros": {
+      "id": "RA4nIg3Y95SsmyL60HnW",
+      "key": "contact.viaje_pasajeros"
+    },
+    "Viaje Traslados": {
+      "id": "2PFchfgQde3HHZlBwEnD",
+      "key": "contact.viaje_traslados"
+    },
+    "Viaje Tours y extras": {
+      "id": "aO5EeFwImjKuScNONeRG",
+      "key": "contact.viaje_tours_y_extras"
+    },
+    "Viaje Seguro": {
+      "id": "ItPrHOiPql2Oe2bVv31A",
+      "key": "contact.viaje_seguro"
+    },
+    "Viaje Notas para el cliente": {
+      "id": "xFw4WDCEMUN12C0T9z4n",
+      "key": "contact.viaje_notas_para_el_cliente"
+    }
+  },
+  "tags": [
+    "ia-pausada",
+    "seguimiento-pausado",
+    "datos-completos",
+    "urgente-15-dias",
+    "escalado-humano",
+    "cotizacion-enviada",
+    "cliente-recurrente",
+    "lucia"
+  ],
+  "users": {
+    "Michelle": "tvZRs5rlW45MgIIBWfdT",
+    "Nathalie": "MQZKmlCWAuqkP7NwkifO",
+    "Paulina": "7lZO5hwSJ7fzjHpzvbnl"
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "name": "Lucía – Sincronizar promos (Sheets → Supabase)",
+  "nodes": [
+    {
+      "id": "71b93af6-4fae-4c0d-a71e-448ce253ca34",
+      "name": "Cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "39dcb4fa-ccda-45e3-9d82-52f491d4d66a",
+      "name": "Leer promos del Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1lrw1EK-laBq-QJkHUxQGr7fN7b-OD7bqE57nDR_qKx0",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Promos",
+          "mode": "name"
+        },
+        "options": {
+          "outputFormatting": {
+            "values": {
+              "general": "UNFORMATTED_VALUE",
+              "date": "SERIAL_NUMBER"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "f7e8249c-af66-42f4-aef3-1771311ddf06",
+      "name": "Normalizar filas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nfunction fecha(v) {\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number') return new Date(Date.UTC(1899, 11, 30) + v * 864e5).toISOString().slice(0, 10);\n  const s = String(v).trim();\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{2,4})$/);\n  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }\n  return null;\n}\nconst F = ['vigencia_desde', 'vigencia_hasta', 'viaje_desde', 'viaje_hasta'];\nconst rows = $input.all().map(i => i.json).filter(r => r && String(r.id_promo || '').trim())\n  .map(r => { const o = {}; for (const [k, v] of Object.entries(r)) o[k.trim()] = (v === null || v === undefined) ? '' : String(v);\n    for (const f of F) o[f] = fecha(r[f]) || ''; return o; });\nreturn [{ json: { rows } }];\n"
+      }
+    },
+    {
+      "id": "58d7701f-48bb-4d41-a2da-c5da03f79775",
+      "name": "SB sincronizar promos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_sync_promos",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_rows: $json.rows }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "Leer promos del Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer promos del Sheet": {
+      "main": [
+        [
+          {
+            "node": "Normalizar filas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar filas": {
+      "main": [
+        [
+          {
+            "node": "SB sincronizar promos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "availableInMCP": true
+  }
+}

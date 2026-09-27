@@ -1,0 +1,1430 @@
+{
+  "name": "Lucía – Conversación (Agencia Prueba)",
+  "nodes": [
+    {
+      "id": "79d5d6af-61a1-4d87-9678-dd661d15ad69",
+      "name": "Mensaje entrante GHL",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lucia-agencia-prueba",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "42571f3e-e1d2-4d2c-92c9-88a9d92639d2"
+    },
+    {
+      "id": "f567d6f0-e409-45c8-8cda-c7b695ea30bd",
+      "name": "Normalizar entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst j = $input.first().json; const b = j.body || j;\nconst id = b.contact_id || b.contactId || (b.contact && b.contact.id) || (b.customData && b.customData.contact_id);\nif (!id) return [];\nreturn [{ json: { contact_id: String(id) } }];\n"
+      }
+    },
+    {
+      "id": "0ae937ff-7e94-4032-8db0-9e85e24f04fd",
+      "name": "SB registrar mensaje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_registrar_mensaje",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $json.contact_id }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "51313501-f257-445c-8cc0-18065aff2e2d",
+      "name": "Esperar ráfaga (15 s)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "webhookId": "17e88bc1-6163-4e26-b778-a908ea5435c3"
+    },
+    {
+      "id": "79ffab6d-cb07-444c-9ea0-59f765b2a57e",
+      "name": "SB ¿es el último?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_es_ultimo",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $('Normalizar entrada').item.json.contact_id, p_token: $('SB registrar mensaje').item.json.token }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "dcde3614-2985-4d9d-bd24-a9cea0dd5b7a",
+      "name": "¿Último mensaje?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b97290a1-9191-4049-98fd-4a7270a3d8f7",
+              "leftValue": "={{ $json.es_ultimo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fb56b4c0-c74a-4388-949c-a6cbb9f1838a",
+      "name": "GHL contacto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Normalizar entrada').item.json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      }
+    },
+    {
+      "id": "2571fc28-b782-450a-ad71-1f114a1306ed",
+      "name": "GHL oportunidades",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/opportunities/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "location_id",
+              "value": "7Nt4ISuJNkwzED4xLICK"
+            },
+            {
+              "name": "contact_id",
+              "value": "={{ $('Normalizar entrada').item.json.contact_id }}"
+            },
+            {
+              "name": "pipeline_id",
+              "value": "Zd13RBajMPAv1iHBAse1"
+            },
+            {
+              "name": "status",
+              "value": "all"
+            },
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      }
+    },
+    {
+      "id": "e3b6e3a1-331f-44a3-a4fa-502ea217b4ea",
+      "name": "GHL conversación",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "7Nt4ISuJNkwzED4xLICK"
+            },
+            {
+              "name": "contactId",
+              "value": "={{ $('Normalizar entrada').item.json.contact_id }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      }
+    },
+    {
+      "id": "57d14811-4091-4ef4-a33c-f1725b9ec7d2",
+      "name": "GHL mensajes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "40"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "66d77049-c286-4735-a294-e1eb799568b8",
+      "name": "SB contexto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_get_contexto",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $('Normalizar entrada').item.json.contact_id }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "442e9e26-2b9a-4744-8af5-22d2937ec7ac",
+      "name": "Analizar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"7Nt4ISuJNkwzED4xLICK\", \"pipelineId\": \"Zd13RBajMPAv1iHBAse1\", \"S\": {\"nuevo\": \"65f25778-1816-434f-841d-330d52c6484f\", \"incompletos\": \"43b2808d-b0f1-4fd5-b6c7-b8bd921e17b7\", \"completos\": \"6f1a3ff4-1a4c-4c4a-b22a-278429f2338a\", \"urgente\": \"bc2b90c9-4bbe-40c2-b328-4aa74432e9a2\", \"humano\": \"a0a4f235-36c1-4e22-9b1b-bbcf7af0733d\", \"cotizacion\": \"d729d68d-d054-4316-aa3b-f550f220214d\", \"respondio\": \"165fddf1-d0c0-473b-b182-6c2a8a7f4b70\", \"apartado\": \"f268113e-0366-4d10-9bab-0f2208bc5e36\", \"pagado\": \"c5173012-9493-4230-8875-e00ff95b9b3a\", \"completado\": \"b89799a4-477b-4c29-8609-71886479c991\", \"perdido\": \"03c9ff5a-cb38-4d10-9fd5-5ab6fbe52361\"}, \"F\": {\"IA Destino\": \"QXkrdR15b1rtrXTBzW5c\", \"IA Fecha salida\": \"yzuEwrtPo3foh4CScn0d\", \"IA Fecha regreso\": \"b0niJ5J39pQPO7joeWYm\", \"IA Fechas (texto)\": \"kLnHA2oerdYuF026PXY1\", \"IA Adultos\": \"IE7Nf1nDny2GOqdbkZqM\", \"IA Niños\": \"K2tdgRNturi9uY7WHJQW\", \"IA Edades niños\": \"Np2V37pJFmiztGoGoEKF\", \"IA Promo de interés\": \"2Vq4SyelqC1EVGssHuh3\", \"IA Ad ID\": \"LuC8o2FrU9kmhNGQaRkX\", \"IA Canal de origen\": \"1GAatSb5VFhj2M8gPd37\", \"IA Viaja en menos de 15 días\": \"2rdsWeZdAyk7FUguRcVL\", \"IA Resumen conversación\": \"gNtvo2YVxQJhUlH5LBFG\", \"Cot Vendedora\": \"yjUvsjChids4KgOmT28B\", \"Cot Fecha de envío\": \"WvMTMNDgNWqYkvyR4O3M\", \"Cot Destino\": \"CEXBx0gxzHIrfVjEphfr\", \"Cot Hotel\": \"7kULKnmCm1PBibGHeNpU\", \"Cot Plan de alimentos\": \"nF9lDKpfidbduRIAM8aV\", \"Cot Habitaciones\": \"EBwPByI6ulPYSzRw1gqP\", \"Cot Monto total MXN\": \"robeVaGvsyRuDV3C344t\", \"Cot Incluye\": \"HrwThz9BEEwgA65ZRoAi\", \"Cot Link o archivo\": \"AQdTKV3Vd1t7BINY1vSh\", \"Cot Vigencia\": \"ViN9RpdFF5QXEAczBC1L\", \"Cot Notas\": \"ZaXqt852Gv78vzjB14n9\", \"Ida V1 - Aerolínea y número\": \"GROYLxjZZQZ1eYexrVVN\", \"Ida V1 - Ruta (origen → destino)\": \"Pf1LtwPiFRdryxnQRsUq\", \"Ida V1 - Salida (fecha y hora)\": \"89e7lsehDf6kt06lhdwg\", \"Ida V1 - Llegada (fecha y hora)\": \"8VzIjf593226NkfyaX1D\", \"Ida V2 - Aerolínea y número\": \"2fzCPj3hj21NmtVYvFU3\", \"Ida V2 - Ruta (origen → destino)\": \"xsfRkDRPnv1mfClkgo8O\", \"Ida V2 - Salida (fecha y hora)\": \"rgTNWOVUo6b7UrEcHjm0\", \"Ida V2 - Llegada (fecha y hora)\": \"3fXAm1XpwCBaXUOIHaES\", \"Ida V3 - Aerolínea y número\": \"NGAorYPVgG1DQIF2YX6j\", \"Ida V3 - Ruta (origen → destino)\": \"QJvLLBkbCmcfwkoC8v1i\", \"Ida V3 - Salida (fecha y hora)\": \"bMQ7G7IJPnEuX6K1onfK\", \"Ida V3 - Llegada (fecha y hora)\": \"ciW1FfTRNhfsykBgwjf8\", \"Ida - Clave de reservación\": \"SEWw4uUvoMN0WAxbmhcL\", \"Regreso V1 - Aerolínea y número\": \"GMQ6Lt7HTUbHSYytHcH5\", \"Regreso V1 - Ruta (origen → destino)\": \"lFTYdSi5rqoE7pgpvqo3\", \"Regreso V1 - Salida (fecha y hora)\": \"0rf4aoMBR1JTUZZhBVqU\", \"Regreso V1 - Llegada (fecha y hora)\": \"rhh5PtqhM9ZC9Da0VRXA\", \"Regreso V2 - Aerolínea y número\": \"whYaOjE9871hsI3vGDOk\", \"Regreso V2 - Ruta (origen → destino)\": \"c3liqGH8TwUzEQzTOejA\", \"Regreso V2 - Salida (fecha y hora)\": \"DU0gFSoj9LdyTJFyxkW1\", \"Regreso V2 - Llegada (fecha y hora)\": \"yWtvdHs3m1N0lkEbzhRI\", \"Regreso V3 - Aerolínea y número\": \"TKg7Et4rfFQGUaAzEhZ5\", \"Regreso V3 - Ruta (origen → destino)\": \"933p6b4qzbHh1HMX04R8\", \"Regreso V3 - Salida (fecha y hora)\": \"iBtKXxa8f3APalXsySM8\", \"Regreso V3 - Llegada (fecha y hora)\": \"ygFZk6mWuPUe5RVsLnj6\", \"Regreso - Clave de reservación\": \"gOEgBeKgzzbxRk4odESJ\", \"Vuelos - Equipaje incluido\": \"UFunURlsbXvfOO8niAeE\", \"Pago Precio total MXN\": \"AgiyTRsIzNaj61qqOd87\", \"Pago Anticipo MXN\": \"PTcIbTzTIJrN41cw7TS9\", \"Pago Saldo pendiente MXN\": \"S6s3XS8AiuR73rSNwRRv\", \"Pago Método\": \"ytI62Z0zadRuFUR6Aw25\", \"Pago 1 - Fecha límite\": \"nxrhYpEcZzee7xVEJlWg\", \"Pago 1 - Monto MXN\": \"Ul3wCwJBwK4lWIMUGSF0\", \"Pago 1 - Estatus\": \"CBnvaeN2j7rjw846kDlQ\", \"Pago 2 - Fecha límite\": \"U6tQKAH4Ipj0CT4D6AYf\", \"Pago 2 - Monto MXN\": \"1FeldccXH8mi57Z58HJF\", \"Pago 2 - Estatus\": \"AVY7ltCuWn0XdX2OBXPV\", \"Pago 3 - Fecha límite\": \"ugFNDkfSUyrRvgia3LIo\", \"Pago 3 - Monto MXN\": \"iMB7uLM9fm22zZDKqlDu\", \"Pago 3 - Estatus\": \"g10IZpuhzfAneOvoVIUC\", \"Pago 4 - Fecha límite\": \"48WtsmRMKJ9oFjgBO19e\", \"Pago 4 - Monto MXN\": \"YQZTKmJdbGOb3tnLVaOZ\", \"Pago 4 - Estatus\": \"i6nkLLuS30j0S0OmY9O0\", \"Pago 5 - Fecha límite\": \"YnwUAMls1g42Vaeo3L5Q\", \"Pago 5 - Monto MXN\": \"Zxh8MwOIkHzeRBU7mL3X\", \"Pago 5 - Estatus\": \"VO1nhi8a4wgnLH9psB32\", \"Pago 6 - Fecha límite\": \"166AXZn57aFMFQ9flBUb\", \"Pago 6 - Monto MXN\": \"axozralZmHRpXb34QEMP\", \"Pago 6 - Estatus\": \"D4X2rwLqisAy3XqUwJri\", \"Viaje Destino\": \"FHWLsbXATasVSXNkyXUN\", \"Viaje Fecha salida\": \"1Q8mRyxy6BF4mllV4cbT\", \"Viaje Fecha regreso\": \"Orttpu4e0tI9ipEVGHoA\", \"Viaje Hotel\": \"09nHZi6kHhe4qnGMZTH0\", \"Viaje Check-in\": \"hxi2VIpqpp8sssInLQtN\", \"Viaje Check-out\": \"j3thSKPVapkEWlvA13AR\", \"Viaje Confirmación hotel\": \"BW9E82efSIhJubOSltuM\", \"Viaje Plan de alimentos\": \"HO9knr9yZ6nvglj8wO76\", \"Viaje Habitaciones\": \"Kw20goM2qW6IPX8phDOk\", \"Viaje Pasajeros\": \"RA4nIg3Y95SsmyL60HnW\", \"Viaje Traslados\": \"2PFchfgQde3HHZlBwEnD\", \"Viaje Tours y extras\": \"aO5EeFwImjKuScNONeRG\", \"Viaje Seguro\": \"ItPrHOiPql2Oe2bVv31A\", \"Viaje Notas para el cliente\": \"xFw4WDCEMUN12C0T9z4n\"}, \"agencia\": \"Agencia Prueba\", \"modelo\": \"gpt-4.1-mini\"};\n\nconst OFFSET = -6; // CDMX sin horario de verano\nfunction hoyCdmx() { return new Date(Date.now() + OFFSET * 3600e3).toISOString().slice(0, 10); }\nfunction fechaCampo(v) { // valor de campo DATE de GHL -> 'YYYY-MM-DD'\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number' || /^\\d{10,}$/.test(String(v))) {\n    const d = new Date(Number(v));\n    return (d.getUTCHours() === 0 ? d : new Date(d.getTime() + OFFSET * 3600e3)).toISOString().slice(0, 10);\n  }\n  const s = String(v);\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})/);\n  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;\n  const d = new Date(s); return isNaN(d) ? null : d.toISOString().slice(0, 10);\n}\nconst MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\nconst DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];\nfunction fechaLarga(iso) { const d = new Date(iso + 'T12:00:00Z'); return `${DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`; }\nfunction diasEntre(a, b) { return Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5); }\n\nconst cid = $('Normalizar entrada').first().json.contact_id;\nconst contact = $('GHL contacto').first().json.contact || {};\nconst opps = $('GHL oportunidades').first().json.opportunities || [];\nconst conv = ($('GHL conversación').first().json.conversations || [])[0] || null;\nlet msgs = [];\ntry { const m = $('GHL mensajes').first().json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\nif (!Array.isArray(msgs)) msgs = [];\nconst ctx = $('SB contexto').first().json || {};\nconst contacto = ctx.contacto || {};\nconst tags = (contact.tags || []).map(t => String(t).toLowerCase());\n\nconst TIPOS = { TYPE_WHATSAPP: 'WhatsApp', TYPE_INSTAGRAM: 'IG', TYPE_FACEBOOK: 'FB', TYPE_SMS: 'SMS',\n  TYPE_LIVE_CHAT: 'Live_Chat', TYPE_WEBCHAT: 'Live_Chat', TYPE_TIKTOK: 'TikTok', TYPE_EMAIL: 'Email' };\nconst canalDe = t => TIPOS[t] || (/INSTAGRAM/.test(t) ? 'IG' : /FACEBOOK/.test(t) ? 'FB' : /TIKTOK/.test(t) ? 'TikTok' : null);\nmsgs = msgs.filter(m => canalDe(m.messageType || '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));\nconst desde = contacto.ultimo_procesado_en ? new Date(contacto.ultimo_procesado_en) : new Date(0);\nconst nuevos = msgs.filter(m => m.direction === 'inbound' && new Date(m.dateAdded) > desde);\nconst historial = msgs.filter(m => !nuevos.includes(m)).slice(-30);\nconst ultimo = nuevos[nuevos.length - 1] || msgs[msgs.length - 1] || {};\nconst canal = canalDe(ultimo.messageType || '') || contacto.canal || 'WhatsApp';\n\n// Oportunidad abierta en el pipeline (las de viaje completado / perdido ya no cuentan)\nconst abiertas = opps.filter(o => o.status === 'open' && ![CFG.S.completado, CFG.S.perdido].includes(o.pipelineStageId))\n  .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));\nconst opp = abiertas[0] || null;\n\n// Anuncio de Meta (ad_id) -> promo\nfunction buscarAds(o, out, d) {\n  if (!o || d > 6) return out;\n  if (Array.isArray(o)) { o.forEach(x => buscarAds(x, out, d + 1)); return out; }\n  if (typeof o === 'object') for (const [k, v] of Object.entries(o)) {\n    const kk = k.toLowerCase().replace(/[^a-z]/g, '');\n    if (['adid', 'sourceid', 'utmadid', 'fbadid', 'adsourceid', 'ctwaadid'].includes(kk) && (typeof v === 'string' || typeof v === 'number')) out.add(String(v));\n    else if (v && typeof v === 'object') buscarAds(v, out, d + 1);\n  }\n  return out;\n}\nconst body = $('Mensaje entrante GHL').first().json.body || {};\nconst adIds = [...buscarAds([contact.attributionSource, contact.lastAttributionSource, contact.attributions,\n  nuevos.map(m => m.meta), body], new Set(), 0)];\nconst ads = ctx.ads || {};\nconst promos = ctx.promos || [];\nconst leads = ctx.leads || [];\nconst leadActual = opp ? leads.find(l => l.ghl_opportunity_id === opp.id) || null : null;\nconst adMatch = adIds.map(a => ads[a] && { ad: a, ...ads[a] }).filter(Boolean);\nlet promoAnuncio = null, promoVencida = null, adId = leadActual?.ad_id || null;\nconst mVig = adMatch.find(x => x.vigente);\nif (mVig) { promoAnuncio = promos.find(p => p.id === mVig.id) || null; adId = mVig.ad; }\nelse if (adMatch[0]) { promoVencida = adMatch[0]; adId = adMatch[0].ad; }\nif (!promoAnuncio && leadActual?.promo_id) promoAnuncio = promos.find(p => p.id === leadActual.promo_id) || null;\nif (!adId && adIds.length) adId = adIds[0];\n\n// Adjuntos\nconst AUDIO = /\\.(ogg|oga|opus|mp3|m4a|wav|aac|amr|weba|webm|mpeg)(\\?|$)/i, IMG = /\\.(jpe?g|png|webp|gif)(\\?|$)/i;\nconst audios = [], imagenes = [], otros = [];\nfor (const m of nuevos) for (const u of (m.attachments || [])) {\n  if (AUDIO.test(u)) audios.push({ url: u }); else if (IMG.test(u)) imagenes.push(u); else otros.push(u);\n}\n\nlet accion;\nif (!nuevos.length) accion = 'ignorar';\nelse if (tags.includes('ia-pausada')) accion = 'pausada';\nelse if (!opp || [CFG.S.nuevo, CFG.S.incompletos].includes(opp.pipelineStageId)) accion = 'lucia';\nelse if (opp.pipelineStageId === CFG.S.cotizacion) accion = 'cliente_respondio';\nelse accion = 'vendedora';\n\nconst nombre = contact.firstName || contact.contactName || contact.name || '';\nreturn [{ json: {\n  accion, contact_id: cid, nombre, nombre_completo: [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.contactName || '',\n  telefono: contact.phone || '', canal, conversation_id: conv?.id || null,\n  opportunity_id: opp?.id || null, stage_id: opp?.pipelineStageId || null,\n  procesado_hasta: nuevos.length ? nuevos[nuevos.length - 1].dateAdded : null,\n  nuevos: nuevos.map(m => ({ body: m.body || '', attachments: m.attachments || [], fecha: m.dateAdded })),\n  historial: historial.map(m => ({ rol: m.direction === 'inbound' ? 'user' : 'assistant', texto: m.body || '' })).filter(m => m.texto.trim()),\n  ad_id: adId, promo_anuncio: promoAnuncio, promo_vencida: promoVencida, promos,\n  lead_actual: leadActual, anteriores: leads.filter(l => !opp || l.ghl_opportunity_id !== opp.id).slice(0, 3),\n  audios, imagenes, otros, transcripciones: [], hoy: hoyCdmx(), tags,\n}}];\n"
+      }
+    },
+    {
+      "id": "30ab71ff-6a91-4c7d-91dd-42c1f82311df",
+      "name": "Acción",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2640,
+        300
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1d55ffb8-0978-4568-8b98-1d133d89ae08",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "lucia",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "lucia"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f9df41b4-94c4-454c-af2d-4302550bc5e6",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "cliente_respondio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cliente_respondio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "32567c1b-e8fb-4728-bff2-9c6bf4a7e44c",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "vendedora",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "vendedora"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e7b84a02-19d8-4839-a285-aa65342a72f3",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "pausada",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pausada"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ba7d0536-5891-495c-94c5-117b4675c1f4",
+      "name": "GHL mover a Cliente respondió",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        600
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunity_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pipelineStageId: '165fddf1-d0c0-473b-b182-6c2a8a7f4b70' }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "e5b1ab7a-31d4-4df5-a5d9-68692f9fccf4",
+      "name": "SB marcar procesado (respondió)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_marcar_procesado",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $('Analizar').item.json.contact_id, p_hasta: $('Analizar').item.json.procesado_hasta, p_motivo: 'cliente_respondio' }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "1afa3a0e-3840-4e13-bf60-9f86b9083408",
+      "name": "SB marcar procesado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        800
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_marcar_procesado",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $json.contact_id, p_hasta: $json.procesado_hasta, p_motivo: $json.accion }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "558f1dd6-5e01-4d38-adee-055e43a95d23",
+      "name": "¿Trae audios?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2860,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0fd8a874-8a01-4c74-b7aa-fd7e0206043e",
+              "leftValue": "={{ $json.audios.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "3b326447-c35c-43d0-aabb-146d7fafadbc",
+      "name": "Separar audios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        50
+      ],
+      "parameters": {
+        "jsCode": "return $input.first().json.audios.map(a => ({ json: a }));"
+      }
+    },
+    {
+      "id": "34bed8ea-1e71-4522-b1fe-25250f292ec7",
+      "name": "Descargar audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3300,
+        50
+      ],
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "43ec1994-4176-4d70-a9d0-11f7b4a6cbef",
+      "name": "Transcribir audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3520,
+        50
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-1"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "W5zBaQ7k25sn9YQz",
+          "name": "RsViaje Independencia"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "9021e29d-bcbb-47f1-a642-1a8f8247561f",
+      "name": "Unir transcripciones",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3740,
+        50
+      ],
+      "parameters": {
+        "jsCode": "\nconst base = $('Analizar').first().json;\nconst t = $input.all().map(i => i.json.text).filter(Boolean);\nreturn [{ json: { ...base, transcripciones: t } }];\n"
+      }
+    },
+    {
+      "id": "eeac2341-8c99-41ca-ad26-2af3e85db458",
+      "name": "Preparar prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3960,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"7Nt4ISuJNkwzED4xLICK\", \"pipelineId\": \"Zd13RBajMPAv1iHBAse1\", \"S\": {\"nuevo\": \"65f25778-1816-434f-841d-330d52c6484f\", \"incompletos\": \"43b2808d-b0f1-4fd5-b6c7-b8bd921e17b7\", \"completos\": \"6f1a3ff4-1a4c-4c4a-b22a-278429f2338a\", \"urgente\": \"bc2b90c9-4bbe-40c2-b328-4aa74432e9a2\", \"humano\": \"a0a4f235-36c1-4e22-9b1b-bbcf7af0733d\", \"cotizacion\": \"d729d68d-d054-4316-aa3b-f550f220214d\", \"respondio\": \"165fddf1-d0c0-473b-b182-6c2a8a7f4b70\", \"apartado\": \"f268113e-0366-4d10-9bab-0f2208bc5e36\", \"pagado\": \"c5173012-9493-4230-8875-e00ff95b9b3a\", \"completado\": \"b89799a4-477b-4c29-8609-71886479c991\", \"perdido\": \"03c9ff5a-cb38-4d10-9fd5-5ab6fbe52361\"}, \"F\": {\"IA Destino\": \"QXkrdR15b1rtrXTBzW5c\", \"IA Fecha salida\": \"yzuEwrtPo3foh4CScn0d\", \"IA Fecha regreso\": \"b0niJ5J39pQPO7joeWYm\", \"IA Fechas (texto)\": \"kLnHA2oerdYuF026PXY1\", \"IA Adultos\": \"IE7Nf1nDny2GOqdbkZqM\", \"IA Niños\": \"K2tdgRNturi9uY7WHJQW\", \"IA Edades niños\": \"Np2V37pJFmiztGoGoEKF\", \"IA Promo de interés\": \"2Vq4SyelqC1EVGssHuh3\", \"IA Ad ID\": \"LuC8o2FrU9kmhNGQaRkX\", \"IA Canal de origen\": \"1GAatSb5VFhj2M8gPd37\", \"IA Viaja en menos de 15 días\": \"2rdsWeZdAyk7FUguRcVL\", \"IA Resumen conversación\": \"gNtvo2YVxQJhUlH5LBFG\", \"Cot Vendedora\": \"yjUvsjChids4KgOmT28B\", \"Cot Fecha de envío\": \"WvMTMNDgNWqYkvyR4O3M\", \"Cot Destino\": \"CEXBx0gxzHIrfVjEphfr\", \"Cot Hotel\": \"7kULKnmCm1PBibGHeNpU\", \"Cot Plan de alimentos\": \"nF9lDKpfidbduRIAM8aV\", \"Cot Habitaciones\": \"EBwPByI6ulPYSzRw1gqP\", \"Cot Monto total MXN\": \"robeVaGvsyRuDV3C344t\", \"Cot Incluye\": \"HrwThz9BEEwgA65ZRoAi\", \"Cot Link o archivo\": \"AQdTKV3Vd1t7BINY1vSh\", \"Cot Vigencia\": \"ViN9RpdFF5QXEAczBC1L\", \"Cot Notas\": \"ZaXqt852Gv78vzjB14n9\", \"Ida V1 - Aerolínea y número\": \"GROYLxjZZQZ1eYexrVVN\", \"Ida V1 - Ruta (origen → destino)\": \"Pf1LtwPiFRdryxnQRsUq\", \"Ida V1 - Salida (fecha y hora)\": \"89e7lsehDf6kt06lhdwg\", \"Ida V1 - Llegada (fecha y hora)\": \"8VzIjf593226NkfyaX1D\", \"Ida V2 - Aerolínea y número\": \"2fzCPj3hj21NmtVYvFU3\", \"Ida V2 - Ruta (origen → destino)\": \"xsfRkDRPnv1mfClkgo8O\", \"Ida V2 - Salida (fecha y hora)\": \"rgTNWOVUo6b7UrEcHjm0\", \"Ida V2 - Llegada (fecha y hora)\": \"3fXAm1XpwCBaXUOIHaES\", \"Ida V3 - Aerolínea y número\": \"NGAorYPVgG1DQIF2YX6j\", \"Ida V3 - Ruta (origen → destino)\": \"QJvLLBkbCmcfwkoC8v1i\", \"Ida V3 - Salida (fecha y hora)\": \"bMQ7G7IJPnEuX6K1onfK\", \"Ida V3 - Llegada (fecha y hora)\": \"ciW1FfTRNhfsykBgwjf8\", \"Ida - Clave de reservación\": \"SEWw4uUvoMN0WAxbmhcL\", \"Regreso V1 - Aerolínea y número\": \"GMQ6Lt7HTUbHSYytHcH5\", \"Regreso V1 - Ruta (origen → destino)\": \"lFTYdSi5rqoE7pgpvqo3\", \"Regreso V1 - Salida (fecha y hora)\": \"0rf4aoMBR1JTUZZhBVqU\", \"Regreso V1 - Llegada (fecha y hora)\": \"rhh5PtqhM9ZC9Da0VRXA\", \"Regreso V2 - Aerolínea y número\": \"whYaOjE9871hsI3vGDOk\", \"Regreso V2 - Ruta (origen → destino)\": \"c3liqGH8TwUzEQzTOejA\", \"Regreso V2 - Salida (fecha y hora)\": \"DU0gFSoj9LdyTJFyxkW1\", \"Regreso V2 - Llegada (fecha y hora)\": \"yWtvdHs3m1N0lkEbzhRI\", \"Regreso V3 - Aerolínea y número\": \"TKg7Et4rfFQGUaAzEhZ5\", \"Regreso V3 - Ruta (origen → destino)\": \"933p6b4qzbHh1HMX04R8\", \"Regreso V3 - Salida (fecha y hora)\": \"iBtKXxa8f3APalXsySM8\", \"Regreso V3 - Llegada (fecha y hora)\": \"ygFZk6mWuPUe5RVsLnj6\", \"Regreso - Clave de reservación\": \"gOEgBeKgzzbxRk4odESJ\", \"Vuelos - Equipaje incluido\": \"UFunURlsbXvfOO8niAeE\", \"Pago Precio total MXN\": \"AgiyTRsIzNaj61qqOd87\", \"Pago Anticipo MXN\": \"PTcIbTzTIJrN41cw7TS9\", \"Pago Saldo pendiente MXN\": \"S6s3XS8AiuR73rSNwRRv\", \"Pago Método\": \"ytI62Z0zadRuFUR6Aw25\", \"Pago 1 - Fecha límite\": \"nxrhYpEcZzee7xVEJlWg\", \"Pago 1 - Monto MXN\": \"Ul3wCwJBwK4lWIMUGSF0\", \"Pago 1 - Estatus\": \"CBnvaeN2j7rjw846kDlQ\", \"Pago 2 - Fecha límite\": \"U6tQKAH4Ipj0CT4D6AYf\", \"Pago 2 - Monto MXN\": \"1FeldccXH8mi57Z58HJF\", \"Pago 2 - Estatus\": \"AVY7ltCuWn0XdX2OBXPV\", \"Pago 3 - Fecha límite\": \"ugFNDkfSUyrRvgia3LIo\", \"Pago 3 - Monto MXN\": \"iMB7uLM9fm22zZDKqlDu\", \"Pago 3 - Estatus\": \"g10IZpuhzfAneOvoVIUC\", \"Pago 4 - Fecha límite\": \"48WtsmRMKJ9oFjgBO19e\", \"Pago 4 - Monto MXN\": \"YQZTKmJdbGOb3tnLVaOZ\", \"Pago 4 - Estatus\": \"i6nkLLuS30j0S0OmY9O0\", \"Pago 5 - Fecha límite\": \"YnwUAMls1g42Vaeo3L5Q\", \"Pago 5 - Monto MXN\": \"Zxh8MwOIkHzeRBU7mL3X\", \"Pago 5 - Estatus\": \"VO1nhi8a4wgnLH9psB32\", \"Pago 6 - Fecha límite\": \"166AXZn57aFMFQ9flBUb\", \"Pago 6 - Monto MXN\": \"axozralZmHRpXb34QEMP\", \"Pago 6 - Estatus\": \"D4X2rwLqisAy3XqUwJri\", \"Viaje Destino\": \"FHWLsbXATasVSXNkyXUN\", \"Viaje Fecha salida\": \"1Q8mRyxy6BF4mllV4cbT\", \"Viaje Fecha regreso\": \"Orttpu4e0tI9ipEVGHoA\", \"Viaje Hotel\": \"09nHZi6kHhe4qnGMZTH0\", \"Viaje Check-in\": \"hxi2VIpqpp8sssInLQtN\", \"Viaje Check-out\": \"j3thSKPVapkEWlvA13AR\", \"Viaje Confirmación hotel\": \"BW9E82efSIhJubOSltuM\", \"Viaje Plan de alimentos\": \"HO9knr9yZ6nvglj8wO76\", \"Viaje Habitaciones\": \"Kw20goM2qW6IPX8phDOk\", \"Viaje Pasajeros\": \"RA4nIg3Y95SsmyL60HnW\", \"Viaje Traslados\": \"2PFchfgQde3HHZlBwEnD\", \"Viaje Tours y extras\": \"aO5EeFwImjKuScNONeRG\", \"Viaje Seguro\": \"ItPrHOiPql2Oe2bVv31A\", \"Viaje Notas para el cliente\": \"xFw4WDCEMUN12C0T9z4n\"}, \"agencia\": \"Agencia Prueba\", \"modelo\": \"gpt-4.1-mini\"};\n\nconst a = $input.first().json;\nconst fmtPromo = p => p ? JSON.stringify({ id: p.id, destino: p.destino, hotel: p.hotel, titulo: p.titulo,\n  vender_hasta: p.vigencia_hasta, fechas_de_viaje: [p.viaje_desde, p.viaje_hasta], noches: p.noches, plan: p.plan,\n  dias_que_aplica: p.dias_aplica, precio_desde_mxn: p.precio_desde, precio_detalle: p.precio_detalle,\n  precios_menores: p.precios_menores, incluye: p.incluye, condiciones: p.condiciones, texto_original: p.descripcion }) : 'ninguna';\nconst l = a.lead_actual || {};\nconst datos = { destino: l.destino || null, fecha_salida: l.fecha_salida || null, fecha_regreso: l.fecha_regreso || null,\n  fechas_texto: l.fechas_texto || null, fechas_sin_definir: !!l.fechas_sin_definir, adultos: l.adultos ?? null,\n  ninos: l.ninos ?? null, edades_ninos: l.edades_ninos || null };\nconst anteriores = (a.anteriores || []).map(x => `- ${x.destino || 'destino no definido'}${x.fecha_salida ? ' (salida ' + x.fecha_salida + ')' : ''}, etapa: ${x.etapa}`).join('\\n') || 'ninguno';\n\nconst system = `Eres Lucía, asesora virtual de viajes de \"${CFG.agencia}\", agencia de viajes en México. Hoy es ${a.hoy} (hora de Ciudad de México).\nDestinos principales: playas de México (Ixtapa, Cancún, Puerto Vallarta, Los Cabos), Colombia y Latinoamérica, Estados Unidos, Disney, Europa y Japón; también cruceros, tours y paquetes a la medida.\n\nPERSONALIDAD: cercana, cálida y profesional. Tuteas al cliente. Incluye 1 o 2 emojis de viajes en cada mensaje (✈️🌴🏖️🧳🌎🗺️🏨☀️). Mensajes cortos (máximo 5 líneas; si describes promos puedes usar viñetas), una o dos preguntas por mensaje. Solo español. Saluda con \"¡Hola!\" solo en el primer mensaje de la conversación.\n\nTU ÚNICA MISIÓN es recopilar los datos para que una asesora de ventas prepare la cotización:\n1. Destino\n2. Fechas de viaje (salida y regreso). Pregunta UNA sola vez si tiene fechas estimadas; si no sabe o no quiere dar fechas, NO insistas: marca fechas_sin_definir=true.\n3. Número de adultos\n4. Número de niños (0 si no viajan niños)\n5. Edad de cada niño (solo si viajan niños)\nNo pidas nombre, teléfono ni correo. No preguntes presupuesto, hotel ni otros datos.\n\nPROMOCIONES (reglas estrictas):\n- Solo puedes dar precios de las promociones ACTIVAS listadas abajo, copiando los datos tal cual (precio, para cuántas personas, qué incluye, fechas y días en que aplica, precios de menores, condiciones).\n- Cada vez que menciones una promo incluye SIEMPRE: el precio y a qué corresponde (por ejemplo \"por habitación para 2 adultos\"), las fechas o días en que aplica (por ejemplo, si es de lunes a jueves, aclara que en fin de semana el precio cambia), los precios o condiciones para menores si los hay, y la frase \"sujeto a disponibilidad\".\n- NUNCA calcules totales, NUNCA inventes precios, descuentos, disponibilidad ni promociones. Para cualquier otro precio di que una asesora le enviará su cotización personalizada.\n- Si el cliente viene de un anuncio con promo vigente, preséntale esa promo al inicio y luego pide los datos que falten.\n- Si la promo del anuncio ya terminó, díselo con amabilidad y ofrécele hasta 3 promos vigentes del mismo destino (o, si no hay, hasta 3 promos vigentes de otros destinos, si existen).\n- Si el cliente pregunta por un destino que tiene promos vigentes, puedes mencionarlas (máximo 3).\n- Si el primer mensaje es genérico (\"info\", \"precio\", \"me interesa\", un comentario de un video), pregunta amablemente qué destino o promoción le interesa.\n\nPASAR A HUMANO (escalar=true) si: el cliente está molesto o se queja, pide hablar con una persona, pregunta por visas o requisitos migratorios específicos, quiere cambiar/cancelar/pagar una reservación existente, o pide algo que no puedes resolver. En ese caso responde con calidez que una asesora le atenderá personalmente en breve.\n\nCUANDO TENGAS TODOS LOS DATOS: confirma con un resumen breve (destino, fechas, adultos, niños y edades) y dile que una asesora le enviará su cotización muy pronto (horario de atención: lunes a viernes 9:00 a 18:00 y sábados 10:00 a 14:00). No hagas más preguntas.\n\nCLIENTE RECURRENTE: si tiene viajes anteriores, salúdalo con gusto de volver a atenderlo y menciona su viaje anterior de forma natural (por ejemplo, \"¿Qué tal te fue en Cancún?\").\n\nFECHAS: convierte fechas relativas a formato AAAA-MM-DD usando la fecha de hoy. Si no dice el año, usa la próxima vez que ocurra esa fecha. Si solo da un mes o una temporada (\"en diciembre\", \"Semana Santa\"), guárdalo en fechas_texto.\n\nFORMATO DEL CAMPO \"respuesta\": texto listo para WhatsApp, cálido, con 1 o 2 emojis de viajes, sin firmar.\n\nDevuelve SIEMPRE el estado COMPLETO de los datos (los ya registrados más lo nuevo). Si el cliente corrige algo, usa lo más reciente.\n\nDATOS YA REGISTRADOS: ${JSON.stringify(datos)}\nNOMBRE DEL CLIENTE: ${a.nombre || 'desconocido'}\nVIAJES ANTERIORES DEL CLIENTE:\n${anteriores}\nPROMO DEL ANUNCIO POR EL QUE LLEGÓ: ${fmtPromo(a.promo_anuncio)}\n${a.promo_vencida ? 'PROMO DEL ANUNCIO YA TERMINADA: ' + a.promo_vencida.titulo + ' (' + a.promo_vencida.destino + ')' : ''}\nPROMOCIONES ACTIVAS HOY:\n${(a.promos || []).map(fmtPromo).join('\\n') || 'No hay promociones activas.'}`;\n\nconst messages = [{ role: 'system', content: system }];\nfor (const h of a.historial) messages.push({ role: h.rol, content: h.texto.slice(0, 2000) });\nlet texto = a.nuevos.map(n => n.body).filter(Boolean).join('\\n');\nif (a.transcripciones.length) texto += '\\n[Nota de voz transcrita]: ' + a.transcripciones.join(' ');\nif (a.audios.length && !a.transcripciones.length) texto += '\\n[El cliente envió una nota de voz que no se pudo escuchar; pídele amablemente que lo escriba]';\nif (a.imagenes.length) texto += '\\n[El cliente envió ' + a.imagenes.length + ' imagen(es); si es un anuncio o captura, identifica la promo o destino]';\nif (a.otros.length) texto += '\\n[El cliente envió un archivo adjunto]';\nconst content = [{ type: 'text', text: texto.trim() || '(mensaje sin texto)' }];\nfor (const u of a.imagenes.slice(0, 3)) content.push({ type: 'image_url', image_url: { url: u } });\nmessages.push({ role: 'user', content });\n\nconst N = t => ({ type: [t, 'null'] });\nconst schema = { type: 'object', additionalProperties: false,\n  required: ['respuesta','destino','fecha_salida','fecha_regreso','fechas_texto','fechas_sin_definir','adultos','ninos','edades_ninos','promo_id','escalar','motivo_escalado','resumen'],\n  properties: { respuesta: { type: 'string' }, destino: N('string'), fecha_salida: N('string'), fecha_regreso: N('string'),\n    fechas_texto: N('string'), fechas_sin_definir: { type: 'boolean' }, adultos: N('integer'), ninos: N('integer'),\n    edades_ninos: { type: ['array', 'null'], items: { type: 'integer' } }, promo_id: N('string'),\n    escalar: { type: 'boolean' }, motivo_escalado: N('string'),\n    resumen: { type: 'string', description: 'Resumen de 1-2 líneas del interés del cliente para la asesora' } } };\n\nreturn [{ json: { ...a, request: { model: CFG.modelo, temperature: 0.4, messages,\n  response_format: { type: 'json_schema', json_schema: { name: 'turno_lucia', strict: true, schema } } } } }];\n"
+      }
+    },
+    {
+      "id": "763f0635-921a-43aa-9fe0-f58ee523f6f8",
+      "name": "OpenAI Lucía",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4180,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "W5zBaQ7k25sn9YQz",
+          "name": "RsViaje Independencia"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "4c431516-0693-47bb-a02c-6ce74813c900",
+      "name": "Procesar respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4400,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"7Nt4ISuJNkwzED4xLICK\", \"pipelineId\": \"Zd13RBajMPAv1iHBAse1\", \"S\": {\"nuevo\": \"65f25778-1816-434f-841d-330d52c6484f\", \"incompletos\": \"43b2808d-b0f1-4fd5-b6c7-b8bd921e17b7\", \"completos\": \"6f1a3ff4-1a4c-4c4a-b22a-278429f2338a\", \"urgente\": \"bc2b90c9-4bbe-40c2-b328-4aa74432e9a2\", \"humano\": \"a0a4f235-36c1-4e22-9b1b-bbcf7af0733d\", \"cotizacion\": \"d729d68d-d054-4316-aa3b-f550f220214d\", \"respondio\": \"165fddf1-d0c0-473b-b182-6c2a8a7f4b70\", \"apartado\": \"f268113e-0366-4d10-9bab-0f2208bc5e36\", \"pagado\": \"c5173012-9493-4230-8875-e00ff95b9b3a\", \"completado\": \"b89799a4-477b-4c29-8609-71886479c991\", \"perdido\": \"03c9ff5a-cb38-4d10-9fd5-5ab6fbe52361\"}, \"F\": {\"IA Destino\": \"QXkrdR15b1rtrXTBzW5c\", \"IA Fecha salida\": \"yzuEwrtPo3foh4CScn0d\", \"IA Fecha regreso\": \"b0niJ5J39pQPO7joeWYm\", \"IA Fechas (texto)\": \"kLnHA2oerdYuF026PXY1\", \"IA Adultos\": \"IE7Nf1nDny2GOqdbkZqM\", \"IA Niños\": \"K2tdgRNturi9uY7WHJQW\", \"IA Edades niños\": \"Np2V37pJFmiztGoGoEKF\", \"IA Promo de interés\": \"2Vq4SyelqC1EVGssHuh3\", \"IA Ad ID\": \"LuC8o2FrU9kmhNGQaRkX\", \"IA Canal de origen\": \"1GAatSb5VFhj2M8gPd37\", \"IA Viaja en menos de 15 días\": \"2rdsWeZdAyk7FUguRcVL\", \"IA Resumen conversación\": \"gNtvo2YVxQJhUlH5LBFG\", \"Cot Vendedora\": \"yjUvsjChids4KgOmT28B\", \"Cot Fecha de envío\": \"WvMTMNDgNWqYkvyR4O3M\", \"Cot Destino\": \"CEXBx0gxzHIrfVjEphfr\", \"Cot Hotel\": \"7kULKnmCm1PBibGHeNpU\", \"Cot Plan de alimentos\": \"nF9lDKpfidbduRIAM8aV\", \"Cot Habitaciones\": \"EBwPByI6ulPYSzRw1gqP\", \"Cot Monto total MXN\": \"robeVaGvsyRuDV3C344t\", \"Cot Incluye\": \"HrwThz9BEEwgA65ZRoAi\", \"Cot Link o archivo\": \"AQdTKV3Vd1t7BINY1vSh\", \"Cot Vigencia\": \"ViN9RpdFF5QXEAczBC1L\", \"Cot Notas\": \"ZaXqt852Gv78vzjB14n9\", \"Ida V1 - Aerolínea y número\": \"GROYLxjZZQZ1eYexrVVN\", \"Ida V1 - Ruta (origen → destino)\": \"Pf1LtwPiFRdryxnQRsUq\", \"Ida V1 - Salida (fecha y hora)\": \"89e7lsehDf6kt06lhdwg\", \"Ida V1 - Llegada (fecha y hora)\": \"8VzIjf593226NkfyaX1D\", \"Ida V2 - Aerolínea y número\": \"2fzCPj3hj21NmtVYvFU3\", \"Ida V2 - Ruta (origen → destino)\": \"xsfRkDRPnv1mfClkgo8O\", \"Ida V2 - Salida (fecha y hora)\": \"rgTNWOVUo6b7UrEcHjm0\", \"Ida V2 - Llegada (fecha y hora)\": \"3fXAm1XpwCBaXUOIHaES\", \"Ida V3 - Aerolínea y número\": \"NGAorYPVgG1DQIF2YX6j\", \"Ida V3 - Ruta (origen → destino)\": \"QJvLLBkbCmcfwkoC8v1i\", \"Ida V3 - Salida (fecha y hora)\": \"bMQ7G7IJPnEuX6K1onfK\", \"Ida V3 - Llegada (fecha y hora)\": \"ciW1FfTRNhfsykBgwjf8\", \"Ida - Clave de reservación\": \"SEWw4uUvoMN0WAxbmhcL\", \"Regreso V1 - Aerolínea y número\": \"GMQ6Lt7HTUbHSYytHcH5\", \"Regreso V1 - Ruta (origen → destino)\": \"lFTYdSi5rqoE7pgpvqo3\", \"Regreso V1 - Salida (fecha y hora)\": \"0rf4aoMBR1JTUZZhBVqU\", \"Regreso V1 - Llegada (fecha y hora)\": \"rhh5PtqhM9ZC9Da0VRXA\", \"Regreso V2 - Aerolínea y número\": \"whYaOjE9871hsI3vGDOk\", \"Regreso V2 - Ruta (origen → destino)\": \"c3liqGH8TwUzEQzTOejA\", \"Regreso V2 - Salida (fecha y hora)\": \"DU0gFSoj9LdyTJFyxkW1\", \"Regreso V2 - Llegada (fecha y hora)\": \"yWtvdHs3m1N0lkEbzhRI\", \"Regreso V3 - Aerolínea y número\": \"TKg7Et4rfFQGUaAzEhZ5\", \"Regreso V3 - Ruta (origen → destino)\": \"933p6b4qzbHh1HMX04R8\", \"Regreso V3 - Salida (fecha y hora)\": \"iBtKXxa8f3APalXsySM8\", \"Regreso V3 - Llegada (fecha y hora)\": \"ygFZk6mWuPUe5RVsLnj6\", \"Regreso - Clave de reservación\": \"gOEgBeKgzzbxRk4odESJ\", \"Vuelos - Equipaje incluido\": \"UFunURlsbXvfOO8niAeE\", \"Pago Precio total MXN\": \"AgiyTRsIzNaj61qqOd87\", \"Pago Anticipo MXN\": \"PTcIbTzTIJrN41cw7TS9\", \"Pago Saldo pendiente MXN\": \"S6s3XS8AiuR73rSNwRRv\", \"Pago Método\": \"ytI62Z0zadRuFUR6Aw25\", \"Pago 1 - Fecha límite\": \"nxrhYpEcZzee7xVEJlWg\", \"Pago 1 - Monto MXN\": \"Ul3wCwJBwK4lWIMUGSF0\", \"Pago 1 - Estatus\": \"CBnvaeN2j7rjw846kDlQ\", \"Pago 2 - Fecha límite\": \"U6tQKAH4Ipj0CT4D6AYf\", \"Pago 2 - Monto MXN\": \"1FeldccXH8mi57Z58HJF\", \"Pago 2 - Estatus\": \"AVY7ltCuWn0XdX2OBXPV\", \"Pago 3 - Fecha límite\": \"ugFNDkfSUyrRvgia3LIo\", \"Pago 3 - Monto MXN\": \"iMB7uLM9fm22zZDKqlDu\", \"Pago 3 - Estatus\": \"g10IZpuhzfAneOvoVIUC\", \"Pago 4 - Fecha límite\": \"48WtsmRMKJ9oFjgBO19e\", \"Pago 4 - Monto MXN\": \"YQZTKmJdbGOb3tnLVaOZ\", \"Pago 4 - Estatus\": \"i6nkLLuS30j0S0OmY9O0\", \"Pago 5 - Fecha límite\": \"YnwUAMls1g42Vaeo3L5Q\", \"Pago 5 - Monto MXN\": \"Zxh8MwOIkHzeRBU7mL3X\", \"Pago 5 - Estatus\": \"VO1nhi8a4wgnLH9psB32\", \"Pago 6 - Fecha límite\": \"166AXZn57aFMFQ9flBUb\", \"Pago 6 - Monto MXN\": \"axozralZmHRpXb34QEMP\", \"Pago 6 - Estatus\": \"D4X2rwLqisAy3XqUwJri\", \"Viaje Destino\": \"FHWLsbXATasVSXNkyXUN\", \"Viaje Fecha salida\": \"1Q8mRyxy6BF4mllV4cbT\", \"Viaje Fecha regreso\": \"Orttpu4e0tI9ipEVGHoA\", \"Viaje Hotel\": \"09nHZi6kHhe4qnGMZTH0\", \"Viaje Check-in\": \"hxi2VIpqpp8sssInLQtN\", \"Viaje Check-out\": \"j3thSKPVapkEWlvA13AR\", \"Viaje Confirmación hotel\": \"BW9E82efSIhJubOSltuM\", \"Viaje Plan de alimentos\": \"HO9knr9yZ6nvglj8wO76\", \"Viaje Habitaciones\": \"Kw20goM2qW6IPX8phDOk\", \"Viaje Pasajeros\": \"RA4nIg3Y95SsmyL60HnW\", \"Viaje Traslados\": \"2PFchfgQde3HHZlBwEnD\", \"Viaje Tours y extras\": \"aO5EeFwImjKuScNONeRG\", \"Viaje Seguro\": \"ItPrHOiPql2Oe2bVv31A\", \"Viaje Notas para el cliente\": \"xFw4WDCEMUN12C0T9z4n\"}, \"agencia\": \"Agencia Prueba\", \"modelo\": \"gpt-4.1-mini\"};\n\nconst OFFSET = -6; // CDMX sin horario de verano\nfunction hoyCdmx() { return new Date(Date.now() + OFFSET * 3600e3).toISOString().slice(0, 10); }\nfunction fechaCampo(v) { // valor de campo DATE de GHL -> 'YYYY-MM-DD'\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number' || /^\\d{10,}$/.test(String(v))) {\n    const d = new Date(Number(v));\n    return (d.getUTCHours() === 0 ? d : new Date(d.getTime() + OFFSET * 3600e3)).toISOString().slice(0, 10);\n  }\n  const s = String(v);\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})/);\n  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;\n  const d = new Date(s); return isNaN(d) ? null : d.toISOString().slice(0, 10);\n}\nconst MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\nconst DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];\nfunction fechaLarga(iso) { const d = new Date(iso + 'T12:00:00Z'); return `${DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`; }\nfunction diasEntre(a, b) { return Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5); }\n\nconst a = $('Preparar prompt').first().json;\nlet r;\nconst resp = $input.first().json;\ntry { r = JSON.parse(resp.choices[0].message.content); } catch (e) { throw new Error('Respuesta de OpenAI inválida: ' + JSON.stringify(resp).slice(0, 500)); }\nconst prev = a.lead_actual || {};\nconst v = (x, y) => (x === null || x === undefined || x === '') ? (y ?? null) : x;\nconst iso = s => (s && /^\\d{4}-\\d{2}-\\d{2}$/.test(s)) ? s : null;\nconst d = {\n  destino: v(r.destino, prev.destino), fecha_salida: iso(v(r.fecha_salida, prev.fecha_salida)),\n  fecha_regreso: iso(v(r.fecha_regreso, prev.fecha_regreso)), fechas_texto: v(r.fechas_texto, prev.fechas_texto),\n  fechas_sin_definir: !!(r.fechas_sin_definir || prev.fechas_sin_definir), adultos: v(r.adultos, prev.adultos),\n  ninos: v(r.ninos, prev.ninos), edades_ninos: (r.edades_ninos && r.edades_ninos.length) ? r.edades_ninos : (prev.edades_ninos || null),\n};\nif (d.ninos === 0) d.edades_ninos = [];\nconst promoId = v(r.promo_id, prev.promo_id) || (a.promo_anuncio && a.promo_anuncio.id) || null;\nconst promo = (a.promos || []).find(p => p.id === promoId) || null;\n\n// Completitud (regla de negocio, no depende del modelo)\nconst falta = [];\nif (!d.destino) falta.push('destino');\nif (!(d.fecha_salida || d.fechas_texto || d.fechas_sin_definir)) falta.push('fechas');\nif (!(d.adultos >= 1)) falta.push('adultos');\nif (d.ninos === null || d.ninos === undefined) falta.push('niños');\nelse if (d.ninos > 0 && !(d.edades_ninos && d.edades_ninos.length >= d.ninos)) falta.push('edades de los niños');\nconst escalar = !!r.escalar;\nconst completo = !falta.length && !escalar;\nconst dias = d.fecha_salida ? diasEntre(a.hoy, d.fecha_salida) : null;\nconst urgente = completo && dias !== null && dias >= 0 && dias < 15;\nconst etapa = escalar ? 'humano' : completo ? (urgente ? 'urgente' : 'completos') : 'nuevo';\nconst stageId = CFG.S[etapa];\n\nconst F = CFG.F, cf = [];\nconst put = (k, val) => { if (F[k] && val !== null && val !== undefined && val !== '') cf.push({ id: F[k], field_value: val }); };\nput('IA Destino', d.destino); put('IA Fecha salida', d.fecha_salida); put('IA Fecha regreso', d.fecha_regreso);\nput('IA Fechas (texto)', d.fechas_texto || (d.fechas_sin_definir ? 'Sin fechas definidas' : null));\nput('IA Adultos', d.adultos); put('IA Niños', d.ninos);\nput('IA Edades niños', d.ninos > 0 ? (d.edades_ninos || []).join(', ') : (d.ninos === 0 ? 'N/A' : null));\nput('IA Promo de interés', promo ? `${promo.titulo} (${promo.id})` : null); put('IA Ad ID', a.ad_id);\nput('IA Canal de origen', a.canal); put('IA Viaja en menos de 15 días', completo ? (urgente ? 'Sí' : 'No') : null);\nput('IA Resumen conversación', [r.resumen, escalar && r.motivo_escalado ? 'ESCALADO: ' + r.motivo_escalado : null].filter(Boolean).join('\\n'));\n\nconst tags = ['lucia'];\nif (completo) tags.push('datos-completos');\nif (urgente) tags.push('urgente-15-dias');\nif (escalar) tags.push('escalado-humano', 'ia-pausada');\nconst nuevaOpp = !a.opportunity_id;\nif (nuevaOpp && (a.anteriores || []).length) tags.push('cliente-recurrente');\nconst quitar = nuevaOpp ? ['datos-completos', 'urgente-15-dias', 'escalado-humano', 'cotizacion-enviada'] : [];\n\nlet respuesta = (r.respuesta || '').trim();\nif (completo && !(prev.datos_completos)) {\n  // Quitar preguntas finales y cerrar con el mensaje estándar\n  const partes = respuesta.split(/(?<=[.!?])\\s+/);\n  while (partes.length && /\\?\\s*\\S{0,3}$/.test(partes[partes.length - 1])) partes.pop();\n  respuesta = (partes.join(' ').trim() + '\\n\\n✅ ¡Listo! Ya tengo todo lo necesario. Una de nuestras asesoras te enviará tu cotización muy pronto ✈️ (horario: lunes a viernes 9:00–18:00 y sábados 10:00–14:00).').trim();\n}\nconst nombreOpp = `${a.nombre_completo || a.nombre || 'Cliente'} – ${d.destino || 'Viaje'}`;\nconst oppBody = nuevaOpp\n  ? { pipelineId: CFG.pipelineId, locationId: CFG.locationId, contactId: a.contact_id, name: nombreOpp, status: 'open', pipelineStageId: stageId }\n  : { pipelineStageId: stageId, name: nombreOpp };\n\nreturn [{ json: { contact_id: a.contact_id, canal: a.canal, respuesta,\n  datos: d, falta, completo, urgente, escalar, etapa, stage_id: stageId, promo_id: promo ? promo.id : null,\n  custom_fields: cf, tags, quitar, opp_method: nuevaOpp ? 'POST' : 'PUT',\n  opp_url: nuevaOpp ? '/opportunities/' : '/opportunities/' + a.opportunity_id, opp_body: oppBody,\n  resumen: r.resumen, motivo_escalado: r.motivo_escalado, procesado_hasta: a.procesado_hasta,\n  conversation_id: a.conversation_id, nombre: a.nombre_completo || a.nombre, telefono: a.telefono, ad_id: a.ad_id } }];\n"
+      }
+    },
+    {
+      "id": "ddb8acdd-0565-4871-84fe-214ac625830a",
+      "name": "GHL oportunidad (crear/mover)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4620,
+        300
+      ],
+      "parameters": {
+        "method": "={{ $json.opp_method }}",
+        "url": "=https://services.leadconnectorhq.com{{ $json.opp_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.opp_body) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      }
+    },
+    {
+      "id": "2304a75b-f7d3-4a53-b285-d22df9d63563",
+      "name": "GHL enviar respuesta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4840,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/conversations/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: $('Procesar respuesta').item.json.canal, contactId: $('Procesar respuesta').item.json.contact_id, message: $('Procesar respuesta').item.json.respuesta }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "5472ae6f-86c4-4f89-8047-aaf798c5cf33",
+      "name": "GHL guardar campos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5060,
+        300
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Procesar respuesta').item.json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: $('Procesar respuesta').item.json.custom_fields }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a8945c5c-697b-445c-beba-c84e854afd95",
+      "name": "GHL quitar tags viejos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5280,
+        300
+      ],
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Procesar respuesta').item.json.contact_id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: $('Procesar respuesta').item.json.quitar.length ? $('Procesar respuesta').item.json.quitar : ['-'] }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "1667e37b-cc61-4bce-8fc1-9e382c98b900",
+      "name": "GHL agregar tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5500,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Procesar respuesta').item.json.contact_id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: $('Procesar respuesta').item.json.tags }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XfOfsH6da3CzpPt9",
+          "name": "GHL - Agencia Prueba (API Lucía)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "b8284272-613a-4253-a66c-de367c70a924",
+      "name": "SB guardar turno",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5720,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/viajes_guardar_turno",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p: { ...$('Procesar respuesta').item.json.datos, contact_id: $('Procesar respuesta').item.json.contact_id, opportunity_id: $('GHL oportunidad (crear/mover)').item.json.opportunity?.id || $('GHL oportunidad (crear/mover)').item.json.id, nombre: $('Procesar respuesta').item.json.nombre, telefono: $('Procesar respuesta').item.json.telefono, canal: $('Procesar respuesta').item.json.canal, conversation_id: $('Procesar respuesta').item.json.conversation_id, procesado_hasta: $('Procesar respuesta').item.json.procesado_hasta, ad_id: $('Procesar respuesta').item.json.ad_id, promo_id: $('Procesar respuesta').item.json.promo_id, datos_completos: $('Procesar respuesta').item.json.completo, urgente: $('Procesar respuesta').item.json.urgente, etapa: $('Procesar respuesta').item.json.etapa, resumen: $('Procesar respuesta').item.json.resumen, escalar: $('Procesar respuesta').item.json.escalar, respuesta_enviada: !$('GHL enviar respuesta').item.json.error } }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "2ee9b5ff-6850-4461-bf00-97e63ae34704",
+      "name": "¿Recién completado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5940,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a80f3e53-b89c-46ac-83bf-4fd67f6fb17f",
+              "leftValue": "={{ $json.recien_completado }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "599982de-b701-4d74-92f7-a89461d2751d",
+      "name": "Fila reporte Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6160,
+        200
+      ],
+      "parameters": {
+        "jsCode": "\nconst p = $('Procesar respuesta').first().json, d = p.datos;\nreturn [{ json: {\n  fecha_registro: new Date(Date.now() - 6 * 3600e3).toISOString().replace('T', ' ').slice(0, 16),\n  ghl_contact_id: p.contact_id, nombre: p.nombre, telefono: p.telefono, canal: p.canal, destino: d.destino,\n  fecha_salida: d.fecha_salida || '', fecha_regreso: d.fecha_regreso || '',\n  fechas_texto: d.fechas_texto || (d.fechas_sin_definir ? 'Sin fechas definidas' : ''),\n  adultos: d.adultos, ninos: d.ninos, edades_ninos: (d.edades_ninos || []).join(', '),\n  promo_id: p.promo_id || '', ad_id: p.ad_id || '', urgente: p.urgente ? 'Sí' : 'No', etapa: p.etapa, resumen_ia: p.resumen || '' } }];\n"
+      }
+    },
+    {
+      "id": "2e884241-df13-454d-a080-7ca9a4b0504a",
+      "name": "Sheets agregar lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        6380,
+        200
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lrw1EK-laBq-QJkHUxQGr7fN7b-OD7bqE57nDR_qKx0",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Acción": {
+      "main": [
+        [
+          {
+            "node": "¿Trae audios?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GHL mover a Cliente respondió",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SB marcar procesado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SB marcar procesado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL mover a Cliente respondió": {
+      "main": [
+        [
+          {
+            "node": "SB marcar procesado (respondió)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar audios": {
+      "main": [
+        [
+          {
+            "node": "Descargar audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribir audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir audio": {
+      "main": [
+        [
+          {
+            "node": "Unir transcripciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Trae audios?": {
+      "main": [
+        [
+          {
+            "node": "Separar audios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir transcripciones": {
+      "main": [
+        [
+          {
+            "node": "Preparar prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje entrante GHL": {
+      "main": [
+        [
+          {
+            "node": "Normalizar entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar entrada": {
+      "main": [
+        [
+          {
+            "node": "SB registrar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB registrar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Esperar ráfaga (15 s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar ráfaga (15 s)": {
+      "main": [
+        [
+          {
+            "node": "SB ¿es el último?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB ¿es el último?": {
+      "main": [
+        [
+          {
+            "node": "¿Último mensaje?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Último mensaje?": {
+      "main": [
+        [
+          {
+            "node": "GHL contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL contacto": {
+      "main": [
+        [
+          {
+            "node": "GHL oportunidades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL oportunidades": {
+      "main": [
+        [
+          {
+            "node": "GHL conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL conversación": {
+      "main": [
+        [
+          {
+            "node": "GHL mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL mensajes": {
+      "main": [
+        [
+          {
+            "node": "SB contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB contexto": {
+      "main": [
+        [
+          {
+            "node": "Analizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizar": {
+      "main": [
+        [
+          {
+            "node": "Acción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Lucía",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Lucía": {
+      "main": [
+        [
+          {
+            "node": "Procesar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar respuesta": {
+      "main": [
+        [
+          {
+            "node": "GHL oportunidad (crear/mover)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL oportunidad (crear/mover)": {
+      "main": [
+        [
+          {
+            "node": "GHL enviar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL enviar respuesta": {
+      "main": [
+        [
+          {
+            "node": "GHL guardar campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL guardar campos": {
+      "main": [
+        [
+          {
+            "node": "GHL quitar tags viejos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL quitar tags viejos": {
+      "main": [
+        [
+          {
+            "node": "GHL agregar tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL agregar tags": {
+      "main": [
+        [
+          {
+            "node": "SB guardar turno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SB guardar turno": {
+      "main": [
+        [
+          {
+            "node": "¿Recién completado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Recién completado?": {
+      "main": [
+        [
+          {
+            "node": "Fila reporte Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila reporte Leads": {
+      "main": [
+        [
+          {
+            "node": "Sheets agregar lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "availableInMCP": true
+  }
+}
