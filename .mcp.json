@@ -2,7 +2,10 @@
 	"mcpServers": {
 		"n8n-mcp": {
 			"command": "npx",
-			"args": ["-y", "n8n-mcp"],
+			"args": [
+				"-y",
+				"n8n-mcp"
+			],
 			"env": {
 				"MCP_MODE": "stdio",
 				"LOG_LEVEL": "error",
@@ -10,6 +13,14 @@
 				"N8N_MCP_TELEMETRY_DISABLED": "true",
 				"N8N_API_URL": "${N8N_API_URL:-}",
 				"N8N_API_KEY": "${N8N_API_KEY:-}"
+			}
+		},
+		"ghl": {
+			"type": "http",
+			"url": "https://services.leadconnectorhq.com/mcp/",
+			"headers": {
+				"Authorization": "Bearer ${GHL_API_KEY:-}",
+				"locationId": "${GHL_LOCATION_ID:-}"
 			}
 		}
 	}
