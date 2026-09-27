@@ -1,0 +1,157 @@
+{
+  "name": "Primero Viajo - Pipeline GHL",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "primeroviajo-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Nuevo lead",
+      "webhookId": "a1000000-0000-4000-8000-0000000000a1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// CONFIGURA AQUÍ los IDs de tu subcuenta de GHL (Configuración > Pipelines)\nconst config = {\n  locationId: 'TU_LOCATION_ID',\n  pipelineId: 'TU_PIPELINE_ID',\n  etapas: {\n    nuevo_lead: 'ID_ETAPA_1',\n    contactado: 'ID_ETAPA_2',\n    calificado: 'ID_ETAPA_3',\n    cotizacion_enviada: 'ID_ETAPA_4',\n    seguimiento: 'ID_ETAPA_5',\n    anticipo_pagado: 'ID_ETAPA_6',\n    pago_completo: 'ID_ETAPA_7',\n    viaje_en_curso: 'ID_ETAPA_8',\n    post_viaje: 'ID_ETAPA_9'\n  }\n};\n\nreturn $input.all().map((item) => ({ json: { ...(item.json.body ?? {}), config } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Config GHL (lead)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  locationId: $json.config.locationId,\n  firstName: $json.nombre,\n  lastName: $json.apellido || undefined,\n  email: $json.email || undefined,\n  phone: $json.telefono,\n  source: $json.origen || 'n8n - Primero Viajo',\n  tags: ['primero-viajo', 'lead-viaje', $json.destino ? 'destino-' + String($json.destino).toLowerCase().replace(/\\s+/g, '-') : undefined].filter(Boolean)\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "GHL: crear/actualizar contacto"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const d = $('Config GHL (lead)').item.json; return JSON.stringify({\n  locationId: d.config.locationId,\n  pipelineId: d.config.pipelineId,\n  pipelineStageId: d.config.etapas.nuevo_lead,\n  contactId: $json.contact.id,\n  name: [d.nombre, d.destino, d.fechas].filter(Boolean).join(' - '),\n  status: 'open',\n  monetaryValue: Number(d.presupuesto) || 0,\n  source: d.origen || 'n8n - Primero Viajo'\n}); })() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "GHL: crear oportunidad (Nuevo lead)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, contactId: $('GHL: crear/actualizar contacto').item.json.contact.id, opportunityId: $json.opportunity.id } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [880, 0],
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Responder lead"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "primeroviajo-mover-etapa",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 300],
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Mover etapa",
+      "webhookId": "a1000000-0000-4000-8000-0000000000a6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mismos IDs que en 'Config GHL (lead)'\nconst etapas = {\n  nuevo_lead: 'ID_ETAPA_1',\n  contactado: 'ID_ETAPA_2',\n  calificado: 'ID_ETAPA_3',\n  cotizacion_enviada: 'ID_ETAPA_4',\n  seguimiento: 'ID_ETAPA_5',\n  anticipo_pagado: 'ID_ETAPA_6',\n  pago_completo: 'ID_ETAPA_7',\n  viaje_en_curso: 'ID_ETAPA_8',\n  post_viaje: 'ID_ETAPA_9'\n};\n\nreturn $input.all().map((item) => {\n  const body = item.json.body ?? {};\n  const stageId = etapas[body.etapa];\n  if (!body.opportunityId) throw new Error('Falta opportunityId');\n  if (!stageId && !body.perdido) throw new Error(`Etapa desconocida: ${body.etapa}. Usa: ${Object.keys(etapas).join(', ')}`);\n\n  const update = {};\n  if (stageId) update.pipelineStageId = stageId;\n  // Venta cerrada al pagar el anticipo; perdido si el cliente desiste\n  if (body.perdido) update.status = 'lost';\n  else if (['anticipo_pagado', 'pago_completo', 'viaje_en_curso', 'post_viaje'].includes(body.etapa)) update.status = 'won';\n  else update.status = 'open';\n  if (body.monto) update.monetaryValue = Number(body.monto);\n\n  return { json: { opportunityId: body.opportunityId, update } };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Mapear etapa"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunityId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.update) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300],
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "GHL: actualizar oportunidad"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, opportunityId: $json.opportunity.id, etapa: $('Mover etapa').item.json.body.etapa, status: $json.opportunity.status } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [660, 300],
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "Responder etapa"
+    }
+  ],
+  "connections": {
+    "Nuevo lead": { "main": [[{ "node": "Config GHL (lead)", "type": "main", "index": 0 }]] },
+    "Config GHL (lead)": { "main": [[{ "node": "GHL: crear/actualizar contacto", "type": "main", "index": 0 }]] },
+    "GHL: crear/actualizar contacto": { "main": [[{ "node": "GHL: crear oportunidad (Nuevo lead)", "type": "main", "index": 0 }]] },
+    "GHL: crear oportunidad (Nuevo lead)": { "main": [[{ "node": "Responder lead", "type": "main", "index": 0 }]] },
+    "Mover etapa": { "main": [[{ "node": "Mapear etapa", "type": "main", "index": 0 }]] },
+    "Mapear etapa": { "main": [[{ "node": "GHL: actualizar oportunidad", "type": "main", "index": 0 }]] },
+    "GHL: actualizar oportunidad": { "main": [[{ "node": "Responder etapa", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}
