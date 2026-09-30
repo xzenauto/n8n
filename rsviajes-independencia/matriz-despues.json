@@ -557,7 +557,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3104,
+        3392,
         880
       ],
       "id": "20eaf4a0-253f-4269-a7e9-9ec3d514ebed",
@@ -616,7 +616,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -572,
+        -768,
         640
       ],
       "id": "533c1f88-c7a0-46d6-8f3a-580a27ae26b5",
@@ -924,7 +924,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2912,
+        3216,
         880
       ],
       "id": "c890b86c-dde4-4a42-b1e5-6e9628d7197f",
@@ -1065,8 +1065,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -944,
-        640
+        -3696,
+        -176
       ],
       "id": "9646a18d-a946-424f-8eaa-43534ca9e014",
       "name": "Webhook",
@@ -2038,8 +2038,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3312,
-        880
+        3568,
+        720
       ],
       "id": "2ed228da-cd90-4c25-ace1-a682b82cf468",
       "name": "Code in JavaScript2"
@@ -2071,7 +2071,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3504,
+        3808,
         880
       ],
       "id": "afe3b727-2e3d-4070-8f1a-ab99c62f5130",
@@ -2104,7 +2104,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"EoW2dnpEed6QTrjhNiYt\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"EoW2dnpEed6QTrjhNiYt\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    },\n    {\n      \"id\": \"qSSQRPPt0VEUb9E36LmO\",\n      \"value\": \"{{ $('Datos1').last().json.contact_id }}\"\n    }\n  ]\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2134,7 +2134,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        644,
+        656,
         736
       ],
       "id": "9df15594-30b6-4548-8517-34e6beee361f",
@@ -2360,19 +2360,19 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        204,
+        208,
         736
       ],
       "id": "5022c247-ef09-44e8-80d4-0c162531e5a4",
       "name": "Buscar promos",
       "alwaysOutputData": true,
-      "onError": "continueRegularOutput",
       "credentials": {
         "supabaseApi": {
           "id": "QIVohgUOAGTuwYd1",
           "name": "XzenAuto"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -2381,7 +2381,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        424,
+        432,
         736
       ],
       "id": "56423bea-10db-4ac7-8149-84d9cd007872",
@@ -2416,7 +2416,7 @@
       "typeVersion": 2.2,
       "position": [
         2912,
-        1080
+        880
       ],
       "id": "5931fa25-65ca-4e78-b948-b9498364010f",
       "name": "¿Primer mensaje?"
@@ -2435,32 +2435,30 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -1652,
-        420
+        -3504,
+        -176
       ],
       "id": "d95aa0e4-3e2e-4053-ab26-d421a9079a88",
       "name": "Buffer registrar mensaje",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "credentials": {
         "supabaseApi": {
           "id": "QIVohgUOAGTuwYd1",
           "name": "XzenAuto"
         }
-      },
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 1000
+      }
     },
     {
       "parameters": {
-        "resume": "timeInterval",
-        "amount": 15,
-        "unit": "seconds"
+        "amount": 15
       },
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        -1432,
-        420
+        -3296,
+        -176
       ],
       "id": "09b89810-e6ed-43c8-90f4-019d36415c18",
       "name": "Esperar ráfaga (15 s)",
@@ -2480,20 +2478,20 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -1212,
-        420
+        -3072,
+        -176
       ],
       "id": "dc104843-8e45-4f23-8592-f722b5c41eb6",
       "name": "Buffer ¿es el último?",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "credentials": {
         "supabaseApi": {
           "id": "QIVohgUOAGTuwYd1",
           "name": "XzenAuto"
         }
-      },
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 1000
+      }
     },
     {
       "parameters": {
@@ -2523,8 +2521,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -992,
-        420
+        -2848,
+        -176
       ],
       "id": "7bf48289-ccaa-4506-9f63-15e0ebb3ca5f",
       "name": "¿Último mensaje?"
@@ -2534,19 +2532,6 @@
         "url": "https://services.leadconnectorhq.com/conversations/search",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Version",
-              "value": "2021-07-28"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
-          ]
-        },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -2564,30 +2549,6 @@
             }
           ]
         },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        -992,
-        860
-      ],
-      "id": "9d8c4c3e-9e54-462f-9ea3-69d2885e30db",
-      "name": "GHL conversación (texto)",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "keLp0liZSLxAedNf",
-          "name": "GHL-PIT-RsMatriz"
-        }
-      },
-      "onError": "continueRegularOutput",
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "url": "=https://services.leadconnectorhq.com/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -2601,6 +2562,30 @@
             }
           ]
         },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2592,
+        -208
+      ],
+      "id": "9d8c4c3e-9e54-462f-9ea3-69d2885e30db",
+      "name": "GHL conversación (texto)",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -2610,24 +2595,37 @@
             }
           ]
         },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -792,
-        860
+        -2320,
+        -320
       ],
       "id": "9944243f-d25a-44ed-b063-2bd84c16c37f",
       "name": "GHL mensajes (texto)",
+      "alwaysOutputData": true,
       "credentials": {
         "httpHeaderAuth": {
           "id": "keLp0liZSLxAedNf",
           "name": "GHL-PIT-RsMatriz"
         }
       },
-      "onError": "continueRegularOutput",
-      "alwaysOutputData": true
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -2636,8 +2634,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -792,
-        680
+        -2240,
+        -128
       ],
       "id": "de89c56c-1e54-47a5-9bf2-9e6b3370beba",
       "name": "Mensaje del cliente"
@@ -2670,8 +2668,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -682,
-        560
+        -1760,
+        -128
       ],
       "id": "fa77e9fc-24fb-4f74-9ccb-5353d37848d3",
       "name": "¿Hay mensaje del cliente?"
@@ -2704,8 +2702,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -992,
-        1060
+        -2048,
+        -128
       ],
       "id": "29d767b1-2719-4c5e-8f31-b67701e6be5b",
       "name": "¿Trae audios?"
@@ -2717,8 +2715,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -792,
-        1220
+        -1744,
+        -384
       ],
       "id": "7b621c55-3628-44ab-9ac6-f51a009bb63a",
       "name": "Separar audios"
@@ -2738,8 +2736,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -592,
-        1220
+        -1536,
+        -384
       ],
       "id": "c2132b8e-eb2d-45e1-ac5d-df5b6ba89523",
       "name": "Descargar audio",
@@ -2752,8 +2750,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -392,
-        1220
+        -1344,
+        -384
       ],
       "id": "e5b5522b-e767-4374-9c2e-5aec067c1763",
       "name": "Preparar audio",
@@ -2791,19 +2789,19 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -192,
-        1220
+        -1136,
+        -384
       ],
       "id": "f96bc465-b35e-4963-b7ff-7dbdd86aaa44",
       "name": "Transcribir audio",
+      "alwaysOutputData": true,
       "credentials": {
         "openAiApi": {
           "id": "W5zBaQ7k25sn9YQz",
           "name": "RsViaje Independencia"
         }
       },
-      "onError": "continueRegularOutput",
-      "alwaysOutputData": true
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -2812,15 +2810,14 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        8,
-        1220
+        -928,
+        -384
       ],
       "id": "4586cdac-7d9f-4491-bbea-332465176e78",
       "name": "Unir transcripciones"
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Webhook').first().json.body.contact_id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
@@ -2842,19 +2839,19 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -700,
-        -40
+        -2272,
+        624
       ],
       "id": "c060f748-8ac1-46fc-a7a1-b12e346eef66",
       "name": "GHL contacto (origen)",
+      "alwaysOutputData": true,
       "credentials": {
         "httpHeaderAuth": {
           "id": "keLp0liZSLxAedNf",
           "name": "GHL-PIT-RsMatriz"
         }
       },
-      "onError": "continueRegularOutput",
-      "alwaysOutputData": true
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -2863,8 +2860,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -500,
-        -40
+        -2064,
+        624
       ],
       "id": "90c80cb9-8ce2-484b-b222-374964115b10",
       "name": "Origen del mensaje"
@@ -2897,8 +2894,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -300,
-        -40
+        -1872,
+        624
       ],
       "id": "7929540e-df7a-47a4-8a16-0ce1f47be85d",
       "name": "¿Es WhatsApp?"
@@ -2922,16 +2919,16 @@
             }
           ]
         },
-        "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ pipelineId: $('Origen del mensaje').first().json.pipe, locationId: $('Origen del mensaje').first().json.loc, contactId: $('Origen del mensaje').first().json.contact_id, name: $('Origen del mensaje').first().json.nombre, pipelineStageId: $('Origen del mensaje').first().json.sinIA, status: 'open' }) }}"
+        "jsonBody": "={{ JSON.stringify({ pipelineId: $('Origen del mensaje').first().json.pipe, locationId: $('Origen del mensaje').first().json.loc, contactId: $('Origen del mensaje').first().json.contact_id, name: $('Origen del mensaje').first().json.nombre, pipelineStageId: $('Origen del mensaje').first().json.sinIA, status: 'open' }) }}",
+        "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -100,
-        -200
+        -1200,
+        208
       ],
       "id": "ce0c4d94-f272-4826-aedb-0aa028a3d025",
       "name": "Mover a Sin IA",
@@ -2962,16 +2959,16 @@
             }
           ]
         },
-        "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO[$('Ventana 72h').first().json.alarma] }] }) }}"
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO[$('Ventana 72h').first().json.alarma] }] }) }}",
+        "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        100,
-        -200
+        -992,
+        208
       ],
       "id": "ee1395ac-5c71-46e8-a4a3-de8e11f00a69",
       "name": "Aviso Sin IA",
@@ -2997,20 +2994,20 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -100,
-        20
+        -1648,
+        496
       ],
       "id": "2f8d5079-cdd9-4f87-9ec4-531d9e01f89a",
       "name": "Ventana 72h",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "credentials": {
         "supabaseApi": {
           "id": "QIVohgUOAGTuwYd1",
           "name": "XzenAuto"
         }
       },
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 1000,
       "onError": "continueRegularOutput"
     },
     {
@@ -3041,8 +3038,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        300,
-        20
+        -1248,
+        496
       ],
       "id": "ab7d2ce1-2b46-491c-ac22-4e8e4c7a2507",
       "name": "¿Cambió el aviso?"
@@ -3066,16 +3063,16 @@
             }
           ]
         },
-        "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO[$json.alarma] }] }) }}"
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO[$json.alarma] }] }) }}",
+        "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        500,
-        -60
+        -1040,
+        400
       ],
       "id": "f30afc58-ab23-4f0f-b7bc-b64840d3064d",
       "name": "Actualizar aviso 72h",
@@ -3115,11 +3112,51 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        100,
-        20
+        -1440,
+        496
       ],
       "id": "fa755d59-613c-4e4b-8155-e06fc3d9e5af",
       "name": "¿Pasa a Sin IA?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunity.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: 'qSSQRPPt0VEUb9E36LmO', field_value: $('Origen del mensaje').first().json.contact_id }] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -992,
+        68
+      ],
+      "id": "3893a325-0f44-4ab1-b23d-8a89fb14b06e",
+      "name": "Num_lead Sin IA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -3871,7 +3908,7 @@
       "main": [
         [
           {
-            "node": "Aviso Sin IA",
+            "node": "Num_lead Sin IA",
             "type": "main",
             "index": 0
           }
@@ -3948,6 +3985,17 @@
         [
           {
             "node": "¿Cambió el aviso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Num_lead Sin IA": {
+      "main": [
+        [
+          {
+            "node": "Aviso Sin IA",
             "type": "main",
             "index": 0
           }

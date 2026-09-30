@@ -1641,7 +1641,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const output = $('Agente Ana').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"R69ZV5mXstYsOLDbDUBs\",\n  fecha: \"rfCXvHaKCH20m6xzoqp5\",\n  fecha_regreso: \"qyB12IVNACtCYzmbZURI\",\n  adultos: \"RJic3BhU7aJJ4oIhhA6m\",\n  ninos: \"xUNE0VflJkca30djbAhi\",\n  edad_ninios: \"l5N7n88IQwDLXXdZDlpc\"\n};\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\nreturn [{ json: { customFields } }];"
+        "jsCode": "const output = $('Agente Ana').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"R69ZV5mXstYsOLDbDUBs\",\n  fecha: \"rfCXvHaKCH20m6xzoqp5\",\n  fecha_regreso: \"qyB12IVNACtCYzmbZURI\",\n  adultos: \"RJic3BhU7aJJ4oIhhA6m\",\n  ninos: \"xUNE0VflJkca30djbAhi\",\n  edad_ninios: \"l5N7n88IQwDLXXdZDlpc\"\n};\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\n// Num_lead de la oportunidad = id del contacto\nconst contact_id = $('Update a row6').first().json.contact_id;\ncustomFields.push({ id: \"7Jhm6et6r0LxbwAcRxXa\", fieldValue: contact_id });\n\nreturn [{ json: { customFields } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1693,7 +1693,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const output = $('Agente Ana').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"R69ZV5mXstYsOLDbDUBs\",\n  fecha: \"rfCXvHaKCH20m6xzoqp5\",\n  fecha_regreso: \"qyB12IVNACtCYzmbZURI\",\n  adultos: \"RJic3BhU7aJJ4oIhhA6m\",\n  ninos: \"xUNE0VflJkca30djbAhi\",\n  edad_ninios: \"l5N7n88IQwDLXXdZDlpc\"\n};\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\nreturn [{ json: { customFields } }];"
+        "jsCode": "const output = $('Agente Ana').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"R69ZV5mXstYsOLDbDUBs\",\n  fecha: \"rfCXvHaKCH20m6xzoqp5\",\n  fecha_regreso: \"qyB12IVNACtCYzmbZURI\",\n  adultos: \"RJic3BhU7aJJ4oIhhA6m\",\n  ninos: \"xUNE0VflJkca30djbAhi\",\n  edad_ninios: \"l5N7n88IQwDLXXdZDlpc\"\n};\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\n// Num_lead de la oportunidad = id del contacto\nconst contact_id = $('Update a row6').first().json.contact_id;\ncustomFields.push({ id: \"7Jhm6et6r0LxbwAcRxXa\", fieldValue: contact_id });\n\nreturn [{ json: { customFields } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1745,7 +1745,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const output = $('Agente Ana').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"R69ZV5mXstYsOLDbDUBs\",\n  fecha: \"rfCXvHaKCH20m6xzoqp5\",\n  fecha_regreso: \"qyB12IVNACtCYzmbZURI\",\n  adultos: \"RJic3BhU7aJJ4oIhhA6m\",\n  ninos: \"xUNE0VflJkca30djbAhi\",\n  edad_ninios: \"l5N7n88IQwDLXXdZDlpc\"\n};\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\nreturn [{ json: { customFields } }];"
+        "jsCode": "const output = $('Agente Ana').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"R69ZV5mXstYsOLDbDUBs\",\n  fecha: \"rfCXvHaKCH20m6xzoqp5\",\n  fecha_regreso: \"qyB12IVNACtCYzmbZURI\",\n  adultos: \"RJic3BhU7aJJ4oIhhA6m\",\n  ninos: \"xUNE0VflJkca30djbAhi\",\n  edad_ninios: \"l5N7n88IQwDLXXdZDlpc\"\n};\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\n// Num_lead de la oportunidad = id del contacto\nconst contact_id = $('Update a row4').first().json.contact_id;\ncustomFields.push({ id: \"7Jhm6et6r0LxbwAcRxXa\", fieldValue: contact_id });\n\nreturn [{ json: { customFields } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2052,7 +2052,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"edY6OzpwHgMEBwwNUoxx\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"edY6OzpwHgMEBwwNUoxx\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    },\n    {\n      \"id\": \"7Jhm6et6r0LxbwAcRxXa\",\n      \"value\": \"{{ $('Datos1').last().json.contact_id }}\"\n    }\n  ]\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -3125,6 +3125,46 @@
       ],
       "id": "9f16a905-945b-40df-b9b0-7bc73d8b7e09",
       "name": "¿Pasa a Sin IA?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunity.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: '7Jhm6et6r0LxbwAcRxXa', field_value: $('Origen del mensaje').first().json.contact_id }] }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        -340
+      ],
+      "id": "000f2fdf-c229-44c4-9a9f-5db9921ec38c",
+      "name": "Num_lead Sin IA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "DukoFMt81v327P5l",
+          "name": "GHL - PIT - Periodismo"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -3876,7 +3916,7 @@
       "main": [
         [
           {
-            "node": "Aviso Sin IA",
+            "node": "Num_lead Sin IA",
             "type": "main",
             "index": 0
           }
@@ -3953,6 +3993,17 @@
         [
           {
             "node": "¿Cambió el aviso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Num_lead Sin IA": {
+      "main": [
+        [
+          {
+            "node": "Aviso Sin IA",
             "type": "main",
             "index": 0
           }

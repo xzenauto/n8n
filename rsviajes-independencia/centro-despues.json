@@ -2105,7 +2105,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"u4n9uU1mzk7s8Dexsq3R\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"u4n9uU1mzk7s8Dexsq3R\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    },\n    {\n      \"id\": \"GmPPhladMkqhF6IrgfHz\",\n      \"value\": \"{{ $('Datos1').last().json.contact_id }}\"\n    }\n  ]\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -3121,6 +3121,46 @@
       ],
       "id": "21f0c562-3f4e-4a23-9549-71a93bf61cd6",
       "name": "¿Pasa a Sin IA?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunity.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: 'GmPPhladMkqhF6IrgfHz', field_value: $('Origen del mensaje').first().json.contact_id }] }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        -340
+      ],
+      "id": "f9d32ac3-0c3e-4c69-9ef3-29dc7c707bd0",
+      "name": "Num_lead Sin IA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "W068AAHuix5p3uWC",
+          "name": "GHL - PIT - Centro"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -3872,7 +3912,7 @@
       "main": [
         [
           {
-            "node": "Aviso Sin IA",
+            "node": "Num_lead Sin IA",
             "type": "main",
             "index": 0
           }
@@ -3949,6 +3989,17 @@
         [
           {
             "node": "¿Cambió el aviso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Num_lead Sin IA": {
+      "main": [
+        [
+          {
+            "node": "Aviso Sin IA",
             "type": "main",
             "index": 0
           }
