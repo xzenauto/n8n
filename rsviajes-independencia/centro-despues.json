@@ -2859,7 +2859,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ¿El cliente escribe por WhatsApp y viene de un anuncio de Meta?\n// En WhatsApp Meta cobra las conversaciones que no vienen de un anuncio (y las de anuncio pasadas 72h),\n// así que sin anuncio no contesta la IA: pasa a \"Sin IA\" para que lo atiendan por WhatsApp directo.\nconst CFG = {\"loc\": \"oC2FNTV3Dc5yhLyrGvoy\", \"pipe\": \"thwp9derGg2kxfJsxuwC\", \"sinIA\": \"05d96b47-fd79-48be-8e68-8147436182f3\", \"campo\": \"v0dOyXzD0hGPX8A2NLXc\", \"agencia\": \"centro\"};\nconst AVISO = {\n  verde: '🟢 Anuncio menos de 72h: contestar por GHL',\n  rojo: '🔴 Anuncio más de 72h: contestar por WhatsApp directo',\n  sin_anuncio: '⚪ No viene de anuncio: contestar por WhatsApp directo',\n};\nconst wh = $('Webhook').first().json.body || {};\nlet c = {};\ntry { c = $('GHL contacto (origen)').first().json.contact || {}; } catch (e) {}\nlet msgs = [];\ntry { msgs = $('GHL mensajes (texto)').first().json.messages?.messages || []; } catch (e) {}\n// GHL los devuelve del más nuevo al más viejo\nconst entrantes = msgs.filter(m => m.direction === 'inbound' && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nconst tipo = String((entrantes[0] || {}).messageType || '');\nconst medios = [c.lastAttributionSource?.medium, wh.contact?.lastAttributionSource?.medium, c.attributionSource?.medium, wh.contact?.attributionSource?.medium]\n  .map(v => String(v || '').toLowerCase());\nconst esWhatsApp = tipo ? tipo === 'TYPE_WHATSAPP' : (Number(wh.message?.type) === 19 || medios[0].startsWith('whatsapp') || medios[1].startsWith('whatsapp'));\n\nconst atribuciones = [c.lastAttributionSource, wh.contact?.lastAttributionSource, c.attributionSource, wh.contact?.attributionSource].filter(Boolean);\nconst las = atribuciones[0] || {};\nconst adId = atribuciones.map(a => a.ctwa_clid || a.adId).find(Boolean) || '';\nconst REFERIDO = /\\*Headline:\\*|Source URL:|https:\\/\\/fb\\.me\\//i;\nconst referido = entrantes.find(m => REFERIDO.test(m.body || ''));\nconst esAnuncio = !!adId || !!referido;\nconst clave = String(las.ctwa_clid || las.adId || adId || (referido ? 'ref-' + referido.id : ''));\n// Inicio de la ventana: el mensaje que llegó desde el anuncio; si ya no está entre los últimos, la fecha de alta del contacto\nconst desde = referido?.dateAdded || c.dateAdded || new Date().toISOString();\nconst nombre = [c.firstName || wh.first_name, c.lastName].filter(Boolean).join(' ') || wh.full_name || c.phone || wh.phone || 'Lead sin nombre';\nreturn [{ json: { ...CFG, contact_id: wh.contact_id, esWhatsApp, esAnuncio, sinAnuncioWhatsApp: esWhatsApp && !esAnuncio,\n  anuncioWhatsApp: esWhatsApp && esAnuncio, clave, desde, nombre, AVISO } }];"
+        "jsCode": "// ¿El cliente escribe por WhatsApp y viene de un anuncio de Meta?\n// En WhatsApp Meta cobra las conversaciones que no vienen de un anuncio y las de anuncio pasadas 72h,\n// así que en esos casos no contesta la IA: pasa a \"Sin IA\" para que lo atiendan por WhatsApp directo.\n// Los mensajes siguientes al del anuncio no traen el ID: la tabla RS_ventana_meta recuerda que sí vino de anuncio.\nconst CFG = {\"loc\": \"oC2FNTV3Dc5yhLyrGvoy\", \"pipe\": \"thwp9derGg2kxfJsxuwC\", \"sinIA\": \"2636b3fc-54fe-44f1-97fe-0688e30d034c\", \"campo\": \"v0dOyXzD0hGPX8A2NLXc\", \"agencia\": \"centro\"};\nconst AVISO = {\n  verde: '🟢 Anuncio menos de 72h: contestar por GHL',\n  rojo: '🔴 Anuncio más de 72h: contestar por WhatsApp directo',\n  sin_anuncio: '⚪ No viene de anuncio: contestar por WhatsApp directo',\n};\nconst wh = $('Webhook').first().json.body || {};\nlet c = {};\ntry { c = $('GHL contacto (origen)').first().json.contact || {}; } catch (e) {}\nlet msgs = [];\ntry { msgs = $('GHL mensajes (texto)').first().json.messages?.messages || []; } catch (e) {}\n// GHL los devuelve del más nuevo al más viejo\nconst entrantes = msgs.filter(m => m.direction === 'inbound' && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nconst tipo = String((entrantes[0] || {}).messageType || '');\nconst medios = [c.lastAttributionSource?.medium, wh.contact?.lastAttributionSource?.medium, c.attributionSource?.medium, wh.contact?.attributionSource?.medium]\n  .map(v => String(v || '').toLowerCase());\nconst esWhatsApp = tipo ? tipo === 'TYPE_WHATSAPP' : (Number(wh.message?.type) === 19 || medios[0].startsWith('whatsapp') || medios[1].startsWith('whatsapp'));\n\nconst atribuciones = [c.lastAttributionSource, wh.contact?.lastAttributionSource, c.attributionSource, wh.contact?.attributionSource].filter(Boolean);\nconst las = atribuciones[0] || {};\nconst adId = atribuciones.map(a => a.ctwa_clid || a.adId).find(Boolean) || '';\nconst REFERIDO = /\\*Headline:\\*|Source URL:|https:\\/\\/fb\\.me\\//i;\nconst referido = entrantes.find(m => REFERIDO.test(m.body || ''));\nconst esAnuncio = !!adId || !!referido;\nconst clave = String(las.ctwa_clid || las.adId || adId || (referido ? 'ref-' + referido.id : ''));\n// Inicio de la ventana: el mensaje que llegó desde el anuncio; si ya no está entre los últimos, la fecha de alta del contacto\nconst desde = referido?.dateAdded || c.dateAdded || new Date().toISOString();\nconst nombre = [c.firstName || wh.first_name, c.lastName].filter(Boolean).join(' ') || wh.full_name || c.phone || wh.phone || 'Lead sin nombre';\nreturn [{ json: { ...CFG, contact_id: wh.contact_id, esWhatsApp, esAnuncio, sinAnuncioWhatsApp: esWhatsApp && !esAnuncio,\n  anuncioWhatsApp: esWhatsApp && esAnuncio, clave, desde, nombre, AVISO } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2882,7 +2882,7 @@
           "conditions": [
             {
               "id": "1bf8ceef-b483-4ccb-95ef-bfc35ccddd75",
-              "leftValue": "={{ $json.sinAnuncioWhatsApp }}",
+              "leftValue": "={{ $json.esWhatsApp }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -2902,7 +2902,7 @@
         -40
       ],
       "id": "b57552f6-1535-43fc-af39-f5be7f74776c",
-      "name": "¿WhatsApp sin anuncio?"
+      "name": "¿Es WhatsApp?"
     },
     {
       "parameters": {
@@ -2926,7 +2926,7 @@
         "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ pipelineId: $json.pipe, locationId: $json.loc, contactId: $json.contact_id, name: $json.nombre, pipelineStageId: $json.sinIA, status: 'open' }) }}"
+        "jsonBody": "={{ JSON.stringify({ pipelineId: $('Origen del mensaje').first().json.pipe, locationId: $('Origen del mensaje').first().json.loc, contactId: $('Origen del mensaje').first().json.contact_id, name: $('Origen del mensaje').first().json.nombre, pipelineStageId: $('Origen del mensaje').first().json.sinIA, status: 'open' }) }}"
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -2966,7 +2966,7 @@
         "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO.sin_anuncio }] }) }}"
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO[$('Ventana 72h').first().json.alarma] }] }) }}"
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -2975,7 +2975,7 @@
         -200
       ],
       "id": "db44cf74-68cb-4288-841d-509474953028",
-      "name": "Aviso sin anuncio",
+      "name": "Aviso Sin IA",
       "credentials": {
         "httpHeaderAuth": {
           "id": "W068AAHuix5p3uWC",
@@ -2986,53 +2986,19 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "c20ce734-37c2-4894-bf8f-6c8846a0219b",
-              "leftValue": "={{ $json.anuncioWhatsApp }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        -100,
-        20
-      ],
-      "id": "c5f73063-48c0-4d7a-80d1-58b48c122bd7",
-      "name": "¿WhatsApp de anuncio?"
-    },
-    {
-      "parameters": {
         "method": "POST",
         "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/RS_ventana_registrar",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p_agencia: $json.agencia, p_contact_id: $json.contact_id, p_clave: $json.clave, p_desde: $json.desde }) }}",
+        "jsonBody": "={{ JSON.stringify({ p_agencia: $json.agencia, p_contact_id: $json.contact_id, p_clave: $json.esAnuncio ? $json.clave : '', p_desde: $json.desde }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        100,
+        -100,
         20
       ],
       "id": "e5ff063d-d8a0-4713-915c-11aa7aaa7df6",
@@ -3121,6 +3087,40 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2be011c8-be96-4454-b90d-b7e4291d3e85",
+              "leftValue": "={{ $json.alarma === 'rojo' || $json.alarma === 'sin_anuncio' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        100,
+        20
+      ],
+      "id": "21f0c562-3f4e-4a23-9549-71a93bf61cd6",
+      "name": "¿Pasa a Sin IA?"
     }
   ],
   "connections": {
@@ -3861,25 +3861,7 @@
       "main": [
         [
           {
-            "node": "¿WhatsApp sin anuncio?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "¿WhatsApp sin anuncio?": {
-      "main": [
-        [
-          {
-            "node": "Mover a Sin IA",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "¿WhatsApp de anuncio?",
+            "node": "¿Es WhatsApp?",
             "type": "main",
             "index": 0
           }
@@ -3890,25 +3872,7 @@
       "main": [
         [
           {
-            "node": "Aviso sin anuncio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "¿WhatsApp de anuncio?": {
-      "main": [
-        [
-          {
-            "node": "Ventana 72h",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Datos1",
+            "node": "Aviso Sin IA",
             "type": "main",
             "index": 0
           }
@@ -3919,7 +3883,7 @@
       "main": [
         [
           {
-            "node": "¿Cambió el aviso?",
+            "node": "¿Pasa a Sin IA?",
             "type": "main",
             "index": 0
           }
@@ -3949,6 +3913,42 @@
         [
           {
             "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Ventana 72h",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Pasa a Sin IA?": {
+      "main": [
+        [
+          {
+            "node": "Mover a Sin IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Cambió el aviso?",
             "type": "main",
             "index": 0
           }
