@@ -2817,6 +2817,309 @@
       ],
       "id": "4586cdac-7d9f-4491-bbea-332465176e78",
       "name": "Unir transcripciones"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Webhook').first().json.body.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -700,
+        -40
+      ],
+      "id": "c060f748-8ac1-46fc-a7a1-b12e346eef66",
+      "name": "GHL contacto (origen)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ¿El cliente escribe por WhatsApp y viene de un anuncio de Meta?\n// En WhatsApp Meta cobra las conversaciones que no vienen de un anuncio (y las de anuncio pasadas 72h),\n// así que sin anuncio no contesta la IA: pasa a \"Sin IA\" para que lo atiendan por WhatsApp directo.\nconst CFG = {\"loc\": \"UIJiu5Wa9iPVzMpbaZcx\", \"pipe\": \"QxW5mmE6EmqSIHnmsPBm\", \"sinIA\": \"4da81548-b1e7-49f9-99f3-17b3732314fa\", \"campo\": \"BjniJ8VTbTevD8kG7IoM\", \"agencia\": \"matriz\"};\nconst AVISO = {\n  verde: '🟢 Anuncio menos de 72h: contestar por GHL',\n  rojo: '🔴 Anuncio más de 72h: contestar por WhatsApp directo',\n  sin_anuncio: '⚪ No viene de anuncio: contestar por WhatsApp directo',\n};\nconst wh = $('Webhook').first().json.body || {};\nlet c = {};\ntry { c = $('GHL contacto (origen)').first().json.contact || {}; } catch (e) {}\nlet msgs = [];\ntry { msgs = $('GHL mensajes (texto)').first().json.messages?.messages || []; } catch (e) {}\n// GHL los devuelve del más nuevo al más viejo\nconst entrantes = msgs.filter(m => m.direction === 'inbound' && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nconst tipo = String((entrantes[0] || {}).messageType || '');\nconst medios = [c.lastAttributionSource?.medium, wh.contact?.lastAttributionSource?.medium, c.attributionSource?.medium, wh.contact?.attributionSource?.medium]\n  .map(v => String(v || '').toLowerCase());\nconst esWhatsApp = tipo ? tipo === 'TYPE_WHATSAPP' : (Number(wh.message?.type) === 19 || medios[0].startsWith('whatsapp') || medios[1].startsWith('whatsapp'));\n\nconst atribuciones = [c.lastAttributionSource, wh.contact?.lastAttributionSource, c.attributionSource, wh.contact?.attributionSource].filter(Boolean);\nconst las = atribuciones[0] || {};\nconst adId = atribuciones.map(a => a.ctwa_clid || a.adId).find(Boolean) || '';\nconst REFERIDO = /\\*Headline:\\*|Source URL:|https:\\/\\/fb\\.me\\//i;\nconst referido = entrantes.find(m => REFERIDO.test(m.body || ''));\nconst esAnuncio = !!adId || !!referido;\nconst clave = String(las.ctwa_clid || las.adId || adId || (referido ? 'ref-' + referido.id : ''));\n// Inicio de la ventana: el mensaje que llegó desde el anuncio; si ya no está entre los últimos, la fecha de alta del contacto\nconst desde = referido?.dateAdded || c.dateAdded || new Date().toISOString();\nconst nombre = [c.firstName || wh.first_name, c.lastName].filter(Boolean).join(' ') || wh.full_name || c.phone || wh.phone || 'Lead sin nombre';\nreturn [{ json: { ...CFG, contact_id: wh.contact_id, esWhatsApp, esAnuncio, sinAnuncioWhatsApp: esWhatsApp && !esAnuncio,\n  anuncioWhatsApp: esWhatsApp && esAnuncio, clave, desde, nombre, AVISO } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        -40
+      ],
+      "id": "90c80cb9-8ce2-484b-b222-374964115b10",
+      "name": "Origen del mensaje"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b805a309-0dfb-42c0-a601-cc87ac3c9ef5",
+              "leftValue": "={{ $json.sinAnuncioWhatsApp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -300,
+        -40
+      ],
+      "id": "7929540e-df7a-47a4-8a16-0ce1f47be85d",
+      "name": "¿WhatsApp sin anuncio?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pipelineId: $json.pipe, locationId: $json.loc, contactId: $json.contact_id, name: $json.nombre, pipelineStageId: $json.sinIA, status: 'open' }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        -200
+      ],
+      "id": "ce0c4d94-f272-4826-aedb-0aa028a3d025",
+      "name": "Mover a Sin IA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Origen del mensaje').first().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO.sin_anuncio }] }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        -200
+      ],
+      "id": "ee1395ac-5c71-46e8-a4a3-de8e11f00a69",
+      "name": "Aviso sin anuncio",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "af809d45-9c7f-4e1f-81e0-a89005b3ce09",
+              "leftValue": "={{ $json.anuncioWhatsApp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -100,
+        20
+      ],
+      "id": "de456d81-d409-43d3-a856-a7802178cb20",
+      "name": "¿WhatsApp de anuncio?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/RS_ventana_registrar",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_agencia: $json.agencia, p_contact_id: $json.contact_id, p_clave: $json.clave, p_desde: $json.desde }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        20
+      ],
+      "id": "2f8d5079-cdd9-4f87-9ec4-531d9e01f89a",
+      "name": "Ventana 72h",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "edf3f2f6-2ad3-4637-b338-5117576da8da",
+              "leftValue": "={{ $json.cambio === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        300,
+        20
+      ],
+      "id": "ab7d2ce1-2b46-491c-ac22-4e8e4c7a2507",
+      "name": "¿Cambió el aviso?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Origen del mensaje').first().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO[$json.alarma] }] }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        -60
+      ],
+      "id": "f30afc58-ab23-4f0f-b7bc-b64840d3064d",
+      "name": "Actualizar aviso 72h",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -3461,7 +3764,7 @@
       "main": [
         [
           {
-            "node": "Datos1",
+            "node": "GHL contacto (origen)",
             "type": "main",
             "index": 0
           }
@@ -3536,6 +3839,115 @@
         [
           {
             "node": "¿Hay mensaje del cliente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL contacto (origen)": {
+      "main": [
+        [
+          {
+            "node": "Origen del mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Origen del mensaje": {
+      "main": [
+        [
+          {
+            "node": "¿WhatsApp sin anuncio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿WhatsApp sin anuncio?": {
+      "main": [
+        [
+          {
+            "node": "Mover a Sin IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿WhatsApp de anuncio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover a Sin IA": {
+      "main": [
+        [
+          {
+            "node": "Aviso sin anuncio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿WhatsApp de anuncio?": {
+      "main": [
+        [
+          {
+            "node": "Ventana 72h",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ventana 72h": {
+      "main": [
+        [
+          {
+            "node": "¿Cambió el aviso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cambió el aviso?": {
+      "main": [
+        [
+          {
+            "node": "Actualizar aviso 72h",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar aviso 72h": {
+      "main": [
+        [
+          {
+            "node": "Datos1",
             "type": "main",
             "index": 0
           }

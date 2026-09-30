@@ -1,0 +1,5 @@
+-- Ventana de 72h de Meta para leads de WhatsApp que vienen de anuncio (proyecto xzen auto)
+-- Tabla RS_ventana_meta (agencia, contact_id, clave_anuncio, desde, alarma) y funciones:
+--   RS_ventana_registrar(p_agencia, p_contact_id, p_clave, p_desde) -> {alarma, desde, cambio}
+--   RS_ventana_vencidas() -> marca en 'rojo' y devuelve las ventanas que ya pasaron 72h
+-- (Aplicada como migración "rs_ventana_meta_72h")
