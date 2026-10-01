@@ -1,0 +1,299 @@
+{
+ "name": "Casa Alpa - Sync variantes Shopify",
+ "nodes": [
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "cronExpression",
+       "expression": "17 6 * * *"
+      }
+     ]
+    }
+   },
+   "name": "Diario 6:17",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    0
+   ],
+   "id": "c37aed88-72e0-4d76-a548-0bfc7353614a"
+  },
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "casa-alpa-sync-shopify",
+    "responseMode": "lastNode",
+    "options": {}
+   },
+   "name": "Webhook - Correr sync",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    200
+   ],
+   "webhookId": "9728b389-5421-46f2-a223-7395a94bcdad",
+   "id": "d442fa12-d679-4b7f-a14d-3037b05e7cbe"
+  },
+  {
+   "parameters": {
+    "url": "https://casaalpa.mx/products.json?limit=250",
+    "options": {
+     "response": {
+      "response": {
+       "responseFormat": "json"
+      }
+     }
+    }
+   },
+   "name": "Shopify products.json",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    220,
+    100
+   ],
+   "id": "35b62e23-dfbb-4292-8df9-7d5cf87977a2"
+  },
+  {
+   "parameters": {
+    "operation": "getAll",
+    "tableId": "casa_alpa_catalogo",
+    "returnAll": true
+   },
+   "name": "Catalogo Supabase",
+   "type": "n8n-nodes-base.supabase",
+   "typeVersion": 1,
+   "position": [
+    440,
+    100
+   ],
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "alwaysOutputData": true,
+   "executeOnce": true,
+   "id": "27defa6c-a308-4433-8893-e98683cd9d15"
+  },
+  {
+   "parameters": {
+    "jsCode": "\nconst catalogo = $('Catalogo Supabase').all().map(i => i.json);\nconst shop = $('Shopify products.json').all().flatMap(i => i.json.products || []);\nconst norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();\nconst imgKey = u => {\n  if (!u) return '';\n  const f = u.split('?')[0].split('/').pop().toLowerCase();\n  return f.replace(/_\\d+x\\d*(?=\\.)/, '').replace(/\\.(png|jpe?g|webp)$/, '');\n};\nconst productos = [], variantes = [], sinMatch = [];\nfor (const c of catalogo) {\n  const k = imgKey(c.foto_url);\n  let p = shop.find(s => (s.images || []).some(im => imgKey(im.src) === k && k));\n  if (!p) p = shop.find(s => norm(s.title) === norm(c.nombre));\n  if (!p) p = shop.find(s => norm(s.title).includes(norm(c.nombre)) || norm(c.nombre).includes(norm(s.title)));\n  if (!p) { sinMatch.push(c.nombre); continue; }\n  productos.push({ id: c.id, shopify_product_id: p.id, shopify_handle: p.handle });\n  for (const v of p.variants || []) {\n    variantes.push({\n      producto_id: c.id,\n      shopify_variant_id: v.id,\n      titulo: v.title === 'Default Title' ? null : v.title,\n      precio: Number(v.price),\n      precio_antes: v.compare_at_price ? Number(v.compare_at_price) : null,\n      disponible: v.available !== false,\n      updated_at: new Date().toISOString()\n    });\n  }\n}\nreturn [{ json: { productos, variantes, sin_match: sinMatch, total_shopify: shop.length } }];\n"
+   },
+   "name": "Code - Emparejar",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    660,
+    100
+   ],
+   "executeOnce": true,
+   "id": "ac831235-22a1-4d79-b874-ccdecd399b3b"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_variantes?on_conflict=shopify_variant_id",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "options": {},
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      },
+      {
+       "name": "Prefer",
+       "value": "resolution=merge-duplicates,return=minimal"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json.variantes) }}"
+   },
+   "name": "Upsert variantes",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    880,
+    0
+   ],
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "id": "0352aab4-a2e4-4e15-9558-e5748cb7f6da"
+  },
+  {
+   "parameters": {
+    "method": "PATCH",
+    "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_catalogo?id=eq.{{ $json.id }}",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "options": {},
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      },
+      {
+       "name": "Prefer",
+       "value": "return=minimal"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ shopify_product_id: $json.shopify_product_id, shopify_handle: $json.shopify_handle }) }}"
+   },
+   "name": "Guardar ids producto",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1100,
+    200
+   ],
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "id": "a151d580-284f-4124-a0b1-52108b18492e"
+  },
+  {
+   "parameters": {
+    "jsCode": "const r = $('Code - Emparejar').first().json;\nreturn [{ json: { productos_emparejados: r.productos.length, variantes: r.variantes.length, sin_match: r.sin_match, total_shopify: r.total_shopify } }];"
+   },
+   "name": "Resumen",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1320,
+    100
+   ],
+   "id": "6de8c8e2-5468-4148-8421-26f0d0c6ccd8",
+   "executeOnce": true
+  },
+  {
+   "parameters": {
+    "jsCode": "return $('Code - Emparejar').first().json.productos.map(p => ({ json: p }));"
+   },
+   "name": "Items productos",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    880,
+    200
+   ],
+   "id": "96096f73-5714-4746-98f0-eeeb35c0f808"
+  }
+ ],
+ "connections": {
+  "Diario 6:17": {
+   "main": [
+    [
+     {
+      "node": "Shopify products.json",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Webhook - Correr sync": {
+   "main": [
+    [
+     {
+      "node": "Shopify products.json",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Shopify products.json": {
+   "main": [
+    [
+     {
+      "node": "Catalogo Supabase",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Catalogo Supabase": {
+   "main": [
+    [
+     {
+      "node": "Code - Emparejar",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Code - Emparejar": {
+   "main": [
+    [
+     {
+      "node": "Upsert variantes",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Upsert variantes": {
+   "main": [
+    [
+     {
+      "node": "Items productos",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Guardar ids producto": {
+   "main": [
+    [
+     {
+      "node": "Resumen",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Items productos": {
+   "main": [
+    [
+     {
+      "node": "Guardar ids producto",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "availableInMCP": true,
+  "timezone": "America/Mexico_City"
+ }
+}

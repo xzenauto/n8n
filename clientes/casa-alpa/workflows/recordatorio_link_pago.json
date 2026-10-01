@@ -1,0 +1,432 @@
+{
+ "name": "Casa Alpa - Recordatorio link de pago",
+ "nodes": [
+  {
+   "parameters": {
+    "content": "## Recordatorio de link no pagado\nCada hora busca links enviados hace 20–23.5 h sin pagar (dentro de la ventana de 24 h de WhatsApp/Messenger) y manda un único recordatorio. No lo manda si el cliente escribió en las últimas 2 h o si está con un asesor.",
+    "height": 220,
+    "width": 460
+   },
+   "name": "Nota",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -60,
+    -300
+   ],
+   "id": "8916e3e3-4362-45ca-9682-9889fac3ab37"
+  },
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "hours",
+       "hoursInterval": 1,
+       "triggerAtMinute": 23
+      }
+     ]
+    }
+   },
+   "name": "Cada hora",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    0
+   ],
+   "id": "4a6a1839-f92d-4b83-882e-c1a81c72e2e9"
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_links_pago?estado=eq.enviado&recordatorio_enviado=eq.false&created_at=lt.{{ $now.minus({ hours: 20 }).toUTC().toISO() }}&created_at=gt.{{ $now.minus({ hours: 23, minutes: 30 }).toUTC().toISO() }}&select=id,contact_id,url,items,total",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": []
+    }
+   },
+   "name": "Supabase - Links Pendientes",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    220,
+    0
+   ],
+   "id": "f1fb9753-8c00-4965-a348-be765963566f",
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "options": {}
+   },
+   "name": "Loop",
+   "type": "n8n-nodes-base.splitInBatches",
+   "typeVersion": 3,
+   "position": [
+    440,
+    0
+   ],
+   "id": "0d204d9a-ad04-4c60-a075-3b5cb8096fc0"
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_prospectos?contact_id=eq.{{ $json.contact_id }}&select=nombre,canal,etapa",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": []
+    }
+   },
+   "name": "Supabase - Prospecto",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    660,
+    100
+   ],
+   "id": "1b94e303-95b6-4ea6-9b76-c3c56bed855a",
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_mensajes?contact_id=eq.{{ $('Loop').first().json.contact_id }}&order=id.desc&limit=1&select=created_at",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": []
+    }
+   },
+   "name": "Supabase - Ultimo Mensaje",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    880,
+    100
+   ],
+   "id": "602e2032-a7e4-4de8-be12-220fd6eb7feb",
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "jsCode": "const l = $('Loop').first().json;\nconst p = $('Supabase - Prospecto').first().json || {};\nconst ult = $json.created_at ? new Date($json.created_at) : null;\nconst reciente = ult && (Date.now() - ult.getTime()) < 2 * 3600 * 1000;\nconst enviar = !reciente && !['handoff', 'compro'].includes(p.etapa);\nconst nombre = (p.nombre || '').split(' ')[0];\nconst prod = (l.items || []).map(i => i.producto).join(', ');\nreturn [{ json: { id: l.id, contact_id: l.contact_id, canal: p.canal || 'WhatsApp', enviar,\n  mensaje: `Hola${nombre ? ' ' + nombre : ''} 😊 ¿Pudiste revisar tu link para ${prod || 'tu pedido'}? Te lo dejo de nuevo por si acaso:\\n${l.url}\\nSi te surge cualquier duda con el pago o el envío, aquí estoy 🙌` } }];"
+   },
+   "name": "Code - Decidir",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1100,
+    100
+   ],
+   "id": "c02c0106-9bc5-4509-907f-1948297894ba"
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "f5a5a53a-71be-40d1-bc61-55a0e32604d9",
+       "leftValue": "={{ $json.enviar }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "looseTypeValidation": true,
+    "options": {}
+   },
+   "name": "IF - Enviar",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    1320,
+    100
+   ],
+   "id": "b062c5a4-14e1-41f4-a7f2-53c9f6ad37ab"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://services.leadconnectorhq.com/conversations/messages",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-04-15"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      },
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ type: $json.canal, contactId: $json.contact_id, message: $json.mensaje }) }}"
+   },
+   "name": "GHL - Enviar Recordatorio",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1540,
+    0
+   ],
+   "id": "3d299964-b007-490b-a23d-e99f442b7cbe",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   },
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "method": "PATCH",
+    "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_links_pago?id=eq.{{ $('Code - Decidir').first().json.id }}",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      },
+      {
+       "name": "Prefer",
+       "value": "return=minimal"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ recordatorio_enviado: true }) }}"
+   },
+   "name": "Supabase - Marcar Recordatorio",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1760,
+    100
+   ],
+   "id": "22094d59-aaa2-403f-92f8-811242c929b7",
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_mensajes",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      },
+      {
+       "name": "Prefer",
+       "value": "return=minimal"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ contact_id: $('Code - Decidir').first().json.contact_id, rol: 'vale', contenido: $('Code - Decidir').first().json.mensaje, procesado: true }) }}"
+   },
+   "name": "Supabase - Guardar en Historial",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1980,
+    100
+   ],
+   "id": "2f2d9eb6-3d54-454e-adde-9a0ef02b2e17",
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "alwaysOutputData": true
+  }
+ ],
+ "connections": {
+  "Cada hora": {
+   "main": [
+    [
+     {
+      "node": "Supabase - Links Pendientes",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Supabase - Links Pendientes": {
+   "main": [
+    [
+     {
+      "node": "Loop",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Loop": {
+   "main": [
+    [],
+    [
+     {
+      "node": "Supabase - Prospecto",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Supabase - Prospecto": {
+   "main": [
+    [
+     {
+      "node": "Supabase - Ultimo Mensaje",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Supabase - Ultimo Mensaje": {
+   "main": [
+    [
+     {
+      "node": "Code - Decidir",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Code - Decidir": {
+   "main": [
+    [
+     {
+      "node": "IF - Enviar",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF - Enviar": {
+   "main": [
+    [
+     {
+      "node": "GHL - Enviar Recordatorio",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Supabase - Marcar Recordatorio",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Enviar Recordatorio": {
+   "main": [
+    [
+     {
+      "node": "Supabase - Marcar Recordatorio",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Supabase - Marcar Recordatorio": {
+   "main": [
+    [
+     {
+      "node": "Supabase - Guardar en Historial",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Supabase - Guardar en Historial": {
+   "main": [
+    [
+     {
+      "node": "Loop",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "America/Mexico_City"
+ }
+}

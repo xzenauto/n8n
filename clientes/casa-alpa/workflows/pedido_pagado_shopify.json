@@ -1,0 +1,873 @@
+{
+ "name": "Casa Alpa - Pedido pagado Shopify → GHL",
+ "nodes": [
+  {
+   "parameters": {
+    "content": "## Pedido pagado en Shopify → GHL\nConfigura en Shopify: **Configuración → Notificaciones → Webhooks → Crear webhook**, evento *Pago de pedido*, formato JSON, URL de este webhook (ruta secreta, no la compartas).\n\nSólo procesa pedidos ligados a un contacto de GHL: por el atributo `ghl_contact_id` del link de Vale o, si no viene, por el teléfono del pedido.",
+    "height": 260,
+    "width": 520
+   },
+   "name": "Nota",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -60,
+    -320
+   ],
+   "id": "b27486cb-3be2-4fcb-a273-44fee5846e8d"
+  },
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "casa-alpa-shopify-pedido-<TOKEN_SECRETO>",
+    "options": {}
+   },
+   "name": "Webhook - Shopify Pedido Pagado",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "id": "8dae6bd2-4478-423f-8287-0c5257be5666",
+   "webhookId": "3024765a-94d2-4c55-8a91-62504e936c2e"
+  },
+  {
+   "parameters": {
+    "jsCode": "const o = $json.body || {};\nconst attrs = Object.fromEntries((o.note_attributes || []).map(a => [a.name, a.value]));\nconst sa = o.shipping_address || {};\nconst tel = String(sa.phone || o.phone || o.customer?.phone || o.billing_address?.phone || '').replace(/\\D/g, '');\nlet e164 = null;\nif (tel.length === 10) e164 = '+52' + tel;\nelse if (tel.length === 12 && tel.startsWith('52')) e164 = '+' + tel;\nelse if (tel.length === 13 && tel.startsWith('521')) e164 = '+52' + tel.slice(3);\nelse if (tel.length > 10) e164 = '+' + tel;\nconst direccion = [sa.name, sa.address1, sa.address2, [sa.zip, sa.city].filter(Boolean).join(' '), sa.province, sa.country, sa.phone ? 'Tel. ' + sa.phone : null].filter(Boolean).join('\\n');\nconst items = (o.line_items || []).map(li => `${li.quantity}x ${li.title}${li.variant_title ? ' (' + li.variant_title + ')' : ''} — $${Number(li.price).toLocaleString('es-MX')}`);\nreturn [{ json: {\n  order_id: String(o.id || ''),\n  order_name: o.name || ('#' + (o.order_number || o.id)),\n  financial_status: o.financial_status,\n  total: Number(o.total_price || 0),\n  envio: Number(o.total_shipping_price_set?.shop_money?.amount || 0),\n  contact_id: attrs.ghl_contact_id || null,\n  link_id: attrs.vale_link_id || null,\n  telefono: e164,\n  email: o.email || o.customer?.email || null,\n  nombre: o.customer?.first_name || sa.first_name || '',\n  direccion: direccion || '(sin dirección de envío)',\n  items,\n  valido: !!o.id && ['paid', 'partially_paid'].includes(o.financial_status)\n} }];"
+   },
+   "name": "Code - Parsear Pedido",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    220,
+    0
+   ],
+   "id": "6cf3c8e6-1377-4888-ad4a-9ff3a8b334c0"
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "825b5028-a268-4258-a31b-e6d8564edd78",
+       "leftValue": "={{ $json.valido }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "looseTypeValidation": true,
+    "options": {}
+   },
+   "name": "IF - Pedido Valido",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    440,
+    0
+   ],
+   "id": "0afa38a8-b5c0-473c-a6b0-4a4265546335"
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_links_pago?shopify_order_id=eq.{{ $json.order_id }}&select=id",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": []
+    }
+   },
+   "name": "Supabase - Ya Procesado",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    660,
+    0
+   ],
+   "id": "bad2339c-3999-41b2-ac10-a3b07307e5a6",
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "ed9386f5-956f-43b4-a52c-04d722375d03",
+       "leftValue": "={{ !$json.id }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "looseTypeValidation": true,
+    "options": {}
+   },
+   "name": "IF - Es Nuevo",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    880,
+    0
+   ],
+   "id": "44393a74-ff08-4fb6-8b72-00cab3009da3"
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "b4595cc8-d7a1-4ec7-b6b6-abbda9d66a5e",
+       "leftValue": "={{ !!$('Code - Parsear Pedido').first().json.contact_id }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "looseTypeValidation": true,
+    "options": {}
+   },
+   "name": "IF - Trae Contact ID",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    1100,
+    0
+   ],
+   "id": "cf3ad79e-6545-4934-a9cd-1bd9229330e3"
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "=https://services.leadconnectorhq.com/contacts/search/duplicate?locationId=iYgqtO9TzgsM2X4hzyhj&number={{ encodeURIComponent($('Code - Parsear Pedido').first().json.telefono || '') }}&email={{ encodeURIComponent($('Code - Parsear Pedido').first().json.email || '') }}",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      }
+     ]
+    }
+   },
+   "name": "GHL - Buscar por Telefono",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1320,
+    120
+   ],
+   "id": "cec8bce7-bc28-44b7-87b0-be165c890d1b",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   },
+   "alwaysOutputData": true,
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "const p = $('Code - Parsear Pedido').first().json;\nconst encontrado = $json.contact?.id || null;\nconst contact_id = p.contact_id || encontrado;\nif (!contact_id) return [];  // pedido de la tienda que no viene de un contacto de GHL: nada que hacer\nreturn [{ json: { ...p, contact_id } }];"
+   },
+   "name": "Code - Resolver Contacto",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1540,
+    0
+   ],
+   "id": "74bba15a-9a4a-4811-a8ad-354b9860a3e0"
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "=https://services.leadconnectorhq.com/opportunities/search?location_id=iYgqtO9TzgsM2X4hzyhj&contact_id={{ $json.contact_id }}&pipeline_id=KRqZz6ozuHtbiISHH4Cd",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      }
+     ]
+    }
+   },
+   "name": "GHL - Buscar Opportunity",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1760,
+    0
+   ],
+   "id": "f25e742a-d10b-49db-bdc7-ec3a04bd158a",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "jsCode": "const p = $('Code - Resolver Contacto').first().json;\nconst o = ($json.opportunities || [])[0] || null;\nreturn [{ json: { ...p, opportunity_id: o?.id || null } }];"
+   },
+   "name": "Code - Opp",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1980,
+    0
+   ],
+   "id": "e4d33075-2766-47c6-8b8f-fa04cc5f5af3"
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose",
+      "version": 2
+     },
+     "conditions": [
+      {
+       "id": "29103905-177e-4571-846d-2722b649930a",
+       "leftValue": "={{ !!$json.opportunity_id }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "looseTypeValidation": true,
+    "options": {}
+   },
+   "name": "IF - Hay Opp",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.2,
+   "position": [
+    2200,
+    0
+   ],
+   "id": "95aa1756-ef38-4497-971f-dd46bce8e340"
+  },
+  {
+   "parameters": {
+    "method": "PUT",
+    "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunity_id }}",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      },
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ pipelineId: 'KRqZz6ozuHtbiISHH4Cd', pipelineStageId: '609487d9-c097-4896-9151-1eed75d723ca', status: 'won', monetaryValue: $json.total }) }}"
+   },
+   "name": "GHL - Ganar Opportunity",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2420,
+    -100
+   ],
+   "id": "1f971aeb-115e-4d79-b54d-625b7b499296",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://services.leadconnectorhq.com/opportunities/",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      },
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ pipelineId: 'KRqZz6ozuHtbiISHH4Cd', locationId: 'iYgqtO9TzgsM2X4hzyhj', contactId: $json.contact_id, name: ($json.nombre || 'Cliente') + ' ' + $json.order_name, pipelineStageId: '609487d9-c097-4896-9151-1eed75d723ca', status: 'won', monetaryValue: $json.total }) }}"
+   },
+   "name": "GHL - Crear Opp Ganada",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2420,
+    100
+   ],
+   "id": "2ca5b8d9-da24-461b-943b-5783441315ea",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Code - Opp').first().json.contact_id }}/tags",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      },
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ tags: ['compro-shopify'] }) }}"
+   },
+   "name": "GHL - Etiqueta Compro",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2640,
+    0
+   ],
+   "id": "f0d4b8d9-0547-4f47-a6b9-a9cb9e23a449",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   },
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Code - Opp').first().json.contact_id }}/notes",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      },
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ body: '🛒 Pedido pagado en Shopify ' + $('Code - Opp').first().json.order_name + '\\nTotal: $' + $('Code - Opp').first().json.total.toLocaleString('es-MX') + ($('Code - Opp').first().json.envio ? ' (envío $' + $('Code - Opp').first().json.envio.toLocaleString('es-MX') + ')' : '') + '\\n\\nProductos:\\n' + $('Code - Opp').first().json.items.join('\\n') + '\\n\\nDirección de envío:\\n' + $('Code - Opp').first().json.direccion }) }}"
+   },
+   "name": "GHL - Nota Pedido",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2860,
+    0
+   ],
+   "id": "1d2a45c0-7ac7-40e9-be8f-8e0ffa6e53ac",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   },
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Code - Opp').first().json.contact_id }}/tasks",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      },
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ title: 'Preparar envío pedido ' + $('Code - Opp').first().json.order_name, body: $('Code - Opp').first().json.items.join('\\n') + '\\n\\nEnviar a:\\n' + $('Code - Opp').first().json.direccion, dueDate: $now.plus({ days: 1 }).toUTC().toISO(), completed: false }) }}"
+   },
+   "name": "GHL - Tarea Envio",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3080,
+    0
+   ],
+   "id": "ddcda1dd-be48-423e-86cf-11f059082b94",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   },
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "method": "PATCH",
+    "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_links_pago?{{ $('Code - Opp').first().json.link_id ? 'id=eq.' + $('Code - Opp').first().json.link_id : 'contact_id=eq.' + $('Code - Opp').first().json.contact_id + '&estado=eq.enviado' }}",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      },
+      {
+       "name": "Prefer",
+       "value": "return=minimal"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ estado: 'pagado', shopify_order_id: $('Code - Opp').first().json.order_id, shopify_order_name: $('Code - Opp').first().json.order_name, pagado_at: $now.toISO() }) }}"
+   },
+   "name": "Supabase - Marcar Link Pagado",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3300,
+    0
+   ],
+   "id": "6becfcee-ae27-48ae-b9f3-886402c31a43",
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "method": "PATCH",
+    "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/casa_alpa_prospectos?contact_id=eq.{{ $('Code - Opp').first().json.contact_id }}",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "supabaseApi",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      },
+      {
+       "name": "Prefer",
+       "value": "return=representation"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ etapa: 'compro', seguimiento_pendiente: false, updated_at: $now.toISO() }) }}"
+   },
+   "name": "Supabase - Prospecto Compro",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3520,
+    0
+   ],
+   "id": "ef1fecaf-1512-4b4e-82c5-870346085110",
+   "credentials": {
+    "supabaseApi": {
+     "id": "QIVohgUOAGTuwYd1",
+     "name": "XzenAuto"
+    }
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://services.leadconnectorhq.com/conversations/messages",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-04-15"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      },
+      {
+       "name": "Content-Type",
+       "value": "application/json"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ type: $json.canal || 'WhatsApp', contactId: $('Code - Opp').first().json.contact_id, message: '¡Muchas gracias' + ($('Code - Opp').first().json.nombre ? ', ' + $('Code - Opp').first().json.nombre : '') + '! 🎉 Ya recibimos tu pago del pedido ' + $('Code - Opp').first().json.order_name + '. Nuestro equipo va a preparar tu envío y te avisamos en cuanto salga 🏡' }) }}"
+   },
+   "name": "GHL - Avisar Cliente",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3740,
+    0
+   ],
+   "id": "952ec991-9b8b-4627-94ae-e376bca607f7",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   },
+   "onError": "continueRegularOutput"
+  }
+ ],
+ "connections": {
+  "Webhook - Shopify Pedido Pagado": {
+   "main": [
+    [
+     {
+      "node": "Code - Parsear Pedido",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Code - Parsear Pedido": {
+   "main": [
+    [
+     {
+      "node": "IF - Pedido Valido",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF - Pedido Valido": {
+   "main": [
+    [
+     {
+      "node": "Supabase - Ya Procesado",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Supabase - Ya Procesado": {
+   "main": [
+    [
+     {
+      "node": "IF - Es Nuevo",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF - Es Nuevo": {
+   "main": [
+    [
+     {
+      "node": "IF - Trae Contact ID",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF - Trae Contact ID": {
+   "main": [
+    [
+     {
+      "node": "Code - Resolver Contacto",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "GHL - Buscar por Telefono",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Buscar por Telefono": {
+   "main": [
+    [
+     {
+      "node": "Code - Resolver Contacto",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Code - Resolver Contacto": {
+   "main": [
+    [
+     {
+      "node": "GHL - Buscar Opportunity",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Buscar Opportunity": {
+   "main": [
+    [
+     {
+      "node": "Code - Opp",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Code - Opp": {
+   "main": [
+    [
+     {
+      "node": "IF - Hay Opp",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF - Hay Opp": {
+   "main": [
+    [
+     {
+      "node": "GHL - Ganar Opportunity",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "GHL - Crear Opp Ganada",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Ganar Opportunity": {
+   "main": [
+    [
+     {
+      "node": "GHL - Etiqueta Compro",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Crear Opp Ganada": {
+   "main": [
+    [
+     {
+      "node": "GHL - Etiqueta Compro",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Etiqueta Compro": {
+   "main": [
+    [
+     {
+      "node": "GHL - Nota Pedido",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Nota Pedido": {
+   "main": [
+    [
+     {
+      "node": "GHL - Tarea Envio",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Tarea Envio": {
+   "main": [
+    [
+     {
+      "node": "Supabase - Marcar Link Pagado",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Supabase - Marcar Link Pagado": {
+   "main": [
+    [
+     {
+      "node": "Supabase - Prospecto Compro",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Supabase - Prospecto Compro": {
+   "main": [
+    [
+     {
+      "node": "GHL - Avisar Cliente",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1",
+  "timezone": "America/Mexico_City"
+ }
+}
