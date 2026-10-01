@@ -35,3 +35,14 @@ Para reiniciar un contacto de prueba: ponerle la etiqueta `test-vale` en GHL y e
 ## Supabase
 
 `supabase/01_vale_v2_esquema.sql`, `02_funciones.sql`, `03_etapas.sql`: cambios aplicados el 2026-10-01.
+
+## v3 (2026-10-01) — venta consultiva
+
+- Vale sigue un proceso de vendedora: conectar → descubrir necesidades → recomendar con fotos y datos → resolver dudas → precio al final → link de pago.
+- **Candados en el workflow** (no sólo en el prompt): el precio sólo se puede consultar (`casa_alpa_cotizar`) si el cliente eligió un producto o insiste en el precio; el link (`casa_alpa_link`) sólo si quiere comprar o acepta que se lo manden.
+- `buscar_catalogo` ya no devuelve precios; trae opciones, medidas, materiales, descripción de la tienda y capacidad máxima por opción.
+- Fotos: no se repiten; el cliente puede pedir más fotos (hasta 3 extra de las que tiene Shopify).
+- Dudas que Vale no puede confirmar (ej. tiempo de entrega): crea tarea "Responder duda de…" y etiqueta `vale-consulta` **sin pausar** a Vale.
+- `casa_alpa_info_negocio`: información editable del negocio (12 MSI, formas de pago, envíos). Se suma a las FAQs del Google Doc.
+- Modo simulación: contactos con etiqueta `simulacion-vale` no reciben mensajes; la conversación queda como nota en GHL. Pruebas en `pruebas/`.
+- Workflow "Casa Alpa - TEST herramientas de prueba" (desactivado): crear contactos de prueba, verificar links de carrito, listar productos de GHL.

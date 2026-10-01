@@ -1,0 +1,389 @@
+{
+ "name": "Casa Alpa - TEST herramientas de prueba",
+ "nodes": [
+  {
+   "parameters": {
+    "content": "## Herramientas de prueba de Vale\nAcciones fijas: `crear_contacto` (contacto de prueba con etiquetas test-vale + simulacion-vale), `verificar_link` (abre un link de carrito de casaalpa.mx y reporta a dónde redirige), `productos_ghl` (lista productos de GHL). Desactívalo cuando no se use.",
+    "height": 200,
+    "width": 520
+   },
+   "name": "Nota",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    0,
+    -260
+   ]
+  },
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "casa-alpa-test-<TOKEN_SECRETO>",
+    "responseMode": "lastNode",
+    "options": {}
+   },
+   "name": "Webhook",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "dd62bf1a-3d4c-4372-bcc6-06d37d92ab40"
+  },
+  {
+   "parameters": {
+    "rules": {
+     "values": [
+      {
+       "conditions": {
+        "options": {
+         "caseSensitive": true,
+         "leftValue": "",
+         "typeValidation": "strict",
+         "version": 2
+        },
+        "conditions": [
+         {
+          "leftValue": "={{ $json.body.accion }}",
+          "rightValue": "crear_contacto",
+          "operator": {
+           "type": "string",
+           "operation": "equals"
+          },
+          "id": "0cd86ebd-6160-4c56-a0d6-cec5aa9d6b31"
+         }
+        ],
+        "combinator": "and"
+       },
+       "renameOutput": true,
+       "outputKey": "crear_contacto"
+      },
+      {
+       "conditions": {
+        "options": {
+         "caseSensitive": true,
+         "leftValue": "",
+         "typeValidation": "strict",
+         "version": 2
+        },
+        "conditions": [
+         {
+          "leftValue": "={{ $json.body.accion }}",
+          "rightValue": "verificar_link",
+          "operator": {
+           "type": "string",
+           "operation": "equals"
+          },
+          "id": "168c0671-c0f4-4ce1-b602-99ecdfc34e88"
+         }
+        ],
+        "combinator": "and"
+       },
+       "renameOutput": true,
+       "outputKey": "verificar_link"
+      },
+      {
+       "conditions": {
+        "options": {
+         "caseSensitive": true,
+         "leftValue": "",
+         "typeValidation": "strict",
+         "version": 2
+        },
+        "conditions": [
+         {
+          "leftValue": "={{ $json.body.accion }}",
+          "rightValue": "productos_ghl",
+          "operator": {
+           "type": "string",
+           "operation": "equals"
+          },
+          "id": "2f88d47d-d4ac-4954-884b-0fc2bd4fea3f"
+         }
+        ],
+        "combinator": "and"
+       },
+       "renameOutput": true,
+       "outputKey": "productos_ghl"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "name": "Accion",
+   "type": "n8n-nodes-base.switch",
+   "typeVersion": 3.2,
+   "position": [
+    220,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://services.leadconnectorhq.com/contacts/",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ locationId: 'iYgqtO9TzgsM2X4hzyhj', firstName: String($json.body.nombre || 'Prueba').slice(0, 40), lastName: 'Prueba Vale', email: 'vale.prueba.' + String($json.body.slug || Date.now()).replace(/[^a-z0-9]/gi, '').slice(0, 20) + '@example.com', tags: ['test-vale', 'simulacion-vale'], source: 'Prueba Vale (simulación)' }) }}",
+    "options": {
+     "response": {
+      "response": {
+       "fullResponse": false,
+       "neverError": true
+      }
+     }
+    }
+   },
+   "name": "GHL - Crear Contacto Prueba",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    440,
+    -120
+   ],
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "url": "={{ /^https:\\/\\/(casaalpa\\.mx|[a-z0-9-]+\\.myshopify\\.com|checkout\\.casaalpa\\.mx)\\//.test(String($json.body.url || '')) ? $json.body.url : 'https://casaalpa.mx/' }}",
+    "options": {
+     "redirect": {
+      "redirect": {
+       "followRedirects": false
+      }
+     },
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true,
+       "responseFormat": "text"
+      }
+     }
+    },
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "User-Agent",
+       "value": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+      },
+      {
+       "name": "Accept",
+       "value": "text/html"
+      }
+     ]
+    }
+   },
+   "name": "Abrir Link",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    440,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "const first = $('Abrir Link').first().json;\nconst r = $input.first().json;\nconst html = String(r.data || r.body || '');\nconst buscar = ($('Webhook').first().json.body.buscar || []).map(String);\nconst low = html.toLowerCase();\nreturn [{ json: {\n  paso1_status: first.statusCode, paso1_redirige_a: (first.headers?.location || '').split('?')[0],\n  checkout_status: r.statusCode, checkout_redirige_a: r.headers?.location || null,\n  title: ((html.match(/<title>([^<]*)<\\/title>/i) || [])[1] || '').trim(),\n  contiene: Object.fromEntries(buscar.map(b => [b, low.includes(b.toLowerCase())])),\n  tamano_html: html.length\n} }];"
+   },
+   "name": "Resultado Link",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    880,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "url": "https://services.leadconnectorhq.com/products/?locationId=iYgqtO9TzgsM2X4hzyhj&limit=100",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "Version",
+       "value": "2021-07-28"
+      },
+      {
+       "name": "Accept",
+       "value": "application/json"
+      }
+     ]
+    },
+    "options": {
+     "response": {
+      "response": {
+       "neverError": true
+      }
+     }
+    }
+   },
+   "name": "GHL - Productos",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    440,
+    120
+   ],
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "Xs2385W5NO5TjT2V",
+     "name": "GHL - PIT - Alpa"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "jsCode": "const r = $input.first().json;\nconst ps = r.products || [];\nreturn [{ json: { total: r.total ?? ps.length, productos: ps.slice(0, 50).map(p => ({ id: p._id || p.id, nombre: p.name, tipo: p.productType, disponible_en_store: p.availableInStore, creado: p.createdAt, origen: p.source || p.medias?.length })), error: r.message || null } }];"
+   },
+   "name": "Resumen Productos",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    660,
+    120
+   ]
+  },
+  {
+   "parameters": {
+    "url": "={{ $json.headers.location || 'https://casaalpa.mx/' }}",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "User-Agent",
+       "value": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+      },
+      {
+       "name": "Accept",
+       "value": "text/html"
+      },
+      {
+       "name": "Cookie",
+       "value": "={{ [].concat($json.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ') }}"
+      }
+     ]
+    },
+    "options": {
+     "redirect": {
+      "redirect": {
+       "followRedirects": false
+      }
+     },
+     "response": {
+      "response": {
+       "fullResponse": true,
+       "neverError": true,
+       "responseFormat": "text"
+      }
+     }
+    }
+   },
+   "name": "Abrir Checkout",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    660,
+    -40
+   ],
+   "id": "fe97d6fd-c016-47b0-af6c-44672f66ff70"
+  }
+ ],
+ "connections": {
+  "Webhook": {
+   "main": [
+    [
+     {
+      "node": "Accion",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Accion": {
+   "main": [
+    [
+     {
+      "node": "GHL - Crear Contacto Prueba",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Abrir Link",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "GHL - Productos",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Abrir Link": {
+   "main": [
+    [
+     {
+      "node": "Abrir Checkout",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "GHL - Productos": {
+   "main": [
+    [
+     {
+      "node": "Resumen Productos",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Abrir Checkout": {
+   "main": [
+    [
+     {
+      "node": "Resultado Link",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ }
+}

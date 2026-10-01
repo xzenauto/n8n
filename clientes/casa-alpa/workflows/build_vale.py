@@ -127,6 +127,7 @@ return [{ json: {
   ad_id: attr.adId || null,
   medium: attr.medium || null,
   es_test: tags.includes('test-vale'),
+  simulacion: tags.includes('simulacion-vale'),
   texto: texto || '[El cliente mandó un audio, imagen o archivo sin texto]',
   es_borrar: texto.toLowerCase() === 'borrar'
 } }];
@@ -196,10 +197,10 @@ return [{ json: { opportunity_id: o.id || null, stage_id: o.pipelineStageId || n
 """, [1100, 420])
 ifnode("IF - Vale Activa", f"""={{{{ !['{STAGES['handoff']}', '{STAGES['ganado']}'].includes($json.stage_id) && !(($('GHL - Contacto').first().json.contact?.tags) || []).map(t => t.toLowerCase()).includes('vale-pausada') }}}}""", TRUE_OP, [1320, 420])
 http("Supabase - Historial", "GET",
-     f"={SBURL}/casa_alpa_mensajes?contact_id=eq.{{{{ {N}.contact_id }}}}&id=lt.{{{{ $('Code - Debounce').first().json.primer_id }}}}&order=id.desc&limit=20&select=rol,contenido,created_at",
+     f"={SBURL}/casa_alpa_mensajes?contact_id=eq.{{{{ {N}.contact_id }}}}&id=lt.{{{{ $('Code - Debounce').first().json.primer_id }}}}&order=id.desc&limit=20&select=rol,contenido,created_at,productos_mostrados",
      [1540, 420], "sb", alwaysOutputData=True, executeOnce=True)
 http("Supabase - Anuncio", "GET",
-     f"={SBURL}/casa_alpa_anuncios_muebles?ad_id=eq.{{{{ {N}.ad_id || 'ninguno' }}}}&select=nombre_campana,categoria,casa_alpa_catalogo(nombre)",
+     f"={SBURL}/casa_alpa_anuncios_muebles?ad_id=eq.{{{{ {N}.ad_id || 'ninguno' }}}}&select=nombre_campana,categoria,producto_id,casa_alpa_catalogo(nombre)",
      [1760, 420], "sb", alwaysOutputData=True, executeOnce=True)
 http("Supabase - Ultimo Link", "GET",
      f"={SBURL}/casa_alpa_links_pago?contact_id=eq.{{{{ {N}.contact_id }}}}&order=created_at.desc&limit=1&select=items,total,estado,created_at",
@@ -214,6 +215,28 @@ const hist = $('Supabase - Historial').all().map(i => i.json).filter(m => m && m
 const ad = $('Supabase - Anuncio').all().map(i => i.json).find(a => a && a.categoria);
 const ln = $('Supabase - Ultimo Link').all().map(i => i.json).find(l => l && l.estado);
 const faqs = String($('Google Docs - FAQs').first().json.content || '').replace(/[\u000b\r]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+const info = $('Supabase - Info Negocio').all().map(i => i.json).filter(r => r && r.tema).map(r => `- ${r.tema}: ${r.contenido}`).join('\n');
+const indice = $('Supabase - Indice Catalogo').all().map(i => i.json).filter(p => p && p.id && (!(p.casa_alpa_variantes || []).length || p.casa_alpa_variantes.some(v => v.disponible)));
+const yaMostrados = [...new Set(hist.flatMap(m => m.productos_mostrados || []))];
+const nombreDe = Object.fromEntries(indice.map(p => [p.id, p.nombre]));
+const catalogo = indice.map(p => `- ${p.nombre} (${p.categoria}) → ${p.id}`).join('\n');
+const pidePrecio = /\b(cu[aá]nto|precios?|costos?|cuesta|cuestan|sale|salen|cotiza\w*|\$)/i.test(nuevos) || /\$/.test(nuevos);
+const yaCotizado = ['cotizado', 'link_enviado', 'compro'].includes(p.etapa);
+const normT = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const nombraProducto = indice.some(p => normT(p.nombre).split(/\s+/).filter(w => w.length >= 3 && !['mesa', 'comedor', 'sala', 'cama', 'love', 'sillon', 'espejo', 'lampara', 'recamara', 'redondo', 'pared', 'grande', 'bufetero', 'triptico', 'cristal', 'arco', 'del', 'con', 'sofa'].includes(w)).some(w => new RegExp('\\b' + w + '\\b').test(normT(nuevos))));
+const deictico = /\b(ese|esa|este|esta|esos|esas|el primero|la primera|el segundo|la segunda|la de|el de)\b/i.test(nuevos);
+const elige = (/(me gust[aoó]|me encant[aoó]|me lat[ei]|me interesa)/i.test(nuevos) && (nombraProducto || deictico))
+  || /(me quedo|lo quiero|la quiero|los quiero|las quiero|me lo llevo|me la llevo|quiero (ese|esa|este|esta)\b)/i.test(nuevos)
+  || (/quiero (el|la|los|las)\b/i.test(nuevos) && nombraProducto);
+const clientePrevio = hist.filter(m => m.rol === 'cliente').slice(-1)[0];
+const insiste = pidePrecio && clientePrevio && /\b(cu[aá]nto|precios?|costos?|cuesta|cuestan|sale|salen)\b/i.test(clientePrevio.contenido);
+const valePrevio = hist.filter(m => m.rol === 'vale').slice(-1)[0];
+const ofrecioLink = valePrevio && /link|liga|apart/i.test(valePrevio.contenido);
+const afirma = /^\s*(s[ií]+|va+|ok|okay|dale|claro|perfecto|por favor|porfa|sale|de acuerdo|me parece|adelante|listo|mand[aá]lo|mándamelo)(?=[\s,.!?😊🙏👍]|$)/i.test(nuevos);
+const quiereComprar = /(lo quiero|la quiero|los quiero|las quiero|me quedo|me lo llevo|me la llevo|comprar|lo compro|la compro|link|liga|apart[ao]|c[oó]mo (le hago|pago|lo compro|la compro)|m[aá]ndamel[oa]|quiero pagar)/i.test(nuevos);
+const condicional = /^\s*si\s+(me|te|lo|la|le|los|las|nos|compro|llevo|quiero|tienen|hay|es|son|fuera|pago)\b/i.test(nuevos);
+const puedeLink = quiereComprar || (ofrecioLink && afirma && !condicional);
+const puedeCotizar = puedeLink || elige || yaCotizado || (pidePrecio && (yaMostrados.length > 0 || nombraProducto || insiste));
 const fecha = $now.setZone('America/Mexico_City').toFormat("cccc d 'de' LLLL yyyy, HH:mm", { locale: 'es' });
 
 const datos = [
@@ -226,8 +249,9 @@ const datos = [
   p.resumen ? `Resumen previo: ${p.resumen}` : null,
 ].filter(Boolean).join('\n');
 
+const indiceOk = id => $('Supabase - Indice Catalogo').all().map(i => i.json).some(p => p && p.id === id && (!(p.casa_alpa_variantes || []).length || p.casa_alpa_variantes.some(v => v.disponible)));
 const anuncio = ad
-  ? `Llegó por el anuncio "${ad.nombre_campana}" (categoría ${ad.categoria}${ad.casa_alpa_catalogo?.nombre ? ', producto ' + ad.casa_alpa_catalogo.nombre : ''}).`
+  ? `Llegó por el anuncio "${ad.nombre_campana}" (categoría ${ad.categoria}${ad.casa_alpa_catalogo?.nombre ? ', producto ' + ad.casa_alpa_catalogo.nombre + (indiceOk(ad.producto_id) ? '' : ' — AGOTADO: no lo ofrezcas; si pregunta por él, dile con honestidad que se agotó y ofrece la alternativa más parecida') : ''}).`
   : 'No llegó por un anuncio identificado.';
 const link = ln
   ? `Último link de pago: ${ln.estado} — ${(ln.items || []).map(i => `${i.cantidad}x ${i.producto}${i.variante ? ' (' + i.variante + ')' : ''}`).join(', ')} — total $${Number(ln.total).toLocaleString('es-MX')} (${ln.created_at}).`
@@ -244,7 +268,14 @@ ${anuncio}
 ${link}
 
 ## INFORMACIÓN DEL NEGOCIO (FAQs oficiales; si algo no está aquí, no lo sabes)
-${faqs || '(no disponible)'}
+${[info, faqs].filter(Boolean).join('\n\n') || '(no disponible)'}
+
+## LINK DE PAGO EN ESTE TURNO: ${puedeLink ? 'PERMITIDO (el cliente quiere comprar / pidió el link)' : 'NO PERMITIDO: no lo mandes; si ya dio precio, pregunta si quiere que se lo mandes'}
+## PRECIO EN ESTE TURNO: ${puedeCotizar ? 'PERMITIDO (' + (pidePrecio ? 'preguntó el precio' : elige ? 'eligió/mostró interés en un producto' : 'ya se le había cotizado') + ')' : 'NO PERMITIDO (no ha elegido producto ni preguntado precio): no menciones cantidades en pesos'}
+
+## CATÁLOGO DISPONIBLE (nombre → producto_id; usa SIEMPRE estos ids)
+${catalogo || '(no disponible)'}
+Ya le mandaste foto de: ${yaMostrados.map(id => nombreDe[id]).filter(Boolean).join(', ') || 'ninguno'} (no repitas esas fotos salvo que te las pida).
 
 ## CONVERSACIÓN PREVIA (antigua → reciente)
 ${conv}
@@ -261,6 +292,9 @@ return [{ json: {
   stage_id: opp.stage_id,
   monetary_value: opp.monetary_value,
   nombre: p.nombre || n.nombre,
+  ya_mostrados: yaMostrados,
+  puede_cotizar: puedeCotizar,
+  puede_link: puedeLink,
 } }];
 """, [2200, 420])
 
@@ -268,7 +302,7 @@ return [{ json: {
 prompt = open("prompt_vale.md", encoding="utf-8").read()
 add("Vale - AI Agent", "@n8n/n8n-nodes-langchain.agent", {
     "promptType": "define", "text": "={{ $json.prompt }}", "hasOutputParser": True,
-    "options": {"systemMessage": prompt, "maxIterations": 8}}, [2440, 420], 3.1,
+    "options": {"systemMessage": prompt, "maxIterations": 5}}, [2440, 420], 3.1,
     retryOnFail=True, maxTries=2, waitBetweenTries=2000, onError="continueErrorOutput")
 add("OpenAI Chat Model", "@n8n/n8n-nodes-langchain.lmChatOpenAi",
     {"model": "gpt-4.1", "options": {"temperature": 0.2}}, [2300, 700], 1, OPENAI)
@@ -278,17 +312,18 @@ schema = {
         "mensajes": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 4},
         "productos_a_mostrar": {"type": "array", "items": {"type": "string"}, "maxItems": 2,
                                  "description": "producto_id de buscar_catalogo"},
-        "etapa": {"type": "string", "enum": ["explorando", "interesado", "link_enviado", "handoff"]},
+        "fotos_extra_de": {"type": "string", "description": "producto_id del que el cliente pidió más fotos, o vacío"},
+        "etapa": {"type": "string", "enum": ["explorando", "interesado", "cotizado", "link_enviado", "handoff"]},
         "handoff_motivo": {"type": "string"},
         "resumen": {"type": "string"},
     },
-    "required": ["mensajes", "productos_a_mostrar", "etapa", "handoff_motivo", "resumen"],
+    "required": ["mensajes", "productos_a_mostrar", "fotos_extra_de", "etapa", "handoff_motivo", "resumen"],
 }
 add("Structured Output Parser", "@n8n/n8n-nodes-langchain.outputParserStructured",
     {"schemaType": "manual", "inputSchema": json.dumps(schema, ensure_ascii=False, indent=2)}, [3000, 700], 1.2)
 
 http("buscar_catalogo", "POST", f"{SBURL}/rpc/casa_alpa_buscar_catalogo", [2440, 700], "sb",
-     tool_desc="Busca muebles disponibles en el catálogo de Casa Alpa con precios reales de la tienda (por variante). Úsala siempre antes de recomendar o cotizar.",
+     onError="continueRegularOutput", tool_desc="Busca muebles disponibles en el catálogo de Casa Alpa (medidas, materiales, colores, descripción, opciones de tamaño/acabado). No trae precios: para eso está cotizar_producto. Úsala siempre antes de recomendar.",
      body="""={{ JSON.stringify({
   p_categoria: $fromAI('categoria', 'comedor, sala, recamara o decoracion; vacío para buscar en todo', 'string', '') || null,
   p_presupuesto_max: $fromAI('presupuesto_max', 'presupuesto máximo en pesos; 0 si no se sabe', 'number', 0) || null,
@@ -296,16 +331,20 @@ http("buscar_catalogo", "POST", f"{SBURL}/rpc/casa_alpa_buscar_catalogo", [2440,
   p_color: $fromAI('color', 'color o acabado deseado (ej. nogal, gris); vacío si no importa', 'string', '') || null,
   p_texto: $fromAI('texto', 'nombre o palabra del producto (ej. kelso, cama); vacío si no aplica', 'string', '') || null
 }) }}""")
-http("generar_link_pago", "POST", f"{SBURL}/rpc/casa_alpa_generar_link_pago", [2580, 700], "sb",
-     tool_desc="Genera el link de pago (carrito de la tienda en línea) para lo que el cliente decidió comprar. El cliente paga y captura su dirección de envío ahí. Devuelve url y total.",
+http("cotizar_producto", "POST", f"{SBURL}/rpc/casa_alpa_cotizar", [2300, 860], "sb",
+     onError="continueRegularOutput", tool_desc="Da los precios reales por opción (tamaño/acabado) de UN producto, más condiciones de pago. Úsala sólo cuando el cliente ya eligió el producto (o insiste en saber el precio).",
+     body="""={{ JSON.stringify({ p_producto: $fromAI('producto_id', 'producto_id (uuid) del CATÁLOGO del contexto o de buscar_catalogo', 'string'), p_permitido: !!$('Code - Construir Contexto').first().json.puede_cotizar }) }}""")
+http("generar_link_pago", "POST", f"{SBURL}/rpc/casa_alpa_link", [2580, 700], "sb",
+     onError="continueRegularOutput", tool_desc="Genera el link de pago (carrito de la tienda en línea) para lo que el cliente decidió comprar. El cliente paga y captura su dirección de envío ahí. Devuelve url y total.",
      body=f"""={{{{ JSON.stringify({{
   p_contact_id: {CTX}.contact_id,
   p_opportunity_id: {CTX}.opportunity_id,
+  p_permitido: !!{CTX}.puede_link,
   p_items: (v => typeof v === 'string' ? JSON.parse(v) : v)($fromAI('items', 'Lista JSON de lo que compra, ej. [{{"variante_id": 43495824097493, "cantidad": 1}}]. variante_id exacto de buscar_catalogo.', 'json'))
 }}) }}}}""")
-http("actualizar_prospecto", "PATCH", f"={SBURL}/casa_alpa_prospectos?contact_id=eq.{{{{ {CTX}.contact_id }}}}", [2720, 700], "sb",
-     prefer="return=minimal",
-     tool_desc="Guarda datos del prospecto en cuanto los detectes. Manda sólo los campos que conoces; los demás vacíos/0.",
+http("actualizar_prospecto", "PATCH", f"={SBURL}/casa_alpa_prospectos?contact_id=eq.{{{{ {CTX}.contact_id }}}}&select=nombre,categorias_interes,presupuesto,estilo_color,ciudad,codigo_postal", [2720, 700], "sb",
+     prefer="return=representation",
+     onError="continueRegularOutput", tool_desc="Guarda datos del prospecto (llámala UNA vez por turno con todos los datos nuevos). Devuelve lo que quedó guardado; si lo ves en la respuesta, ya se guardó: no la repitas.",
      body="""={{ JSON.stringify(Object.fromEntries(Object.entries({
   nombre: $fromAI('nombre', 'nombre del cliente', 'string', ''),
   categorias_interes: ($fromAI('categorias_interes', 'lista COMPLETA de categorías de interés separadas por coma: comedor, sala, recamara, decoracion', 'string', '') || '').split(',').map(s => s.trim()).filter(Boolean),
@@ -320,12 +359,18 @@ add("Google Docs - FAQs", "n8n-nodes-base.googleDocs", {
     "documentURL": "https://docs.google.com/document/d/15xlTHaH8_RUQCT4BuWTnMxPGYZ0lBLWRXHLq83IAgR8/edit?tab=t.0"},
     [2090, 600], 2, GDOCS, executeOnce=True, alwaysOutputData=True, onError="continueRegularOutput")
 
+http("Supabase - Info Negocio", "GET", f"{SBURL}/casa_alpa_info_negocio?activo=eq.true&order=orden.asc&select=tema,contenido", [2090, 760], "sb",
+     alwaysOutputData=True, executeOnce=True)
+
+http("Supabase - Indice Catalogo", "GET", f"{SBURL}/casa_alpa_catalogo?activo=eq.true&select=id,nombre,categoria,casa_alpa_variantes(disponible)&order=categoria.asc,nombre.asc", [2090, 900], "sb",
+     alwaysOutputData=True, executeOnce=True)
+
 # ---------------------------------------------------------------- salida
 code("Code - Fallback Agente", r"""
 // Vale falló (modelo caído, límite de iteraciones, etc.): respuesta cortés y pasa con un asesor
 return [{ json: { output: {
   mensajes: ['Déjame revisarlo con mi compañera para darte el dato exacto, en un momento te escribe 🙌'],
-  productos_a_mostrar: [], etapa: 'handoff',
+  productos_a_mostrar: [], fotos_extra_de: '', etapa: 'handoff',
   handoff_motivo: 'Vale no pudo responder automáticamente: ' + String($json.error?.message || $json.error || 'error del agente').slice(0, 200),
   resumen: ''
 } } }];
@@ -335,64 +380,96 @@ const out = $input.first().json.output || {};
 const c = $('Code - Construir Contexto').first().json;
 let mensajes = (Array.isArray(out.mensajes) ? out.mensajes : [out.mensajes]).map(m => String(m || '').trim()).filter(Boolean).slice(0, 4);
 if (!mensajes.length) mensajes = ['Dame un segundito y te confirmo 🙏'];
-return mensajes.map(m => ({ json: { mensaje: m, contact_id: c.contact_id, canal: c.canal, out } }));
+const indice = $('Supabase - Indice Catalogo').all().map(i => i.json).filter(p => p && p.id && (!(p.casa_alpa_variantes || []).length || p.casa_alpa_variantes.some(v => v.disponible)));
+const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-_]/g, ' ').trim();
+const resolver = v => {
+  if (!v) return null;
+  if (/^[0-9a-f-]{36}$/i.test(String(v))) return indice.some(p => p.id === v) ? v : null;
+  const t = norm(v);
+  const p = indice.find(p => norm(p.nombre) === t) || indice.find(p => norm(p.nombre).includes(t) || t.includes(norm(p.nombre)));
+  return p ? p.id : null;
+};
+const ya = new Set(c.ya_mostrados || []);
+const productos = [...new Set((out.productos_a_mostrar || []).map(resolver).filter(Boolean))].filter(id => !ya.has(id)).slice(0, 2);
+const extra = resolver(out.fotos_extra_de);
+return [{ json: { mensajes, productos, extra, out, contact_id: c.contact_id, canal: c.canal, simulacion: $('Code - Normalizar Entrada').first().json.simulacion } }];
 """, [2880, 420])
-http("Supabase - Guardar Respuesta", "POST", f"{SBURL}/casa_alpa_mensajes", [3100, 240], "sb",
-     body="={{ JSON.stringify({ contact_id: $('Code - Construir Contexto').first().json.contact_id, rol: 'vale', contenido: ($('HTTP - Enviar Mensaje GHL').all().some(i => i.json.error) ? '[NO ENTREGADO] ' : '') + $('Code - Preparar Salida').all().map(i => i.json.mensaje).join('\\n'), procesado: true }) }}",
-     prefer="return=minimal", executeOnce=True)
-add("Loop - Enviar Mensajes", "n8n-nodes-base.splitInBatches", {"options": {}}, [3100, 420], 3)
-http("HTTP - Enviar Mensaje GHL", "POST", f"{GHLURL}/conversations/messages", [3320, 540], "ghl", version="2021-04-15",
-     body="={{ JSON.stringify({ type: $json.canal, contactId: $json.contact_id, message: $json.mensaje }) }}", onError="continueRegularOutput")
-add("Wait - Simular Escritura", "n8n-nodes-base.wait", {"amount": 2, "unit": "seconds"}, [3540, 540], 1.1,
-    webhookId=str(uuid.uuid4()))
-ifnode("IF - Hay Productos", "={{ ($('Code - Preparar Salida').first().json.out.productos_a_mostrar || []).filter(Boolean).length > 0 }}", TRUE_OP, [3320, 300])
 http("Supabase - Datos Productos", "GET",
-     f"""={SBURL}/casa_alpa_catalogo?id=in.({{{{ ($('Code - Preparar Salida').first().json.out.productos_a_mostrar || []).filter(id => /^[0-9a-f-]{{36}}$/i.test(id)).slice(0, 2).join(',') || '00000000-0000-0000-0000-000000000000' }}}})&activo=eq.true&select=id,nombre,foto_url,descripcion_corta,precio,casa_alpa_variantes(precio,disponible)""",
-     [3540, 200], "sb", executeOnce=True)
-code("Code - Mensaje Producto", r"""
-const c = $('Code - Construir Contexto').first().json;
-return $input.all().map(i => i.json).filter(p => p && p.id && p.foto_url).map(p => {
-  const precios = (p.casa_alpa_variantes || []).filter(v => v.disponible).map(v => Number(v.precio));
-  const desde = precios.length ? Math.min(...precios) : Number(p.precio);
-  const varios = precios.length > 1 && Math.max(...precios) !== desde;
-  return { json: {
-    contact_id: c.contact_id, canal: c.canal, foto_url: p.foto_url,
-    mensaje: [p.nombre, p.descripcion_corta, `${varios ? 'Desde ' : ''}$${desde.toLocaleString('es-MX')}`].filter(Boolean).join('\n')
-  } };
-});
-""", [3760, 200])
-http("HTTP - Enviar Producto GHL", "POST", f"{GHLURL}/conversations/messages", [3980, 200], "ghl", version="2021-04-15",
-     body="={{ JSON.stringify({ type: $json.canal, contactId: $json.contact_id, message: $json.mensaje, attachments: [$json.foto_url] }) }}",
+     f"""={SBURL}/casa_alpa_catalogo?id=in.({{{{ [...$json.productos, $json.extra].filter(Boolean).join(',') || '00000000-0000-0000-0000-000000000000' }}}})&activo=eq.true&select=id,nombre,foto_url,descripcion_corta,imagenes""",
+     [3100, 420], "sb", executeOnce=True, alwaysOutputData=True)
+code("Code - Plan Envio", r"""
+const s = $('Code - Preparar Salida').first().json;
+const rows = $input.all().map(i => i.json).filter(p => p && p.id);
+const byId = Object.fromEntries(rows.map(p => [p.id, p]));
+const key = u => String(u || '').split('?')[0].split('/').pop().replace(/_\d+x\d*(?=\.)/, '').toLowerCase();
+const fotos = [];
+for (const id of s.productos) {
+  const p = byId[id]; if (!p) continue;
+  const url = p.foto_url || (p.imagenes || [])[0]; if (!url) continue;
+  fotos.push({ url, caption: [p.nombre, p.descripcion_corta].filter(Boolean).join('\n'), producto: p.nombre });
+}
+if (s.extra && byId[s.extra]) {
+  const p = byId[s.extra];
+  const ya = new Set(fotos.map(f => key(f.url)));
+  const extras = (p.imagenes || []).filter(u => !ya.has(key(u)) && key(u) !== key(p.foto_url)).slice(0, 3);
+  extras.forEach((url, i) => fotos.push({ url, caption: i === 0 ? `Más fotos: ${p.nombre}` : '', producto: p.nombre }));
+}
+return [{ json: { ...s, fotos } }];
+""", [3320, 420])
+ifnode("IF - Simulacion", "={{ $json.simulacion }}", TRUE_OP, [3540, 420])
+# --- modo simulación: la conversación queda como nota en el contacto (evidencia), no se manda nada por WhatsApp/FB
+http("GHL - Nota Simulacion", "POST", f"={GHLURL}/contacts/{{{{ $json.contact_id }}}}/notes", [3760, 240], "ghl",
+     body="""={{ JSON.stringify({ body: '🧪 SIMULACIÓN VALE — ' + $now.setZone('America/Mexico_City').toFormat('dd/LL HH:mm') + '\\n\\n👤 Cliente: ' + $('Code - Debounce').first().json.texto + '\\n\\n💬 Vale:\\n' + $json.mensajes.map(m => '• ' + m).join('\\n') + ($json.fotos.length ? '\\n\\n🖼 Fotos enviadas:\\n' + $json.fotos.map(f => '• ' + (f.caption ? f.caption.split('\\n')[0] : f.producto) + ' — ' + f.url).join('\\n') : '') + '\\n\\n📍 Etapa: ' + $json.out.etapa }) }}""",
      onError="continueRegularOutput")
+# --- modo real
+code("Code - Items Mensajes", "const s = $input.first().json;\nreturn s.mensajes.map(m => ({ json: { mensaje: m, contact_id: s.contact_id, canal: s.canal } }));", [3760, 520])
+add("Loop - Enviar Mensajes", "n8n-nodes-base.splitInBatches", {"options": {}}, [3980, 520], 3)
+http("HTTP - Enviar Mensaje GHL", "POST", f"{GHLURL}/conversations/messages", [4200, 640], "ghl", version="2021-04-15",
+     body="={{ JSON.stringify({ type: $json.canal, contactId: $json.contact_id, message: $json.mensaje }) }}", onError="continueRegularOutput")
+add("Wait - Simular Escritura", "n8n-nodes-base.wait", {"amount": 2, "unit": "seconds"}, [4420, 640], 1.1,
+    webhookId=str(uuid.uuid4()))
+code("Code - Items Fotos", "const s = $('Code - Plan Envio').first().json;\nreturn s.fotos.map(f => ({ json: { ...f, contact_id: s.contact_id, canal: s.canal } }));", [4200, 400], executeOnce=True)
+http("HTTP - Enviar Producto GHL", "POST", f"{GHLURL}/conversations/messages", [4420, 400], "ghl", version="2021-04-15",
+     body="={{ JSON.stringify(Object.assign({ type: $json.canal, contactId: $json.contact_id, attachments: [$json.url] }, $json.caption ? { message: $json.caption } : {})) }}",
+     onError="continueRegularOutput")
+http("Supabase - Guardar Respuesta", "POST", f"{SBURL}/casa_alpa_mensajes", [3980, 240], "sb",
+     body="""={{ JSON.stringify({ contact_id: $('Code - Plan Envio').first().json.contact_id, rol: 'vale', procesado: true,
+  productos_mostrados: [...new Set([...$('Code - Plan Envio').first().json.productos, $('Code - Plan Envio').first().json.extra].filter(Boolean))],
+  contenido: (($('HTTP - Enviar Mensaje GHL').isExecuted && $('HTTP - Enviar Mensaje GHL').all().some(i => i.json.error)) ? '[NO ENTREGADO] ' : '')
+    + $('Code - Plan Envio').first().json.mensajes.join('\\n')
+    + ($('Code - Plan Envio').first().json.fotos.length ? '\\n[Vale mandó fotos de: ' + [...new Set($('Code - Plan Envio').first().json.fotos.map(f => f.producto))].join(', ') + ']' : '') }) }}""",
+     prefer="return=minimal", executeOnce=True, alwaysOutputData=True)
 
 # ---------------------------------------------------------------- CRM
 code("Code - Plan CRM", rf"""
-const out = $('Code - Preparar Salida').first().json.out || {{}};
+const out = $('Code - Plan Envio').first().json.out || {{}};
 const c = $('Code - Construir Contexto').first().json;
 const S = {json.dumps(STAGES)};
 const orden = [S.nuevo, S.explorando, S.interesado, S.link_enviado];
-const fallos = $('HTTP - Enviar Mensaje GHL').all().filter(i => i.json.error).map(i => String(i.json.error.message || i.json.error).slice(0, 160));
+let fallos = [];
+try {{ if ($('HTTP - Enviar Mensaje GHL').isExecuted) fallos = $('HTTP - Enviar Mensaje GHL').all().filter(i => i.json.error).map(i => String(i.json.error.message || i.json.error).slice(0, 160)); }} catch (e) {{}}
 const noEntregado = fallos.length > 0;
 if (noEntregado) {{
   out.etapa = 'handoff';
   out.handoff_motivo = 'No se pudo entregar la respuesta de Vale (' + fallos[0] + '). Contestar manualmente. ' + (out.handoff_motivo || '');
 }}
-const etapa = ['explorando', 'interesado', 'link_enviado', 'handoff'].includes(out.etapa) ? out.etapa : 'explorando';
-const objetivo = S[etapa];
+const etapa = ['explorando', 'interesado', 'cotizado', 'link_enviado', 'handoff'].includes(out.etapa) ? out.etapa : 'explorando';
+const objetivo = etapa === 'cotizado' ? S.link_enviado : S[etapa];
 let mover = false;
 if (etapa === 'handoff') mover = c.stage_id !== S.handoff;
 else mover = orden.indexOf(objetivo) > orden.indexOf(c.stage_id);
-const tags = etapa === 'handoff' ? ['vale-handoff'] : etapa === 'link_enviado' ? ['vale-link-pago'] : [];
+const esConsulta = etapa !== 'handoff' && String(out.handoff_motivo || '').trim().length > 0;
+const tags = etapa === 'handoff' ? ['vale-handoff'] : [].concat(etapa === 'link_enviado' ? ['vale-link-pago'] : [], esConsulta ? ['vale-consulta'] : []);
 return [{{ json: {{
   contact_id: c.contact_id, opportunity_id: c.opportunity_id, nombre: c.nombre,
   etapa, resumen: out.resumen || '', handoff_motivo: out.handoff_motivo || '',
   stage_destino: mover ? objetivo : null, tags,
-  es_handoff: etapa === 'handoff', es_link: etapa === 'link_enviado'
+  es_handoff: etapa === 'handoff', es_link: etapa === 'link_enviado', es_consulta: esConsulta
 }} }}];
-""", [3540, 760], executeOnce=True)
+""", [4640, 900], executeOnce=True)
 http("Supabase - Ultimo Link (CRM)", "GET",
      f"={SBURL}/casa_alpa_links_pago?contact_id=eq.{{{{ $json.contact_id }}}}&estado=eq.enviado&order=created_at.desc&limit=1&select=total,items,url",
-     [3760, 760], "sb", alwaysOutputData=True, executeOnce=True)
+     [4860, 900], "sb", alwaysOutputData=True, executeOnce=True)
 add("Supabase - Guardar Estado Final", "n8n-nodes-base.supabase", {
     "operation": "update", "tableId": "casa_alpa_prospectos", "matchType": "allFilters",
     "filters": {"conditions": [{"keyName": "contact_id", "condition": "eq", "keyValue": "={{ $('Code - Plan CRM').first().json.contact_id }}"}]},
@@ -403,26 +480,26 @@ add("Supabase - Guardar Estado Final", "n8n-nodes-base.supabase", {
         {"fieldId": "opportunity_id", "fieldValue": "={{ $('Code - Plan CRM').first().json.opportunity_id }}"},
         {"fieldId": "seguimiento_pendiente", "fieldValue": "={{ $('Code - Plan CRM').first().json.es_handoff }}"},
         {"fieldId": "updated_at", "fieldValue": "={{ $now.toISO() }}"},
-    ]}}, [3980, 760], 1, SB, executeOnce=True, alwaysOutputData=True)
-http("HTTP - Actualizar Opportunity GHL", "PUT", f"={GHLURL}/opportunities/{{{{ $('Code - Plan CRM').first().json.opportunity_id }}}}", [4200, 760], "ghl",
+    ]}}, [5080, 900], 1, SB, executeOnce=True, alwaysOutputData=True)
+http("HTTP - Actualizar Opportunity GHL", "PUT", f"={GHLURL}/opportunities/{{{{ $('Code - Plan CRM').first().json.opportunity_id }}}}", [5300, 900], "ghl",
      body=f"""={{{{ JSON.stringify(Object.assign(
   {{ pipelineId: '{PIPELINE}' }},
   $('Code - Plan CRM').first().json.stage_destino ? {{ pipelineStageId: $('Code - Plan CRM').first().json.stage_destino }} : {{}},
   $('Code - Plan CRM').first().json.es_link && $('Supabase - Ultimo Link (CRM)').first().json.total ? {{ monetaryValue: Number($('Supabase - Ultimo Link (CRM)').first().json.total) }} : {{}}
 )) }}}}""", executeOnce=True, onError="continueRegularOutput", alwaysOutputData=True)
-ifnode("IF - Hay Etiquetas", "={{ $('Code - Plan CRM').first().json.tags.length > 0 }}", TRUE_OP, [4420, 760])
-http("GHL - Agregar Etiquetas", "POST", f"={GHLURL}/contacts/{{{{ $('Code - Plan CRM').first().json.contact_id }}}}/tags", [4640, 660], "ghl",
+ifnode("IF - Hay Etiquetas", "={{ $('Code - Plan CRM').first().json.tags.length > 0 }}", TRUE_OP, [5520, 900])
+http("GHL - Agregar Etiquetas", "POST", f"={GHLURL}/contacts/{{{{ $('Code - Plan CRM').first().json.contact_id }}}}/tags", [5740, 800], "ghl",
      body="={{ JSON.stringify({ tags: $('Code - Plan CRM').first().json.tags }) }}", executeOnce=True, onError="continueRegularOutput")
-ifnode("IF - Es Handoff", "={{ $('Code - Plan CRM').first().json.es_handoff }}", TRUE_OP, [4860, 660])
-http("GHL - Tarea Handoff", "POST", f"={GHLURL}/contacts/{{{{ $('Code - Plan CRM').first().json.contact_id }}}}/tasks", [5080, 560], "ghl",
+ifnode("IF - Es Handoff", "={{ $('Code - Plan CRM').first().json.es_handoff || $('Code - Plan CRM').first().json.es_consulta }}", TRUE_OP, [5960, 800])
+http("GHL - Tarea Handoff", "POST", f"={GHLURL}/contacts/{{{{ $('Code - Plan CRM').first().json.contact_id }}}}/tasks", [6180, 700], "ghl",
      body="""={{ JSON.stringify({
-  title: 'Atender a ' + ($('Code - Plan CRM').first().json.nombre || 'cliente') + ' (Vale lo pasó)',
+  title: ($('Code - Plan CRM').first().json.es_consulta ? 'Responder duda de ' : 'Atender a ') + ($('Code - Plan CRM').first().json.nombre || 'cliente') + ($('Code - Plan CRM').first().json.es_consulta ? ' (Vale sigue atendiendo)' : ' (Vale lo pasó)'),
   body: 'Motivo: ' + $('Code - Plan CRM').first().json.handoff_motivo + '\\n\\nResumen: ' + $('Code - Plan CRM').first().json.resumen,
   dueDate: $now.plus({ hours: 1 }).toUTC().toISO(),
   completed: false
 }) }}""", executeOnce=True, onError="continueRegularOutput")
-http("GHL - Nota Handoff", "POST", f"={GHLURL}/contacts/{{{{ $('Code - Plan CRM').first().json.contact_id }}}}/notes", [5300, 560], "ghl",
-     body="""={{ JSON.stringify({ body: '🤖 Vale pasó la conversación a un asesor.\\nMotivo: ' + $('Code - Plan CRM').first().json.handoff_motivo + '\\nResumen: ' + $('Code - Plan CRM').first().json.resumen }) }}""",
+http("GHL - Nota Handoff", "POST", f"={GHLURL}/contacts/{{{{ $('Code - Plan CRM').first().json.contact_id }}}}/notes", [6400, 700], "ghl",
+     body="""={{ JSON.stringify({ body: ($('Code - Plan CRM').first().json.es_consulta ? '❓ Vale necesita que un asesor responda una duda (Vale sigue atendiendo la venta).' : '🤖 Vale pasó la conversación a un asesor.') + '\\nMotivo: ' + $('Code - Plan CRM').first().json.handoff_motivo + '\\nResumen: ' + $('Code - Plan CRM').first().json.resumen }) }}""",
      executeOnce=True, onError="continueRegularOutput")
 
 # ---------------------------------------------------------------- conexiones
@@ -455,25 +532,32 @@ link("IF - Vale Activa", "Supabase - Historial", 0)
 link("Supabase - Historial", "Supabase - Anuncio")
 link("Supabase - Anuncio", "Supabase - Ultimo Link")
 link("Supabase - Ultimo Link", "Google Docs - FAQs")
-link("Google Docs - FAQs", "Code - Construir Contexto")
+link("Google Docs - FAQs", "Supabase - Info Negocio")
+link("Supabase - Info Negocio", "Supabase - Indice Catalogo")
+link("Supabase - Indice Catalogo", "Code - Construir Contexto")
 link("Code - Construir Contexto", "Vale - AI Agent")
 link("OpenAI Chat Model", "Vale - AI Agent", kind="ai_languageModel")
 link("Structured Output Parser", "Vale - AI Agent", kind="ai_outputParser")
-for t in ["buscar_catalogo", "generar_link_pago", "actualizar_prospecto"]:
+for t in ["buscar_catalogo", "cotizar_producto", "generar_link_pago", "actualizar_prospecto"]:
     link(t, "Vale - AI Agent", kind="ai_tool")
 link("Vale - AI Agent", "Code - Preparar Salida", 0)
 link("Vale - AI Agent", "Code - Fallback Agente", 1)
 link("Code - Fallback Agente", "Code - Preparar Salida")
-link("Code - Preparar Salida", "Loop - Enviar Mensajes")
-link("Loop - Enviar Mensajes", "IF - Hay Productos", 0)
+link("Code - Preparar Salida", "Supabase - Datos Productos")
+link("Supabase - Datos Productos", "Code - Plan Envio")
+link("Code - Plan Envio", "IF - Simulacion")
+link("IF - Simulacion", "GHL - Nota Simulacion", 0)
+link("GHL - Nota Simulacion", "Code - Plan CRM")
+link("GHL - Nota Simulacion", "Supabase - Guardar Respuesta")
+link("IF - Simulacion", "Code - Items Mensajes", 1)
+link("Code - Items Mensajes", "Loop - Enviar Mensajes")
+link("Loop - Enviar Mensajes", "Code - Items Fotos", 0)
 link("Loop - Enviar Mensajes", "Code - Plan CRM", 0)
 link("Loop - Enviar Mensajes", "Supabase - Guardar Respuesta", 0)
 link("Loop - Enviar Mensajes", "HTTP - Enviar Mensaje GHL", 1)
 link("HTTP - Enviar Mensaje GHL", "Wait - Simular Escritura")
 link("Wait - Simular Escritura", "Loop - Enviar Mensajes")
-link("IF - Hay Productos", "Supabase - Datos Productos", 0)
-link("Supabase - Datos Productos", "Code - Mensaje Producto")
-link("Code - Mensaje Producto", "HTTP - Enviar Producto GHL")
+link("Code - Items Fotos", "HTTP - Enviar Producto GHL")
 link("Code - Plan CRM", "Supabase - Ultimo Link (CRM)")
 link("Supabase - Ultimo Link (CRM)", "Supabase - Guardar Estado Final")
 link("Supabase - Guardar Estado Final", "HTTP - Actualizar Opportunity GHL")

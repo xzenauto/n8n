@@ -1,0 +1,156 @@
+
+######## Lucía -> contacto DXbMUI3ITnwcr45rhtJT
+
+👤 Hola! Vi su anuncio del comedor
+💬 ¡Hola! Soy Vale de Casa Alpa 😊 Gracias por escribirnos.
+💬 Vi que te interesó nuestro anuncio de comedores para 6 personas. ¿Con quién tengo el gusto?
+💬 ¿Buscas el comedor para uso diario o para reuniones especiales?
+   [exec 467635 success | etapa=explorando | tools={}]
+
+👤 Soy Lucía
+💬 ¡Gracias, Lucía! Te cuento que el comedor Valkiria Cristal del anuncio se agotó, pero tengo una opción muy bonita y de excelente calidad para 6 personas: la mesa Comedor KELSO.
+💬 ¿La buscas para uso diario o más bien para reuniones especiales? Así te ayudo a ver si es la mejor opción para ti.
+🖼  ['Mesa Comedor KELSO']
+   [exec 467636 success | etapa=explorando | tools={'actualizar_prospecto': 1, 'buscar_catalogo': 1}]
+
+👤 Somos 6 en casa, pero a veces vienen mis papás y seríamos 8
+💬 ¡Perfecto, Lucía! La mesa Comedor KELSO también está disponible en tamaño para 8 personas, ideal para cuando te visitan tus papás.
+💬 El precio de la opción para 8 personas es de $20,478. Puedes pagar hasta en 12 meses sin intereses y el envío se calcula al poner tu dirección en el link de pago.
+💬 ¿Te gustaría que te mande el link para apartarla o tienes alguna otra duda sobre la mesa?
+   [exec 467637 success | etapa=cotizado | tools={'buscar_catalogo': 3, 'actualizar_prospecto': 2, 'cotizar_producto': 1}]
+
+👤 El espacio es como de 3.5 x 3 metros. Me gustan los tonos de madera claros
+💬 ¡Gracias por los detalles, Lucía! La opción más cercana que tenemos es la mesa Comedor KELSO para 8 personas, en acabado laca bellota, que es un tono de madera claro.
+💬 Sus medidas son 2.40 x 1.20 m, así que quedaría bien en tu espacio de 3.5 x 3 m y te da amplitud para cuando recibes visitas.
+💬 ¿Te gustaría ver más fotos de la mesa para que te des una mejor idea del color y acabado, o te mando el link para apartarla?
+   [exec 467638 success | etapa=cotizado | tools={'actualizar_prospecto': 1, 'buscar_catalogo': 1}]
+
+👤 Me gusta la KELSO, ¿de qué material es? ¿aguanta uso diario con niños?
+💬 La mesa Comedor KELSO está fabricada en encino macizo, que es una madera de excelente calidad y resistencia 🪑.
+💬 Es perfecta para uso diario y soporta muy bien el ritmo de una familia, incluso con niños.
+💬 ¿Te gustaría ver más fotos del acabado o te mando el link para apartarla?
+   [exec 467639 success | etapa=cotizado | tools={}]
+
+👤 Va, me late la KELSO para 8 personas. ¿Cuánto sale?
+💬 La mesa Comedor KELSO para 8 personas en acabado laca bellota está en $20,478.
+💬 Puedes pagar hasta en 12 meses sin intereses con tarjeta de crédito. El envío se calcula al poner tu dirección en el link de pago.
+💬 Aquí tienes tu link para apartarla o comprarla de forma segura:
+💬 https://casaalpa.mx/cart/43495824130261:1?attributes%5Bghl_contact_id%5D=DXbMUI3ITnwcr45rhtJT&attributes%5Bvale_link_id%5D=ee1c5d7d-f31d-4e03-95b1-aeac5b03edcd
+   [exec 467640 success | etapa=link_enviado | tools={'cotizar_producto': 1, 'generar_link_pago': 1}]
+
+👤 Perfecto, ¿me mandas el link para comprarla?
+💬 ¡Claro, Lucía! Aquí tienes tu link para comprar la mesa Comedor KELSO para 8 personas:
+💬 https://casaalpa.mx/cart/43495824130261:1?attributes%5Bghl_contact_id%5D=DXbMUI3ITnwcr45rhtJT&attributes%5Bvale_link_id%5D=ee1c5d7d-f31d-4e03-95b1-aeac5b03edcd
+💬 Ahí puedes pagar de forma segura, elegir hasta 12 meses sin intereses y ver el costo de envío antes de finalizar tu compra. Cualquier duda, aquí estoy 😊
+   [exec 467641 success | etapa=link_enviado | tools={}]
+
+######## Roberto -> contacto 3nwuOdojZQ1lLHofsk6E
+
+👤 Buenas tardes, ¿cuánto cuestan las salas?
+💬 ¡Hola! Soy Vale de Casa Alpa 😊 Tenemos varias opciones de salas, te platico los precios para que elijas la que más te guste.
+💬 Por ejemplo, la Sala KOLT esquinera está desde $53,899, y la Love ITALIA desde $29,879. Todas se pueden pagar hasta en 12 meses sin intereses.
+💬 ¿Buscas una sala grande para varias personas, o algo más compacto? Así te recomiendo la mejor opción para tu espacio.
+🖼  ['Sala KOLT', 'Love ITALIA']
+   [exec 467643 success | etapa=interesado | tools={'actualizar_prospecto': 2, 'buscar_catalogo': 1, 'cotizar_producto': 4}]
+
+👤 Roberto. Es para la sala de mi depa, somos 2 y tenemos un perro
+💬 ¡Gracias, Roberto! Para dos personas y con mascota, te recomiendo el Love ITALIA: es cómodo, resistente y de tamaño ideal para tu depa.
+💬 La versión Love Italia mide 177 x 98 x 88 cm y cuesta $29,879. También está la opción Sofá Italia, un poco más grande, en $29,899. Ambos en tela gris y estructura de madera sólida.
+💬 Puedes pagarlo hasta en 12 meses sin intereses y el envío se calcula al poner tu dirección en el link de pago.
+💬 ¿Te gustaría el Love Italia más compacto o prefieres el Sofá Italia más amplio?
+   [exec 467644 success | etapa=cotizado | tools={'actualizar_prospecto': 8, 'buscar_catalogo': 12, 'cotizar_producto': 3}]
+
+👤 Grises de preferencia, algo moderno
+💬 Perfecto, Roberto. El Love Italia en gris es moderno, resistente y justo para dos personas, ideal si tienes mascota.
+💬 Te dejo aquí el link para que lo puedas apartar o comprar:
+💬 https://casaalpa.mx/cart/43507583746261:1?attributes%5Bghl_contact_id%5D=3nwuOdojZQ1lLHofsk6E&attributes%5Bvale_link_id%5D=e5654a85-bf1b-4dda-8881-13bac18d242c
+💬 Ahí puedes pagar de forma segura, elegir hasta 12 meses sin intereses y ver el costo de envío al poner tu dirección. El total del Love Italia es $29,879. ¿Te ayudo con algo más antes de finalizar tu compra?
+   [exec 467646 success | etapa=link_enviado | tools={'buscar_catalogo': 1, 'cotizar_producto': 1, 'actualizar_prospecto': 1, 'generar_link_pago': 1}]
+
+👤 ¿Tienes más fotos del love Italia?
+💬 ¡Claro! Te mando más fotos del Love Italia para que lo veas con más detalle 😊
+💬 Avísame si quieres ver alguna parte en específico o si tienes otra duda.
+🖼  ['Love ITALIA']
+   [exec 467647 success | etapa=interesado | tools={}]
+
+👤 Me quedo con el love, el de 177. ¿Precio?
+💬 ¡Perfecto, Roberto! El Love Italia de 177 cm está en $29,879.
+💬 Puedes pagarlo hasta en 12 meses sin intereses y el envío se calcula al poner tu dirección en el link.
+💬 Aquí tienes tu link para comprarlo o apartarlo:
+💬 https://casaalpa.mx/cart/43507583746261:1?attributes%5Bghl_contact_id%5D=3nwuOdojZQ1lLHofsk6E&attributes%5Bvale_link_id%5D=e5654a85-bf1b-4dda-8881-13bac18d242c
+   [exec 467649 success | etapa=link_enviado | tools={'cotizar_producto': 1, 'generar_link_pago': 1}]
+
+👤 Ok, ¿aceptan meses sin intereses?
+💬 Sí, aceptamos hasta 12 meses sin intereses pagando con tarjeta de crédito en el link de pago 😊
+💬 ¿Te gustaría que te explique cómo elegir los meses al momento de pagar o tienes otra duda sobre tu compra?
+   [exec 467650 success | etapa=link_enviado | tools={}]
+
+👤 Mándame el link porfa
+💬 ¡Por supuesto! Aquí tienes tu link para comprar o apartar el Love Italia:
+💬 https://casaalpa.mx/cart/43507583746261:1?attributes%5Bghl_contact_id%5D=3nwuOdojZQ1lLHofsk6E&attributes%5Bvale_link_id%5D=e5654a85-bf1b-4dda-8881-13bac18d242c
+💬 Ahí puedes pagar de forma segura, elegir hasta 12 meses sin intereses y ver el costo de envío antes de finalizar tu compra. El total del Love Italia es $29,879.
+💬 ¿Te ayudo con algo más antes de que completes tu compra?
+   [exec 467651 success | etapa=link_enviado | tools={}]
+
+######## Fernanda -> contacto 6Gpcv2YlrGptvRh8hRtZ
+
+👤 Hola, busco una cama king size / algo minimalista
+💬 ¡Hola Fernanda! Tengo varias opciones de cama king size con diseño minimalista que te pueden encantar. Te muestro dos modelos para que veas cuál te gusta más.
+💬 ¿Tienes preferencia por algún color de madera o textil para tu recámara?
+🖼  ['Cama Kross', 'Cama MAX']
+   [exec 467654 success | etapa=interesado | tools={'actualizar_prospecto': 100, 'buscar_catalogo': 13}]
+
+👤 Fernanda 😊
+💬 ¡Gracias, Fernanda! ¿Te gustó más la Cama Kross o la Cama MAX, o te gustaría ver la opción de recámara completa Zamzara?
+💬 Si tienes algún color en mente para tu recámara, cuéntame para recomendarte lo que mejor combine con tu espacio 😊
+🖼  ['Recamara Zamzara']
+   [exec 467658 success | etapa=interesado | tools={}]
+
+👤 Me gusta la Kross. ¿En cuánto tiempo llega a Monterrey?
+💬 Fernanda, la Cama Kross en tamaño king size tiene un precio de $33,799. Puedes pagar hasta en 12 meses sin intereses con tarjeta de crédito.
+💬 El envío a Monterrey se calcula al poner tu dirección en el link de pago. Sobre el tiempo de entrega, lo confirmo con mi compañera y te aviso en cuanto tenga el dato exacto 🙌
+💬 ¿Te mando el link para que puedas apartarla o tienes alguna otra duda?
+   [exec 467659 success | etapa=cotizado | tools={'cotizar_producto': 2, 'actualizar_prospecto': 2, 'generar_link_pago': 2} | handoff: Confirma tiempo de entrega a Monterrey, dato no disponible en sistema.]
+
+######## Jorge -> contacto QZlKB0aR4kJu8bkbPrRg
+
+👤 Hola, quiero un espejo redondo para mi recibidor
+💬 ¡Hola Jorge! Soy Vale de Casa Alpa 😊 El espejo redondo de pared Zoe puede ser una excelente opción para tu recibidor.
+💬 Tiene un marco color latón y mide 40 cm de diámetro, ideal para dar amplitud y un toque elegante al espacio.
+💬 ¿Te gustaría ver más detalles o fotos del espejo Zoe?
+🖼  ['Espejo redondo de pared Zoe']
+   [exec 467661 success | etapa=interesado | tools={'actualizar_prospecto': 1, 'buscar_catalogo': 1}]
+
+👤 Jorge. Mi casa es estilo moderno
+💬 ¡Perfecto, Jorge! El espejo Zoe tiene un diseño muy limpio y moderno, así que va muy bien con ese estilo.
+💬 ¿Te gustaría ver más fotos del Zoe o buscas algo diferente para tu recibidor?
+   [exec 467662 success | etapa=interesado | tools={'actualizar_prospecto': 6, 'buscar_catalogo': 4}]
+
+👤 Me gusta el Zoe, ¿cuánto cuesta?
+💬 El espejo Zoe tiene un precio de $1,150 MXN. Puedes pagarlo hasta a 12 meses sin intereses con tarjeta de crédito 😊
+💬 Aquí tienes el link para comprarlo de forma segura:
+💬 https://casaalpa.mx/cart/42609331503317:1?attributes%5Bghl_contact_id%5D=QZlKB0aR4kJu8bkbPrRg&attributes%5Bvale_link_id%5D=64525dee-59eb-4ace-acbe-45ceea1830bf
+💬 Ahí mismo capturas tu dirección y ves el costo de envío antes de pagar. ¿Te ayudo con algo más o te gustaría ver otra opción?
+   [exec 467663 success | etapa=link_enviado | tools={'cotizar_producto': 1, 'actualizar_prospecto': 1, 'generar_link_pago': 1}]
+
+👤 Si me llevo 3 ¿me haces descuento?
+💬 Esa parte la reviso con mi compañera para darte el dato exacto, en un momento te escribe 🙌
+   [exec 467664 success | etapa=handoff | tools={} | handoff: El cliente pidió descuento por comprar 3 espejos Zoe.]
+
+######## Mariana -> contacto zmEDvNkRHF4K2je5gAZO
+
+👤 hola / vi la sala del anuncio / ¿todavía la tienen?
+💬 ¡Hola! Soy Vale de Casa Alpa 😊 Vi que te interesó la Sala Chantal del anuncio, sí la tenemos disponible.
+💬 Es una sala de 4 piezas con mesa de servicio integrada, ideal para espacios amplios. ¿Para cuántas personas la necesitas normalmente?
+🖼  ['Sala Chantal']
+   [exec 467668 success | etapa=explorando | tools={'actualizar_prospecto': 1, 'buscar_catalogo': 1}]
+
+👤 [audio]
+💬 No puedo escuchar audios ni ver imágenes, ¿me puedes escribir por aquí lo que necesitas o tu duda? 😊
+   [exec 467669 success | etapa=explorando | tools={}]
+
+👤 Perdón, te mando audio sin querer. Me llamo Mariana, quiero la sala para 6 personas aprox
+💬 ¡Gracias, Mariana! La Sala Chantal está pensada justo para espacios amplios y puede acomodar a 6 personas con comodidad.
+💬 El precio de la Sala Chantal es $86,597.50. Puedes pagar hasta en 12 meses sin intereses con tarjeta de crédito, y el envío se calcula al poner tu dirección en el link de pago.
+💬 ¿Te gustaría que te mande el link para que la puedas apartar o comprar en línea?
+   [exec 467672 success | etapa=cotizado | tools={'actualizar_prospecto': 1, 'cotizar_producto': 1}]

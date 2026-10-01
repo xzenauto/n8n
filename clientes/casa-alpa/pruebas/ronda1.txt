@@ -1,0 +1,142 @@
+
+######## Lucía -> contacto FGbPSCK2CEWFVvrQz5Aw
+
+👤 Hola! Vi su anuncio del comedor
+💬 ¡Hola! Soy Vale de Casa Alpa 😊 Vi que te interesó nuestro anuncio de comedores para 6 personas.
+💬 ¿Para cuántas personas necesitas el comedor? ¿O te gustaría ver opciones para 6 como en el anuncio?
+   [exec 467593 success | etapa=explorando | tools={}]
+
+👤 Soy Lucía
+💬 ¡Gracias, Lucía! 😊 Te muestro una opción para 6 personas como viste en el anuncio.
+💬 La mesa KELSO es de madera de encino, muy resistente y con diseño contemporáneo. ¿Te gustaría que la mesa sea solo para 6 personas o prefieres que tenga opción para más lugares?
+🖼  ['Mesa Comedor KELSO']
+   [exec 467594 success | etapa=interesado | tools={'actualizar_prospecto': 1, 'buscar_catalogo': 1}]
+
+👤 Somos 6 en casa, pero a veces vienen mis papás y seríamos 8
+💬 ¡Perfecto, Lucía! La mesa KELSO también está disponible para 8 personas, ideal para cuando te visitan tus papás 🏡.
+💬 La opción para 8 personas mide 2.40 x 1.20 m y es de madera de encino con acabado laca bellota.
+💬 El precio de la mesa para 8 personas es de $20,478. Puedes pagar hasta en 12 meses sin intereses y el envío se calcula al poner tu dirección en el link de pago.
+💬 ¿Te gustaría que te mande el link para apartarla o quieres ver más opciones?
+🖼  ['Mesa Comedor KELSO']
+   [exec 467595 success | etapa=cotizado | tools={'buscar_catalogo': 1, 'actualizar_prospecto': 1, 'cotizar_producto': 1}]
+
+👤 El espacio es como de 3.5 x 3 metros. Me gustan los tonos de madera claros
+💬 ¡Gracias por compartir las medidas y tu preferencia por tonos claros!
+💬 Por ahora, la opción más cercana que tenemos es la mesa KELSO en acabado laca bellota, que es un tono medio-claro de madera. No tenemos otra opción en tonos más claros para 8 personas en este momento.
+💬 ¿Te gustaría ver más fotos de la KELSO o te mando el link para apartarla?
+🖼  ['Mesa Comedor KELSO']
+   [exec 467596 success | etapa=interesado | tools={'buscar_catalogo': 2, 'actualizar_prospecto': 1}]
+
+👤 Me gusta la KELSO, ¿de qué material es? ¿aguanta uso diario con niños?
+💬 La mesa KELSO está hecha de madera de encino con acabado en laca bellota, lo que la hace muy resistente y perfecta para uso diario.
+💬 Es ideal para familias con niños, ya que el encino es una madera dura y duradera. Solo te recomiendo evitar golpes fuertes y limpiarla con un paño suave para mantenerla como nueva 😊
+💬 ¿Te gustaría ver más fotos de la KELSO o te mando el link para apartarla?
+🖼  ['Mesa Comedor KELSO']
+   [exec 467597 success | etapa=interesado | tools={'buscar_catalogo': 1, 'actualizar_prospecto': 1}]
+
+👤 Va, me late la KELSO para 8 personas. ¿Cuánto sale?
+   (sin respuesta) ejecuciones=[('467598', 'error')]
+
+👤 Perfecto, ¿me mandas el link para comprarla?
+💬 ¡Listo, Lucía! Aquí tienes el link para comprar la mesa KELSO para 8 personas:
+💬 https://casaalpa.mx/cart/43495824130261:1?attributes%5Bghl_contact_id%5D=FGbPSCK2CEWFVvrQz5Aw&attributes%5Bvale_link_id%5D=55f29c66-84de-4351-9197-0152232e9b3f
+💬 Ahí puedes pagar de forma segura, elegir hasta 12 meses sin intereses y ver el costo de envío antes de finalizar tu compra. El total de la mesa es de $20,478.
+💬 ¿Te ayudo con algo más antes de que completes tu compra?
+   [exec 467599 success | etapa=link_enviado | tools={'generar_link_pago': 2, 'buscar_catalogo': 1, 'cotizar_producto': 1, 'actualizar_prospecto': 1}]
+
+######## Roberto -> contacto V9AZYBcEjcz5gPoTywEp
+
+👤 Buenas tardes, ¿cuánto cuestan las salas?
+💬 ¡Hola! Soy Vale de Casa Alpa 😊 Gracias por escribirnos.
+💬 El precio de las salas depende del modelo, tamaño y acabado. ¿Para cuántas personas buscas la sala o qué medidas tienes en mente? Así te muestro las opciones que mejor se adapten.
+   [exec 467601 success | etapa=explorando | tools={}]
+
+👤 Roberto. Es para la sala de mi depa, somos 2 y tenemos un perro
+💬 ¡Gracias, Roberto! Para un depa de 2 personas y con perro, te recomiendo opciones resistentes y cómodas.
+💬 Te muestro dos opciones: el Love Italia, que es compacto y fácil de limpiar, y la Sala Chantal, que tiene tela antiderrames y es más amplia por si recibes visitas.
+💬 ¿Te gustaría algo más compacto como el Love Italia o prefieres una sala más grande como la Chantal?
+🖼  ['Love ITALIA', 'Sala Chantal']
+   [exec 467602 success | etapa=interesado | tools={'actualizar_prospecto': 2, 'buscar_catalogo': 2}]
+
+👤 Grises de preferencia, algo moderno
+💬 ¡Perfecto, gris y moderno es una excelente combinación!
+💬 No tenemos exactamente en gris moderno para 2 personas, pero te muestro las opciones más cercanas que tenemos: el Love Italia (gris, compacto y moderno) y la Sala Chantal (más amplia, con telas modernas y resistentes).
+💬 ¿Cuál te gustaría ver con más detalle o te gustaría saber de otra opción?
+🖼  ['Love ITALIA', 'Sala Chantal']
+   [exec 467603 success | etapa=interesado | tools={'actualizar_prospecto': 1, 'buscar_catalogo': 1}]
+
+👤 ¿Tienes más fotos del love Italia?
+💬 ¡Claro! Te mando más fotos del Love Italia para que lo veas con más detalle.
+   [exec 467604 success | etapa=interesado | tools={}]
+
+👤 Me quedo con el love, el de 177. ¿Precio?
+   (sin respuesta) ejecuciones=[('467605', 'error')]
+
+👤 Ok, ¿aceptan meses sin intereses?
+   (sin respuesta) ejecuciones=[('467607', 'error')]
+
+👤 Mándame el link porfa
+💬 ¡Listo! Aquí tienes el link para comprar tu Love Italia de 177 cm:
+💬 https://casaalpa.mx/cart/43507583746261:1?attributes%5Bghl_contact_id%5D=V9AZYBcEjcz5gPoTywEp&attributes%5Bvale_link_id%5D=e4ed8529-e2c7-488d-97cf-9d6acf9194e7
+💬 Ahí puedes pagar de forma segura, elegir hasta 12 meses sin intereses y poner tu dirección para calcular el envío antes de pagar. El total del sofá es $29,879.
+💬 ¿Te ayudo con algo más o tienes alguna otra duda sobre tu compra?
+   [exec 467608 success | etapa=link_enviado | tools={'generar_link_pago': 2, 'buscar_catalogo': 1, 'cotizar_producto': 1}]
+
+######## Fernanda -> contacto Yea2WYC7zcXIiGcckdkI
+
+👤 Hola, busco una cama king size / algo minimalista
+💬 ¡Hola Fernanda! Tengo varias opciones de cama king size con diseño minimalista que te pueden encantar 🛏️
+💬 ¿Te gustaría solo la cama o buscas recámara completa (con burós, tocador, etc.)?
+🖼  ['Cama Kross', 'Cama MAX']
+   [exec 467611 success | etapa=interesado | tools={'actualizar_prospecto': 2, 'buscar_catalogo': 1}]
+
+👤 Fernanda 😊
+💬 ¡Gracias, Fernanda! ¿Te gustaría ver más detalles o fotos de alguna de las camas que te mostré, la Kross o la MAX?
+💬 ¿O prefieres que te muestre opciones de recámara completa minimalista en king size?
+   [exec 467612 success | etapa=interesado | tools={}]
+
+👤 Me gusta la Kross. ¿En cuánto tiempo llega a Monterrey?
+💬 ¡Qué bueno que te gustó la Kross! 😊
+💬 Sobre el tiempo de entrega a Monterrey, esa información la confirmo con mi compañera para darte el dato exacto. En un momento te escribe, ¿te parece bien?
+   [exec 467613 success | etapa=handoff | tools={} | handoff: Cliente pregunta por tiempo de entrega a Monterrey, dato que no está en la información disponible.]
+
+######## Jorge -> contacto omyviKdA0FFr7rP37qAi
+
+👤 Hola, quiero un espejo redondo para mi recibidor
+💬 ¡Hola, Jorge! Soy Vale de Casa Alpa 😊 Qué gusto ayudarte con tu recibidor.
+💬 Te recomiendo el espejo redondo de pared Zoe, tiene marco color latón y mide 40 cm de diámetro, ideal para dar amplitud y estilo a la entrada.
+💬 ¿Qué te parece este modelo o buscas un tamaño diferente?
+🖼  ['Espejo redondo de pared Zoe']
+   [exec 467615 success | etapa=interesado | tools={'actualizar_prospecto': 1, 'buscar_catalogo': 1}]
+
+👤 Jorge. Mi casa es estilo moderno
+💬 ¡Perfecto, Jorge! El espejo Zoe combina muy bien con un estilo moderno por su diseño sencillo y el marco en latón.
+💬 El tamaño disponible es de 40 cm de diámetro. ¿Te gustaría ese tamaño para tu recibidor o prefieres algo más grande?
+💬 Si te gusta este modelo, te puedo mandar el link para que lo apartes o compres en línea con meses sin intereses.
+🖼  ['Espejo redondo de pared Zoe']
+   [exec 467616 success | etapa=interesado | tools={'buscar_catalogo': 1, 'actualizar_prospecto': 1, 'cotizar_producto': 1}]
+
+👤 Me gusta el Zoe, ¿cuánto cuesta?
+   (sin respuesta) ejecuciones=[('467617', 'error')]
+
+👤 Si me llevo 3 ¿me haces descuento?
+   (sin respuesta) ejecuciones=[('467618', 'error')]
+
+######## Mariana -> contacto aHkcCXQdkJTpWbzL9wuh
+
+👤 hola / vi la sala del anuncio / ¿todavía la tienen?
+💬 ¡Hola Mariana! Sí, la sala Chantal que viste en el anuncio está disponible 😊
+💬 Es una sala grande, ideal para hasta 8 personas, con tela tipo lino y detalles en madera. ¿Para cuántas personas la necesitas normalmente o qué espacio tienes en mente?
+🖼  ['Sala Chantal']
+   [exec 467622 success | etapa=explorando | tools={'buscar_catalogo': 1, 'actualizar_prospecto': 1}]
+
+👤 [audio]
+💬 No puedo escuchar audios ni ver imágenes, ¿me puedes contar por aquí lo que necesitas o tu duda? 😊
+   [exec 467623 success | etapa=explorando | tools={}]
+
+👤 Perdón, te mando audio sin querer. Me llamo Mariana, quiero la sala para 6 personas aprox
+💬 ¡Gracias por aclararlo, Mariana! La Sala Chantal es perfecta para 6 personas, incluso te da espacio extra para visitas.
+💬 Viene en dos colores de tela tipo lino, ambas con recubrimiento antiderrames, y puedes elegir el lado del chaise long para que se adapte mejor a tu espacio.
+💬 ¿Tienes preferencia por algún color o necesitas que te ayude a elegir el lado del chaise?
+🖼  ['Sala Chantal']
+   [exec 467624 success | etapa=interesado | tools={'actualizar_prospecto': 1, 'buscar_catalogo': 1}]
