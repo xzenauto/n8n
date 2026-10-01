@@ -2855,7 +2855,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ¿El cliente escribe por WhatsApp y viene de un anuncio de Meta?\n// En WhatsApp Meta cobra las conversaciones que no vienen de un anuncio y las de anuncio pasadas 72h,\n// así que en esos casos no contesta la IA: pasa a \"Sin IA\" para que lo atiendan por WhatsApp directo.\n// Los mensajes siguientes al del anuncio no traen el ID: la tabla RS_ventana_meta recuerda que sí vino de anuncio.\nconst CFG = {\"loc\": \"UIJiu5Wa9iPVzMpbaZcx\", \"pipe\": \"QxW5mmE6EmqSIHnmsPBm\", \"sinIA\": \"4da81548-b1e7-49f9-99f3-17b3732314fa\", \"campo\": \"BjniJ8VTbTevD8kG7IoM\", \"agencia\": \"matriz\"};\nconst AVISO = {\n  verde: '🟢 Anuncio menos de 72h: contestar por GHL',\n  rojo: '🔴 Anuncio más de 72h: contestar por WhatsApp directo',\n  sin_anuncio: '⚪ No viene de anuncio: contestar por WhatsApp directo',\n};\nconst wh = $('Webhook').first().json.body || {};\nlet c = {};\ntry { c = $('GHL contacto (origen)').first().json.contact || {}; } catch (e) {}\nlet msgs = [];\ntry { msgs = $('GHL mensajes (texto)').first().json.messages?.messages || []; } catch (e) {}\n// GHL los devuelve del más nuevo al más viejo\nconst entrantes = msgs.filter(m => m.direction === 'inbound' && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nconst tipo = String((entrantes[0] || {}).messageType || '');\nconst medios = [c.lastAttributionSource?.medium, wh.contact?.lastAttributionSource?.medium, c.attributionSource?.medium, wh.contact?.attributionSource?.medium]\n  .map(v => String(v || '').toLowerCase());\nconst esWhatsApp = tipo ? tipo === 'TYPE_WHATSAPP' : (Number(wh.message?.type) === 19 || medios[0].startsWith('whatsapp') || medios[1].startsWith('whatsapp'));\n\nconst atribuciones = [c.lastAttributionSource, wh.contact?.lastAttributionSource, c.attributionSource, wh.contact?.attributionSource].filter(Boolean);\nconst las = atribuciones[0] || {};\nconst adId = atribuciones.map(a => a.ctwa_clid || a.adId).find(Boolean) || '';\nconst REFERIDO = /\\*Headline:\\*|Source URL:|https:\\/\\/fb\\.me\\//i;\nconst referido = entrantes.find(m => REFERIDO.test(m.body || ''));\nconst esAnuncio = !!adId || !!referido;\nconst clave = String(las.ctwa_clid || las.adId || adId || (referido ? 'ref-' + referido.id : ''));\n// Inicio de la ventana: el mensaje que llegó desde el anuncio; si ya no está entre los últimos, la fecha de alta del contacto\nconst desde = referido?.dateAdded || c.dateAdded || new Date().toISOString();\nconst nombre = [c.firstName || wh.first_name, c.lastName].filter(Boolean).join(' ') || wh.full_name || c.phone || wh.phone || 'Lead sin nombre';\nreturn [{ json: { ...CFG, contact_id: wh.contact_id, esWhatsApp, esAnuncio, sinAnuncioWhatsApp: esWhatsApp && !esAnuncio,\n  anuncioWhatsApp: esWhatsApp && esAnuncio, clave, desde, nombre, AVISO } }];"
+        "jsCode": "// ¿El cliente escribe por WhatsApp y viene de un anuncio de Meta?\n// En WhatsApp Meta cobra las conversaciones que no vienen de un anuncio y las de anuncio pasadas 72h,\n// así que en esos casos no contesta la IA: pasa a \"Sin IA\" para que lo atiendan por WhatsApp directo.\n// Los mensajes siguientes al del anuncio no traen el ID: la tabla RS_ventana_meta recuerda que sí vino de anuncio.\nconst CFG = {\"loc\": \"UIJiu5Wa9iPVzMpbaZcx\", \"pipe\": \"QxW5mmE6EmqSIHnmsPBm\", \"sinIA\": \"4da81548-b1e7-49f9-99f3-17b3732314fa\", \"campo\": \"BjniJ8VTbTevD8kG7IoM\", \"agencia\": \"matriz\"};\nconst AVISO = {\n  verde: '🟢 Anuncio menos de 72h: contestar por GHL',\n  rojo: '🔴 Anuncio más de 72h: contestar por WhatsApp directo',\n  sin_anuncio: '⚪ No viene de anuncio: contestar por WhatsApp directo',\n  azul: '🔵 Facebook / Instagram: sin costo, contestar por GHL',\n};\nconst wh = $('Webhook').first().json.body || {};\nlet c = {};\ntry { c = $('GHL contacto (origen)').first().json.contact || {}; } catch (e) {}\nlet msgs = [];\ntry { msgs = $('GHL mensajes (texto)').first().json.messages?.messages || []; } catch (e) {}\n// GHL los devuelve del más nuevo al más viejo\nconst entrantes = msgs.filter(m => m.direction === 'inbound' && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nconst tipo = String((entrantes[0] || {}).messageType || '');\nconst medios = [c.lastAttributionSource?.medium, wh.contact?.lastAttributionSource?.medium, c.attributionSource?.medium, wh.contact?.attributionSource?.medium]\n  .map(v => String(v || '').toLowerCase());\nconst esWhatsApp = tipo ? tipo === 'TYPE_WHATSAPP' : (Number(wh.message?.type) === 19 || medios[0].startsWith('whatsapp') || medios[1].startsWith('whatsapp'));\n\nconst atribuciones = [c.lastAttributionSource, wh.contact?.lastAttributionSource, c.attributionSource, wh.contact?.attributionSource].filter(Boolean);\nconst las = atribuciones[0] || {};\nconst adId = atribuciones.map(a => a.ctwa_clid || a.adId).find(Boolean) || '';\nconst REFERIDO = /\\*Headline:\\*|Source URL:|https:\\/\\/fb\\.me\\//i;\nconst referido = entrantes.find(m => REFERIDO.test(m.body || ''));\nconst esAnuncio = !!adId || !!referido;\nconst clave = String(las.ctwa_clid || las.adId || adId || (referido ? 'ref-' + referido.id : ''));\n// Inicio de la ventana: el mensaje que llegó desde el anuncio; si ya no está entre los últimos, la fecha de alta del contacto\nconst desde = referido?.dateAdded || c.dateAdded || new Date().toISOString();\nconst nombre = [c.firstName || wh.first_name, c.lastName].filter(Boolean).join(' ') || wh.full_name || c.phone || wh.phone || 'Lead sin nombre';\n// Facebook e Instagram no tienen costo por mensaje: aviso azul (solo si aún no lo tiene)\nconst esFbIg = !esWhatsApp && (/FACEBOOK|INSTAGRAM/.test(tipo) || /facebook|instagram/.test(medios[0] || medios[1]));\nconst avisoActual = ((c.customFields || []).find(f => f.id === CFG.campo) || {}).value || '';\nconst ponerAzul = esFbIg && avisoActual !== AVISO.azul;\nreturn [{ json: { ...CFG, contact_id: wh.contact_id, esWhatsApp, esAnuncio, esFbIg, ponerAzul, sinAnuncioWhatsApp: esWhatsApp && !esAnuncio,\n  anuncioWhatsApp: esWhatsApp && esAnuncio, clave, desde, nombre, AVISO } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -3150,6 +3150,80 @@
       ],
       "id": "3893a325-0f44-4ab1-b23d-8a89fb14b06e",
       "name": "Num_lead Sin IA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b56548f3-c8d2-4067-a0fe-876444451464",
+              "leftValue": "={{ $json.ponerAzul }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1672,
+        884
+      ],
+      "id": "f480586a-694e-4c12-81da-0f3392436ffe",
+      "name": "¿Poner aviso 🔵?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Origen del mensaje').first().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO.azul }] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1472,
+        884
+      ],
+      "id": "7d91d77c-a6ca-43f6-8be7-4b0bb153f2a2",
+      "name": "Aviso Facebook/Instagram",
       "credentials": {
         "httpHeaderAuth": {
           "id": "keLp0liZSLxAedNf",
@@ -3966,7 +4040,7 @@
         ],
         [
           {
-            "node": "Datos1",
+            "node": "¿Poner aviso 🔵?",
             "type": "main",
             "index": 0
           }
@@ -3996,6 +4070,35 @@
         [
           {
             "node": "Aviso Sin IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Poner aviso 🔵?": {
+      "main": [
+        [
+          {
+            "node": "Aviso Facebook/Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso Facebook/Instagram": {
+      "main": [
+        [
+          {
+            "node": "Datos1",
             "type": "main",
             "index": 0
           }
