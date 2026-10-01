@@ -1,0 +1,343 @@
+{
+  "name": "Rs Viajes – Rescate de leads sin respuesta (Independencia)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,12,15,18,21 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d69b71db-8c9d-4d93-a309-9427b508f592",
+      "name": "9, 12, 15, 18 y 21 h"
+    },
+    {
+      "parameters": {
+        "url": "https://services.leadconnectorhq.com/conversations/search?locationId=2O4BBoTVOs95TgWbel6e&lastMessageDirection=inbound&sortBy=last_message_date&sort=desc&limit=100",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "97b28353-7929-46f3-abd3-efa9632bba23",
+      "name": "Conversaciones sin respuesta",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rWAEGS39h2YWXLc7",
+          "name": "GHL - PIT - Independencia"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Conversaciones donde el último mensaje es del cliente (WhatsApp/Facebook/Instagram),\n// de hace más de 10 minutos y menos de 23 horas (aún se le puede contestar).\n// Cada mensaje se revisa una sola vez: se marca como visto en \"Marcar visto\" (si el envío falla, se reintenta en la siguiente vuelta).\nconst AG = {\"agencia\": \"independencia\", \"pipe\": \"5ZjBcNbDKm9Lm2fmN1dP\", \"etapasIA\": [\"0da76776-cd6a-41e8-8d2b-931240853b0f\", \"6c9ac950-c993-4deb-bab3-74115203b377\"]};\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst ahora = Date.now();\nfor (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];\nconst out = [];\nfor (const c of ($input.first().json.conversations || [])) {\n  const t = Number(c.lastMessageDate || 0);\n  const tipo = String(c.lastMessageType || '');\n  if (!/WHATSAPP|FACEBOOK|INSTAGRAM/.test(tipo)) continue;\n  if (ahora - t < 10 * 60e3 || ahora - t > 23 * 3600e3) continue;\n  const clave = `${c.id}:${t}`;\n  if (memoria.vistos[clave]) continue;\n  out.push({ json: { ...AG, clave, contactId: c.contactId, convId: c.id, nombre: c.fullName || c.contactName || '', telefono: c.phone || '',\n    medio: /WHATSAPP/.test(tipo) ? 'whatsapp' : /INSTAGRAM/.test(tipo) ? 'instagram' : 'facebook', tipo } });\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "3a8b5437-f37d-42d3-8620-0d5a005cd555",
+      "name": "Candidatos"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/opportunities/search?location_id=2O4BBoTVOs95TgWbel6e&contact_id={{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "9e241fa2-3e32-4596-94a3-a01ca7b23dc7",
+      "name": "Oportunidades del contacto",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rWAEGS39h2YWXLc7",
+          "name": "GHL - PIT - Independencia"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Se rescata si no tiene oportunidad abierta en el pipeline, o si está en una etapa de la IA (Nuevo Lead / Explorando opciones).\n// No se toca si la lleva una vendedora: oportunidad en otra etapa, o ya le escribió una persona del equipo\n// (sus mensajes llevan usuario; los de la IA no, y los automáticos de GHL vienen como \"workflow\").\nconst cand = $('Candidatos').item.json;\nconst opps = ($('Oportunidades del contacto').item.json.opportunities || []).filter(o => o.pipelineId === cand.pipe && o.status === 'open');\nconst enIA = opps.some(o => cand.etapasIA.includes(o.pipelineStageId));\nconst mensajes = $json.messages?.messages || [];\nconst escribioPersona = mensajes.some(m => m.direction === 'outbound' && m.source !== 'workflow' && m.userId !== undefined && m.userId !== null\n  && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nlet rescatar = false, motivo = 'lo lleva una vendedora';\nif (!escribioPersona && opps.length === 0) { rescatar = true; motivo = 'sin oportunidad'; }\nelse if (!escribioPersona && enIA) { rescatar = true; motivo = 'sin respuesta en etapa IA'; }\nelse if (escribioPersona) motivo = 'ya le escribió una persona del equipo';\nconst [nombre1] = String(cand.nombre).split(' ');\nreturn { json: { rescatar, motivo,\n  payload: { contact_id: cand.contactId, first_name: nombre1 || '', full_name: cand.nombre, phone: cand.telefono,\n    message: { type: cand.medio === 'whatsapp' ? 19 : 11, body: '' }, contact: { lastAttributionSource: { medium: cand.medio } }, rescate: true } } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "79bb3c6b-72d7-4931-b637-d0ec4522bee9",
+      "name": "¿Rescatar?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "10e45f73-f53e-40b4-b2d4-ab22d737b8f9",
+              "leftValue": "={{ $json.rescatar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "9583d512-1e5a-4d3c-8732-84dd13bad2e8",
+      "name": "Rescatar"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/rsindependencia",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 4000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -80
+      ],
+      "id": "1aab8eff-5e9d-42bd-a188-20b82650be33",
+      "name": "Enviar al agente (Independencia)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Recuerda los mensajes ya revisados para no rescatarlos dos veces.\n// Si el envío al agente falló, no se marca y se reintenta en la siguiente vuelta.\nif ($json.error) return { json: $json };\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nmemoria.vistos[$('Candidatos').item.json.clave] = Date.now();\nreturn { json: { marcado: $('Candidatos').item.json.clave } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "820733a0-435e-4cee-be97-7434a1cd514f",
+      "name": "Marcar visto"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ $('Candidatos').item.json.convId }}/messages?limit=20",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        770,
+        160
+      ],
+      "id": "41e44efa-a9d7-46e0-b7c5-5f18d3d81634",
+      "name": "Mensajes de la conversación",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rWAEGS39h2YWXLc7",
+          "name": "GHL - PIT - Independencia"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "9, 12, 15, 18 y 21 h": {
+      "main": [
+        [
+          {
+            "node": "Conversaciones sin respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversaciones sin respuesta": {
+      "main": [
+        [
+          {
+            "node": "Candidatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidatos": {
+      "main": [
+        [
+          {
+            "node": "Oportunidades del contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oportunidades del contacto": {
+      "main": [
+        [
+          {
+            "node": "Mensajes de la conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Rescatar?": {
+      "main": [
+        [
+          {
+            "node": "Rescatar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rescatar": {
+      "main": [
+        [
+          {
+            "node": "Enviar al agente (Independencia)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar visto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar al agente (Independencia)": {
+      "main": [
+        [
+          {
+            "node": "Marcar visto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensajes de la conversación": {
+      "main": [
+        [
+          {
+            "node": "¿Rescatar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  }
+}

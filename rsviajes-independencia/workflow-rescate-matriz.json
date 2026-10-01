@@ -1,0 +1,343 @@
+{
+  "name": "Rs Viajes – Rescate de leads sin respuesta (Matriz)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,12,15,18,21 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "93d7a7cb-3d65-4dfc-a9a1-193c2b28aadc",
+      "name": "9, 12, 15, 18 y 21 h"
+    },
+    {
+      "parameters": {
+        "url": "https://services.leadconnectorhq.com/conversations/search?locationId=UIJiu5Wa9iPVzMpbaZcx&lastMessageDirection=inbound&sortBy=last_message_date&sort=desc&limit=100",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "1e5e56a0-b990-45f0-96d3-48e6a9d0b796",
+      "name": "Conversaciones sin respuesta",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Conversaciones donde el último mensaje es del cliente (WhatsApp/Facebook/Instagram),\n// de hace más de 10 minutos y menos de 23 horas (aún se le puede contestar).\n// Cada mensaje se revisa una sola vez: se marca como visto en \"Marcar visto\" (si el envío falla, se reintenta en la siguiente vuelta).\nconst AG = {\"agencia\": \"matriz\", \"pipe\": \"QxW5mmE6EmqSIHnmsPBm\", \"etapasIA\": [\"07df207c-70e4-4b60-b18a-cf8b19ae31d5\", \"ee796ca5-dcde-43aa-b252-0ab2d96b7885\"]};\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst ahora = Date.now();\nfor (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];\nconst out = [];\nfor (const c of ($input.first().json.conversations || [])) {\n  const t = Number(c.lastMessageDate || 0);\n  const tipo = String(c.lastMessageType || '');\n  if (!/WHATSAPP|FACEBOOK|INSTAGRAM/.test(tipo)) continue;\n  if (ahora - t < 10 * 60e3 || ahora - t > 23 * 3600e3) continue;\n  const clave = `${c.id}:${t}`;\n  if (memoria.vistos[clave]) continue;\n  out.push({ json: { ...AG, clave, contactId: c.contactId, convId: c.id, nombre: c.fullName || c.contactName || '', telefono: c.phone || '',\n    medio: /WHATSAPP/.test(tipo) ? 'whatsapp' : /INSTAGRAM/.test(tipo) ? 'instagram' : 'facebook', tipo } });\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "13ae18d6-3126-4aec-b3d0-7278993925a4",
+      "name": "Candidatos"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/opportunities/search?location_id=UIJiu5Wa9iPVzMpbaZcx&contact_id={{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "bfac1de5-6175-4394-8c56-906a9b479ed6",
+      "name": "Oportunidades del contacto",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Se rescata si no tiene oportunidad abierta en el pipeline, o si está en una etapa de la IA (Nuevo Lead / Explorando opciones).\n// No se toca si la lleva una vendedora: oportunidad en otra etapa, o ya le escribió una persona del equipo\n// (sus mensajes llevan usuario; los de la IA no, y los automáticos de GHL vienen como \"workflow\").\nconst cand = $('Candidatos').item.json;\nconst opps = ($('Oportunidades del contacto').item.json.opportunities || []).filter(o => o.pipelineId === cand.pipe && o.status === 'open');\nconst enIA = opps.some(o => cand.etapasIA.includes(o.pipelineStageId));\nconst mensajes = $json.messages?.messages || [];\nconst escribioPersona = mensajes.some(m => m.direction === 'outbound' && m.source !== 'workflow' && m.userId !== undefined && m.userId !== null\n  && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nlet rescatar = false, motivo = 'lo lleva una vendedora';\nif (!escribioPersona && opps.length === 0) { rescatar = true; motivo = 'sin oportunidad'; }\nelse if (!escribioPersona && enIA) { rescatar = true; motivo = 'sin respuesta en etapa IA'; }\nelse if (escribioPersona) motivo = 'ya le escribió una persona del equipo';\nconst [nombre1] = String(cand.nombre).split(' ');\nreturn { json: { rescatar, motivo,\n  payload: { contact_id: cand.contactId, first_name: nombre1 || '', full_name: cand.nombre, phone: cand.telefono,\n    message: { type: cand.medio === 'whatsapp' ? 19 : 11, body: '' }, contact: { lastAttributionSource: { medium: cand.medio } }, rescate: true } } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "b190f48d-b079-4de0-969a-121e4fbd0ce5",
+      "name": "¿Rescatar?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f9d4a525-3c00-4fe0-8fb3-5608ee35cf56",
+              "leftValue": "={{ $json.rescatar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "fb8996f5-6b9e-4fac-8641-1cf32067ae9f",
+      "name": "Rescatar"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/rsmatriz",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 4000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -80
+      ],
+      "id": "a24b7a7f-2757-435d-b5e3-9f08a47a1c65",
+      "name": "Enviar al agente (Matriz)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Recuerda los mensajes ya revisados para no rescatarlos dos veces.\n// Si el envío al agente falló, no se marca y se reintenta en la siguiente vuelta.\nif ($json.error) return { json: $json };\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nmemoria.vistos[$('Candidatos').item.json.clave] = Date.now();\nreturn { json: { marcado: $('Candidatos').item.json.clave } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "7e522048-2244-449f-b81e-f1facbaae6a1",
+      "name": "Marcar visto"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ $('Candidatos').item.json.convId }}/messages?limit=20",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        770,
+        160
+      ],
+      "id": "2d8aac6d-0dc3-42b7-8cc0-ccca362dac46",
+      "name": "Mensajes de la conversación",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "keLp0liZSLxAedNf",
+          "name": "GHL-PIT-RsMatriz"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "9, 12, 15, 18 y 21 h": {
+      "main": [
+        [
+          {
+            "node": "Conversaciones sin respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversaciones sin respuesta": {
+      "main": [
+        [
+          {
+            "node": "Candidatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidatos": {
+      "main": [
+        [
+          {
+            "node": "Oportunidades del contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oportunidades del contacto": {
+      "main": [
+        [
+          {
+            "node": "Mensajes de la conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Rescatar?": {
+      "main": [
+        [
+          {
+            "node": "Rescatar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rescatar": {
+      "main": [
+        [
+          {
+            "node": "Enviar al agente (Matriz)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar visto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar al agente (Matriz)": {
+      "main": [
+        [
+          {
+            "node": "Marcar visto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensajes de la conversación": {
+      "main": [
+        [
+          {
+            "node": "¿Rescatar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  }
+}
