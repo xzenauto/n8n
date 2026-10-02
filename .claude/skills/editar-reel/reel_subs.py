@@ -208,7 +208,8 @@ def main():
     ap.add_argument("inp"); ap.add_argument("out", nargs="?")
     ap.add_argument("--words"); ap.add_argument("--model", default="small")
     ap.add_argument("--grade", action="store_true"); ap.add_argument("--dump", action="store_true")
-    ap.add_argument("--crf", default="18")
+    ap.add_argument("--crf", default="15")
+    ap.add_argument("--preset", default="slow")
     ap.add_argument("--broll", default="", help="tramos de B-roll 'ini-fin,ini-fin' (s): palabra centrada")
     ap.add_argument("--font", help="archivo .ttf (por defecto fonts/BebasNeue-Regular.ttf)")
     ap.add_argument("--weight", type=int, help="grosor para fuentes variables (100–900)")
@@ -287,7 +288,7 @@ def main():
             else "[0:v][1:v]overlay=0:0:format=auto,format=yuv420p[v]")
     ff = subprocess.Popen(["ffmpeg", "-v", "error", "-stats", "-y", "-i", a.inp, "-f", "rawvideo", "-pix_fmt", "rgba",
                            "-s", f"{W}x{H}", "-r", str(fps), "-i", "-", "-filter_complex", filt, "-map", "[v]",
-                           "-map", "0:a?", "-c:v", "libx264", "-preset", "medium", "-crf", a.crf,
+                           "-map", "0:a?", "-c:v", "libx264", "-preset", a.preset, "-crf", a.crf, "-profile:v", "high",
                            "-c:a", "copy", "-movflags", "+faststart", a.out], stdin=subprocess.PIPE)
     empty = bytes(W * H * 4)
     last_key, last_buf = None, empty

@@ -68,8 +68,18 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
    (aprox. 1 de cada 6–8 palabras; nunca artículos ni muletillas). Enséñale la lista al
    usuario en el resumen final.
 6. **Montaje** (si hay que cortar o meter B-roll): cortes secos con ffmpeg
-   (`-ss/-to` + concat), quitando silencios > 0,3 s. Monta primero y subtitula después,
-   sobre el vídeo ya montado.
+   (`trim` + `concat` por fotogramas), quitando silencios > 0,3 s. Monta primero y
+   subtitula después, sobre el vídeo ya montado. **Calidad (el usuario lo exige):**
+   - Comprueba con ffprobe si el material es HDR de iPhone (`arib-std-b67`, 10 bits).
+     Si lo es, convierte TODO (plano principal y B-rolls) con el mismo filtro calibrado:
+     `zscale=t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p`
+     (es el que más se parece a la exportación SDR del propio usuario).
+   - **Saturación de los B-rolls:** mide la saturación media (HSV) de cada B-roll y del
+     plano principal tras la conversión; si un B-roll está más saturado, bájala con
+     `eq=saturation=principal/b-roll` (entre 0,65 y 1). Nunca la subas.
+   - Escala con `flags=lanczos`, B-rolls de 60 fps a 30 con `fps=30`.
+   - El montado se guarda **sin pérdida** (`-c:v libx264 -preset ultrafast -qp 0`, .mkv)
+     para que solo haya una compresión: la final del script (`--crf 15 --preset slow`).
 7. **Render**:
    `python3 reel_subs.py montado.mp4 final.mp4 --words montado.words.json --grade --broll 1.8-3.0,4.6-6.5`
    (`--broll` con los tramos donde hay B-roll: así siempre sale la palabra centrada aunque
