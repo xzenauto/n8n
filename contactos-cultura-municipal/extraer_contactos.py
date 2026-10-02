@@ -58,8 +58,9 @@ ESTADOS = {
 UA = "Mozilla/5.0 (directorio-cultura-municipal; datos abiertos SIC)"
 
 COLUMNAS_SALIDA = [
-    "estado", "municipio", "tipo", "institucion", "titular", "cargo_titular",
-    "telefono", "correo", "correo_institucional", "pagina_web", "domicilio",
+    "estado", "municipio", "tipo", "nivel", "institucion", "adscripcion",
+    "titular", "cargo_titular", "telefono", "correo", "correo_institucional",
+    "pagina_web", "domicilio", "organizador_festival", "fecha_festival",
     "ficha_sic", "ultima_actualizacion",
 ]
 
@@ -145,75 +146,119 @@ def es_institucional(correo):
     return bool(correo) and not any(d in correo for d in DOMINIOS_PERSONALES)
 
 
+def nivel_gobierno(adscripcion, nombre, tipo):
+    t = normaliza(f"{adscripcion} {nombre}")
+    if tipo == "institucion_cultural_mun":
+        return "Municipal"
+    if re.search(r"municip|ayuntamiento|alcaldia|delegacion|h_ayto|cabildo", t):
+        return "Municipal"
+    if re.search(r"particular|privad|asociacion_civil|a_c$|_a_c_|fundacion", t):
+        return "Privado / A.C."
+    if re.search(r"issste|imss|inah|inba|suprema_corte|federal|secretaria_de_cultura$|"
+                 r"cdi|inpi|conaculta|universidad|unam|ipn", t):
+        return "Federal / Otro"
+    if re.search(r"estatal|estado|gobierno_de|instituto_.*cultur|consejo|secretaria_de_cultura", t):
+        return "Estatal"
+    return "Sin dato"
+
+
 def a_registro(fila, tipo):
-    estado = campo(fila, "estado", "nom_ent", "entidad", contiene=("estado", "entidad"))
-    municipio = campo(fila, "municipio", "nom_mun", contiene=("municipio",))
-    nombre = campo(fila, "nombre", "institucion_cultural_mun_nombre",
-                   contiene=("_nombre", "nombre"))
-    titular = campo(fila, "titular", "director", "responsable", "contacto",
-                    contiene=("titular", "director", "responsable", "contacto_nombre"))
-    tel = limpia_telefono(campo(fila, "telefono1", "telefono", "tel",
-                                contiene=("telefono", "tel")))
+    estado = campo(fila, "nom_ent", "estado", "entidad")
+    municipio = campo(fila, "nom_mun", "municipio")
+    if normaliza(estado) == "total_nacional":
+        estado = ""
+    if normaliza(municipio) == "total_nacional":
+        municipio = ""
+    nombre = campo(fila, f"{tipo}_nombre", "nombre", contiene=("_nombre",))
+    adscripcion = campo(fila, f"{tipo}_adscripcion", "adscripcion", contiene=("adscripcion",))
+    titular = campo(fila, "titular", "director", "responsable")
+    tels = [limpia_telefono(v) for k, v in fila.items()
+            if re.search(r"tel(e)?fono|telfono", k) and v]
+    tel = "; ".join(t for t in tels if t)
     texto_correo = " ".join(v for k, v in fila.items() if "mail" in k or "correo" in k)
     lista_correos = correos(texto_correo)
-    calle = campo(fila, "calle", "domicilio", contiene=("calle", "domicilio"))
-    numero = campo(fila, "numero", contiene=("numero",))
-    colonia = campo(fila, "colonia", contiene=("colonia",))
-    cp = campo(fila, "cp", "codigo_postal", contiene=("cp", "postal"))
-    domicilio = ", ".join(p for p in (f"{calle} {numero}".strip(), colonia,
-                                      f"C.P. {cp}" if cp else "") if p)
+    calle = campo(fila, f"{tipo}_calle_numero", "calle_numero", contiene=("calle",))
+    colonia = campo(fila, f"{tipo}_colonia", contiene=("colonia",))
+    cp = campo(fila, f"{tipo}_cp", "codigo_postal")
+    domicilio = ", ".join(p for p in (calle, colonia, f"C.P. {cp}" if cp else "") if p)
+    ficha = campo(fila, "link_sic", contiene=("link",))
+    ficha = ficha.replace("http://sic.gob.mx/", "https://sic.cultura.gob.mx/")
     return {
         "estado": estado,
         "municipio": municipio,
         "tipo": TABLAS[tipo],
+        "nivel": nivel_gobierno(adscripcion, nombre, tipo),
         "institucion": nombre,
+        "adscripcion": adscripcion,
         "titular": titular,
         "cargo_titular": "",
         "telefono": tel,
         "correo": "; ".join(lista_correos),
         "correo_institucional": "sí" if any(es_institucional(c) for c in lista_correos) else "no",
-        "pagina_web": campo(fila, "pagina_web", "web", contiene=("pagina", "web", "url")),
+        "pagina_web": campo(fila, "pagina_web", "pagina_web2", contiene=("pagina_web",)),
         "domicilio": domicilio,
-        "ficha_sic": campo(fila, "link_sic", "liga", contiene=("link", "liga", "ficha")),
-        "ultima_actualizacion": campo(fila, "fecha_mod", contiene=("fecha_mod", "modific", "actualiz")),
+        "organizador_festival": "",
+        "fecha_festival": "",
+        "ficha_sic": ficha,
+        "ultima_actualizacion": campo(fila, "fecha_mod")[:10],
     }
 
 
 # --- Ficha individual del SIC: titular / director -----------------------------
 
-RE_ETIQUETA_TITULAR = re.compile(
-    r"(Director(?:a)?(?: General)?|Titular|Responsable|Coordinador(?:a)?|"
-    r"Jefe(?:a)? de|Presidente(?:a)?|Contacto)\s*[:\-]?\s*$",
-    re.I,
-)
-
-
 def texto_plano(pagina):
     pagina = re.sub(r"(?is)<(script|style).*?</\1>", " ", pagina)
-    pagina = re.sub(r"(?i)<br\s*/?>|</(p|div|tr|td|th|li|h\d|dt|dd|span|strong|b)>", "\n", pagina)
-    pagina = re.sub(r"<[^>]+>", " ", pagina)
+    pagina = re.sub(r"<[^>]+>", "\n", pagina)
     lineas = [re.sub(r"\s+", " ", html.unescape(l)).strip() for l in pagina.split("\n")]
     return [l for l in lineas if l]
 
 
-def titular_de_ficha(url):
-    datos = descargar(url, reintentos=2)
+ETIQUETAS = {"datos generales", "sede", "otras sedes", "fecha", "institucion organizadora",
+             "institucion coadyuvante", "responsable", "abrir en google maps"}
+
+
+def datos_de_ficha(url):
+    """Extrae del bloque principal de la ficha: responsable, cargo, teléfonos,
+    correos, municipio/estado (línea 'CP ..., Municipio, Estado') y, en
+    festivales, institución organizadora y fecha."""
+    datos = descargar(url, reintentos=3)
     if not datos:
-        return "", "", []
+        return None
     lineas = texto_plano(decodificar(datos))
-    titular, cargo = "", ""
-    for i, linea in enumerate(lineas):
-        m = re.match(r"(Director(?:a)?[^:]{0,40}|Titular[^:]{0,40}|Responsable[^:]{0,40}|"
-                     r"Coordinador(?:a)?[^:]{0,40}|Contacto[^:]{0,20})\s*:\s*(.+)", linea, re.I)
-        if m and not RE_EMAIL.search(m.group(2)) and not re.search(r"\d{5,}", m.group(2)):
-            cargo, titular = m.group(1).strip(), m.group(2).strip()
-            break
-        if RE_ETIQUETA_TITULAR.search(linea) and i + 1 < len(lineas):
-            siguiente = lineas[i + 1]
-            if not RE_EMAIL.search(siguiente) and not re.search(r"\d{5,}", siguiente):
-                cargo, titular = linea.rstrip(": "), siguiente
-                break
-    return titular, cargo, correos(" ".join(lineas))
+    try:
+        ini = max(i for i, l in enumerate(lineas) if l == "Interruptor de Navegación")
+    except ValueError:
+        ini = 0
+    fin = next((i for i in range(ini, len(lineas)) if lineas[i].startswith("¿Detectaste")), len(lineas))
+    bloque = lineas[ini:fin]
+    r = {"titular": "", "cargo": "", "telefono": "", "correos": [], "municipio": "",
+         "estado": "", "organizador": "", "fecha": ""}
+
+    def siguiente(i):
+        return bloque[i + 1] if i + 1 < len(bloque) else ""
+
+    for i, l in enumerate(bloque):
+        ln = normaliza(l)
+        if l.startswith("Tels.") or l.startswith("Tel."):
+            r["telefono"] = l.split(":", 1)[-1].strip()
+        elif re.match(r"CP \d{4,5},", l):
+            partes = [p.strip() for p in l.split(",")]
+            if len(partes) >= 3:
+                r["municipio"], r["estado"] = partes[-2], partes[-1]
+        elif ln == "responsable":
+            nombre = siguiente(i)
+            if nombre and normaliza(nombre) not in ETIQUETAS and not RE_EMAIL.search(nombre):
+                r["titular"] = nombre
+                cargo = bloque[i + 2] if i + 2 < len(bloque) else ""
+                if cargo and normaliza(cargo).replace("_", " ") not in ETIQUETAS \
+                        and len(cargo) < 120 and not RE_EMAIL.search(cargo):
+                    r["cargo"] = cargo
+        elif ln == "institucion_organizadora":
+            r["organizador"] = siguiente(i)
+        elif ln == "fecha":
+            r["fecha"] = siguiente(i)
+        r["correos"] += [c for c in correos(l) if c not in r["correos"]]
+    return r
 
 
 # --- Programa principal -------------------------------------------------------
@@ -251,7 +296,10 @@ def main():
     ap.add_argument("--tablas", default=",".join(TABLAS), help="tablas del SIC a incluir")
     ap.add_argument("--fichas", action="store_true",
                     help="visita la ficha de cada registro para extraer el titular (lento)")
-    ap.add_argument("--pausa", type=float, default=0.5, help="segundos entre fichas")
+    ap.add_argument("--pausa", type=float, default=0.3, help="segundos de pausa por ficha y por hilo")
+    ap.add_argument("--hilos", type=int, default=6, help="fichas consultadas en paralelo")
+    ap.add_argument("--solo-municipal", action="store_true",
+                    help="excluye registros estatales, federales y privados")
     ap.add_argument("--solo-con-contacto", action="store_true",
                     help="descarta registros sin teléfono ni correo")
     args = ap.parse_args()
@@ -270,18 +318,35 @@ def main():
         registros.extend(a_registro(f, tabla) for f in filas)
 
     if args.fichas:
-        pendientes = [r for r in registros if r["ficha_sic"] and not r["titular"]]
-        print(f"Consultando {len(pendientes)} fichas para obtener titulares...")
-        for i, r in enumerate(pendientes, 1):
-            titular, cargo, extra = titular_de_ficha(r["ficha_sic"])
-            r["titular"], r["cargo_titular"] = titular, cargo
-            todos = correos(r["correo"]) + [c for c in extra if c not in r["correo"]]
-            r["correo"] = "; ".join(todos)
-            r["correo_institucional"] = "sí" if any(es_institucional(c) for c in todos) else "no"
-            if i % 100 == 0:
-                print(f"  {i}/{len(pendientes)}")
-            time.sleep(args.pausa)
+        from concurrent.futures import ThreadPoolExecutor
+        pendientes = [r for r in registros if r["ficha_sic"]]
+        print(f"Consultando {len(pendientes)} fichas del SIC...")
 
+        def procesa(r):
+            time.sleep(args.pausa)
+            return r, datos_de_ficha(r["ficha_sic"])
+
+        with ThreadPoolExecutor(max_workers=args.hilos) as ex:
+            for i, (r, d) in enumerate(ex.map(procesa, pendientes), 1):
+                if d:
+                    r["titular"] = r["titular"] or d["titular"]
+                    r["cargo_titular"] = d["cargo"]
+                    if d["telefono"] and not r["telefono"]:
+                        r["telefono"] = d["telefono"]
+                    r["estado"] = r["estado"] or d["estado"]
+                    r["municipio"] = r["municipio"] or d["municipio"]
+                    r["organizador_festival"] = d["organizador"]
+                    r["fecha_festival"] = d["fecha"]
+                    todos = correos(r["correo"])
+                    todos += [c for c in d["correos"] if c not in todos]
+                    r["correo"] = "; ".join(todos)
+                    r["correo_institucional"] = "sí" if any(es_institucional(c) for c in todos) else "no"
+                if i % 250 == 0:
+                    print(f"  {i}/{len(pendientes)}", flush=True)
+
+    if args.solo_municipal:
+        registros = [r for r in registros if r["nivel"] in ("Municipal", "Sin dato")
+                     or r["tipo"] == TABLAS["festival"]]
     if args.solo_con_contacto:
         registros = [r for r in registros if r["telefono"] or r["correo"]]
 
