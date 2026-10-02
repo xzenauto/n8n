@@ -1,6 +1,6 @@
 ---
 name: editar-reel
-description: Edita un reel/vídeo corto con el estilo guardado del usuario (subtítulos finos palabra a palabra junto a la cara, B-roll con palabra centrada, color cinematográfico suave). Úsalo cuando el usuario diga "toca editar un reel", "edita este reel", "con mi estilo de reels" o similar.
+description: Edita un reel/vídeo corto con el estilo guardado del usuario (subtítulos Bebas Neue pequeños palabra a palabra junto a la cara, palabras clave en amarillo, B-roll con palabra centrada, color cinematográfico suave). Úsalo cuando el usuario diga "toca editar un reel", "edita este reel", "con mi estilo de reels" o similar.
 ---
 
 # Editar reel — estilo guardado
@@ -11,9 +11,14 @@ Contesta siempre en español.
 ## 1. Cómo es el estilo
 
 **Subtítulos (lo más característico)**
-- Tipografía sans-serif **fina** (Inter Light 300, incluida en `fonts/`), blanca, sin caja ni
-  contorno, solo una sombra muy suave. Tamaño pequeño: ~3,7 % del alto del frame.
-- **Sin puntuación** y en minúsculas salvo inicio de frase y nombres propios.
+- **Configuración fija elegida por el usuario (no cambiarla sin que lo pida):**
+  - Tipografía **Bebas Neue** (mayúsculas estrechas, incluida en `fonts/`), blanca.
+  - Tamaño **pequeño**: 3,5 % del alto del frame (opción "A" del muestrario).
+  - **Sin sombra**, sin caja ni contorno.
+  - **Palabras clave en amarillo** (`HL_COLOR` = 255, 210, 60): 1 por bloque como máximo,
+    las que llevan el mensaje (temas, beneficios, conceptos: "negocio", "reto físico",
+    "mentalidad", "límites"…). Se marcan con `"hl": true` en `words.json` antes de renderizar.
+- **Sin puntuación**.
 - Las palabras **aparecen una a una** según se dicen (fundido de 80 ms) y se acumulan en
   bloques de 2–5 palabras; el bloque desaparece entero cuando empieza el siguiente.
 - Espaciado amplio entre palabras (~0,55 em extra): se lee "aireado".
@@ -59,16 +64,22 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
    extra, y confirmar el formato: el original es **16:9**; si el material es vertical
    9:16, el script usa la misma lógica (cuando no hay sitio a los lados de la cara,
    coloca el bloque centrado encima de la cabeza).
-5. **Montaje** (si hay que cortar o meter B-roll): cortes secos con ffmpeg
+5. **Marcar palabras clave**: añade `"hl": true` a las palabras importantes en el JSON
+   (aprox. 1 de cada 6–8 palabras; nunca artículos ni muletillas). Enséñale la lista al
+   usuario en el resumen final.
+6. **Montaje** (si hay que cortar o meter B-roll): cortes secos con ffmpeg
    (`-ss/-to` + concat), quitando silencios > 0,3 s. Monta primero y subtitula después,
    sobre el vídeo ya montado.
-6. **Render**:
+7. **Render**:
    `python3 reel_subs.py montado.mp4 final.mp4 --words montado.words.json --grade --broll 1.8-3.0,4.6-6.5`
    (`--broll` con los tramos donde hay B-roll: así siempre sale la palabra centrada aunque
-   en el B-roll aparezcan otras caras)
-7. **Revisión**: extrae 4–6 fotogramas en una sola hoja (`tile`) y comprueba que el
+   en el B-roll aparezcan otras caras). Los subtítulos se colocan una vez por bloque y no
+   se mueven; en planos quietos todos los bloques comparten posición. Si no hay cara, el
+   texto va arriba (nunca encima de la persona). `--font/--size/--no-shadow` solo para
+   pruebas: la configuración por defecto ya es la elegida.
+8. **Revisión**: extrae 4–6 fotogramas en una sola hoja (`tile`) y comprueba que el
    texto no tapa caras ni se sale del encuadre antes de entregar.
-8. **Entrega**: el chat solo admite archivos pequeños (un vídeo de ~40 MB ya falló).
+9. **Entrega**: el chat solo admite archivos pequeños (un vídeo de ~40 MB ya falló).
    Opciones probadas: subirlo a una rama de este repositorio (máx. 100 MB por archivo;
    partir con `ffmpeg -f segment` si hace falta) o pedir al usuario un destino.
 
@@ -76,8 +87,10 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
 
 | Constante | Valor | Qué controla |
 |---|---|---|
-| `SIZE_H` | 0.037 | tamaño de letra (fracción del alto) |
-| `WEIGHT` | 300 | grosor de la fuente (100–900) |
+| `SIZE_H` | 0.035 | tamaño de letra (fracción del alto) |
+| `FONT` | Bebas Neue | tipografía |
+| `SHADOW` | False | sombra bajo el texto |
+| `HL_COLOR` | (255, 210, 60) | color de las palabras clave |
 | `WORD_GAP` | 0.55 | espacio extra entre palabras |
 | `FACE_GAP` | 0.45 | separación entre texto y cara |
 | `MAX_WORDS` | 5 | palabras por bloque |

@@ -22,18 +22,18 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FONT = os.path.join(HERE, "fonts", "Inter.ttf")
+FONT = os.path.join(HERE, "fonts", "BebasNeue-Regular.ttf")   # elegida por el usuario (7A)
 
 # ---------------------------------------------------------------- estilo
-SIZE_H = 0.037        # tamaño de letra relativo a la altura del frame
+SIZE_H = 0.035        # tamaño de letra relativo a la altura del frame ("A · pequeña")
 BROLL_SCALE = 1.25    # palabra única en B-roll, algo más grande
-WEIGHT = 300          # Inter Light
+WEIGHT = 400          # solo afecta a fuentes variables (Bebas Neue es estática)
 WORD_GAP = 0.55       # espacio extra entre palabras (en em)
 FACE_GAP = 0.45       # separación texto-cara (en anchos de cara)
 FADE = 0.08           # entrada de cada palabra (s)
 MAX_WORDS = 5         # palabras máximas por bloque
 MAX_GAP = 0.45        # silencio que fuerza bloque nuevo (s)
-SHADOW = True         # sombra suave bajo el texto
+SHADOW = False        # sin sombra (preferencia del usuario)
 HL_COLOR = (255, 210, 60)   # amarillo para palabras clave ("hl": true en words.json)
 GRADE = "eq=contrast=0.96:saturation=0.9:gamma=1.02,colorbalance=rs=0.02:bs=-0.02:rh=0.03:bh=-0.03"
 
@@ -210,7 +210,7 @@ def main():
     ap.add_argument("--grade", action="store_true"); ap.add_argument("--dump", action="store_true")
     ap.add_argument("--crf", default="18")
     ap.add_argument("--broll", default="", help="tramos de B-roll 'ini-fin,ini-fin' (s): palabra centrada")
-    ap.add_argument("--font", help="archivo .ttf (por defecto fonts/Inter.ttf)")
+    ap.add_argument("--font", help="archivo .ttf (por defecto fonts/BebasNeue-Regular.ttf)")
     ap.add_argument("--weight", type=int, help="grosor para fuentes variables (100–900)")
     ap.add_argument("--size", type=float, help="tamaño de letra relativo al alto (p. ej. 0.045)")
     ap.add_argument("--no-shadow", action="store_true", help="sin sombra")
