@@ -1,35 +1,42 @@
 ﻿estado,registros,con_correo,con_telefono,municipios
-(sin estado),643,554,0,1
-Aguascalientes,32,28,27,11
-Baja California,40,39,31,6
-Baja California Sur,30,30,25,5
-Campeche,30,30,19,9
-Chiapas,127,117,87,75
-Chihuahua,54,49,36,23
-Ciudad de México,597,551,549,16
-Coahuila de Zaragoza,55,48,42,21
-Colima,29,26,20,10
-Durango,33,29,22,13
-Guanajuato,77,74,62,46
-Guerrero,52,46,35,24
-Hidalgo,70,60,46,41
-Jalisco,301,266,174,125
-Michoacán de Ocampo,125,100,92,79
-Morelos,48,44,34,20
-México,239,204,191,110
-Nayarit,21,18,15,12
-Nuevo León,53,50,44,26
-Oaxaca,129,80,86,94
-Puebla,121,77,101,86
-Querétaro,69,57,60,18
-Quintana Roo,28,23,22,11
-San Luis Potosí,73,55,51,26
-Sinaloa,38,32,24,18
-Sonora,64,52,49,21
-Tabasco,34,23,28,17
-Tamaulipas,59,45,44,34
-Tlaxcala,23,21,20,15
-Total nacional,2,2,0,1
-Veracruz de Ignacio de la Llave,236,214,127,134
-Yucatán,78,56,62,35
-Zacatecas,103,81,53,52
+(sin estado),63,41,36,1
+Aguascalientes,38,35,38,11
+Baja California,63,60,62,6
+Baja California Sur,37,36,36,5
+Campeche,34,34,32,9
+Chiapas,139,127,131,75
+Chihuahua,65,59,63,23
+Ciudad de MÃ©xico,1,1,1,1
+Ciudad de México,703,640,661,16
+Coahuila,6,4,6,2
+Coahuila de Zaragoza,55,48,53,21
+Colima,32,29,29,10
+Durango,44,39,42,13
+Estado de MÃ©xico,1,0,0,1
+Estado de México,30,26,30,14
+Guanajuato,96,93,96,46
+Guerrero,58,52,52,24
+Hidalgo,89,76,85,41
+Jalisco,335,297,323,125
+Michoacán,23,18,22,6
+Michoacán de Ocampo,125,100,115,79
+Morelos,64,58,62,20
+México,239,204,230,110
+Nayarit,25,21,23,12
+Nuevo LeÃ³n,1,1,1,1
+Nuevo León,74,70,72,26
+Oaxaca,136,88,108,94
+Puebla,166,118,160,86
+Querétaro,88,75,86,18
+Quintana Roo,37,32,34,11
+San Luis Potosí,92,71,87,27
+Sinaloa,50,44,50,18
+Sonora,81,68,77,21
+Tabasco,42,31,41,17
+Tamaulipas,66,51,64,34
+Tlaxcala,31,29,31,15
+Veracruz,33,26,32,15
+Veracruz de Ignacio de la Llave,236,214,219,134
+YucatÃ¡n,1,1,1,1
+Yucatán,89,67,84,35
+Zacatecas,125,102,125,52

@@ -250,7 +250,8 @@ def datos_de_ficha(url):
             if nombre and normaliza(nombre) not in ETIQUETAS and not RE_EMAIL.search(nombre):
                 r["titular"] = nombre
                 cargo = bloque[i + 2] if i + 2 < len(bloque) else ""
-                if cargo and normaliza(cargo).replace("_", " ") not in ETIQUETAS \
+                if cargo and re.match(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]", cargo) \
+                        and normaliza(cargo).replace("_", " ") not in ETIQUETAS \
                         and len(cargo) < 120 and not RE_EMAIL.search(cargo):
                     r["cargo"] = cargo
         elif ln == "institucion_organizadora":
