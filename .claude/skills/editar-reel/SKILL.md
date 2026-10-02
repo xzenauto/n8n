@@ -49,8 +49,8 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
    Dominios que deben estar permitidos en la red del entorno:
    `drive.usercontent.google.com`, `drive.google.com`, `openaipublic.azureedge.net`.
 2. **Dependencias**:
-   `pip install openai-whisper pillow numpy "opencv-python-headless<5"`
-   (OpenCV 5 ya no trae el detector de caras Haar).
+   `pip install openai-whisper pillow numpy "mediapipe==0.10.14"`
+   (las versiones nuevas de MediaPipe ya no incluyen el modelo de caras; la 0.10.14 sí).
 3. **Transcribir y revisar**:
    `python3 reel_subs.py entrada.mp4 --dump` → genera `entrada.words.json`.
    Revisa nombres propios y palabras mal transcritas y corrígelas en el JSON
@@ -79,6 +79,6 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
 | `SIZE_H` | 0.037 | tamaño de letra (fracción del alto) |
 | `WEIGHT` | 300 | grosor de la fuente (100–900) |
 | `WORD_GAP` | 0.55 | espacio extra entre palabras |
-| `FACE_GAP` | 0.30 | separación entre texto y cara |
+| `FACE_GAP` | 0.45 | separación entre texto y cara |
 | `MAX_WORDS` | 5 | palabras por bloque |
 | `BROLL_SCALE` | 1.25 | tamaño de la palabra en B-roll |

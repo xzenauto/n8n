@@ -13,6 +13,8 @@ Uso:
            pasa, se transcribe con Whisper (necesita openaipublic.azureedge.net).
   --grade  aplica la corrección de color del estilo.
   --broll  tramos de B-roll "1.8-3.0,4.5-6.5": en ellos siempre palabra única centrada.
+  --cuts   cortes del plano principal "12.3,20.1": cada plano usa una posición fija.
+  Palabras clave: añade "hl": true a la palabra en words.json → sale en amarillo.
   --dump   solo transcribe y guarda words.json para revisarlo/corregirlo.
 """
 import argparse, json, math, os, subprocess, sys
@@ -27,10 +29,11 @@ SIZE_H = 0.037        # tamaño de letra relativo a la altura del frame
 BROLL_SCALE = 1.25    # palabra única en B-roll, algo más grande
 WEIGHT = 300          # Inter Light
 WORD_GAP = 0.55       # espacio extra entre palabras (en em)
-FACE_GAP = 0.30       # separación texto-cara (en anchos de cara)
+FACE_GAP = 0.45       # separación texto-cara (en anchos de cara)
 FADE = 0.08           # entrada de cada palabra (s)
 MAX_WORDS = 5         # palabras máximas por bloque
 MAX_GAP = 0.45        # silencio que fuerza bloque nuevo (s)
+HL_COLOR = (255, 210, 60)   # amarillo para palabras clave ("hl": true en words.json)
 GRADE = "eq=contrast=0.96:saturation=0.9:gamma=1.02,colorbalance=rs=0.02:bs=-0.02:rh=0.03:bh=-0.03"
 
 
@@ -52,11 +55,12 @@ def transcribe(path, model):
     return [{"w": w["word"].strip(), "s": w["start"], "e": w["end"]} for s in r["segments"] for w in s["words"]]
 
 
-def chunks(words):
+def chunks(words, cuts=()):
     out, cur = [], []
     for w in words:
+        crosses = cur and any(cur[0]["s"] - 0.05 < c <= w["s"] + 0.05 for c in cuts)
         if cur and (len(cur) >= MAX_WORDS or w["s"] - cur[-1]["e"] > MAX_GAP
-                    or cur[-1]["w"][-1:] in ".?!,;:"):
+                    or cur[-1]["w"][-1:] in ".?!,;:" or crosses):
             out.append(cur); cur = []
         cur.append(w)
     if cur: out.append(cur)
@@ -64,23 +68,24 @@ def chunks(words):
 
 
 def faces(path, W, H, fps, dur, step=0.2):
-    """Cara principal muestreada cada `step` s → lista (t, cx, cy_ojos, ancho) o None."""
-    import cv2
-    casc = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    sw = 640
+    """Cara principal muestreada cada `step` s → lista (t, cx, cy_ojos, ancho) o None.
+    Usa MediaPipe (modelo de largo alcance: aguanta perfiles y caras pequeñas)."""
+    import mediapipe as mp
+    det = mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
+    sw = 960
     sh = round(H * sw / W)
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-i", path, "-vf", f"fps={1/step},scale={sw}:{sh}",
-                          "-f", "rawvideo", "-pix_fmt", "gray", "-"], stdout=subprocess.PIPE)
+                          "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
     res, i = [], 0
     while True:
-        buf = p.stdout.read(sw * sh)
-        if len(buf) < sw * sh: break
-        g = np.frombuffer(buf, np.uint8).reshape(sh, sw)
-        fs = casc.detectMultiScale(g, 1.1, 6, minSize=(sw // 18, sw // 18))
-        if len(fs):
-            x, y, w, h = max(fs, key=lambda f: f[2] * f[3])
-            k = W / sw
-            res.append((i * step, (x + w / 2) * k, (y + h * 0.42) * k, w * k))
+        buf = p.stdout.read(sw * sh * 3)
+        if len(buf) < sw * sh * 3: break
+        img = np.frombuffer(buf, np.uint8).reshape(sh, sw, 3)
+        r = det.process(img)
+        if r.detections:
+            d = max(r.detections, key=lambda d: d.location_data.relative_bounding_box.width)
+            bb = d.location_data.relative_bounding_box
+            res.append((i * step, (bb.xmin + bb.width / 2) * W, (bb.ymin + bb.height * 0.42) * H, bb.width * W))
         else:
             res.append((i * step, None))
         i += 1
@@ -109,9 +114,9 @@ class Renderer:
         f.set_variation_by_axes([min(32, max(14, px * 0.6)), WEIGHT])
         return f
 
-    def word_img(s, txt, big=False):
+    def word_img(s, txt, big=False, hl=False):
         txt = txt.strip(".,;:!?¿¡\"“”«»") or txt   # sin puntuación, como el original
-        key = (txt, big)
+        key = (txt, big, hl)
         if key in s.cache: return s.cache[key]
         f = s.fb if big else s.f
         l, t, r, b = f.getbbox(txt)
@@ -119,10 +124,11 @@ class Renderer:
         w, h = r - l + 2 * pad, round(f.size * 1.5) + 2 * pad
         im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        ImageDraw.Draw(sh).text((pad - l, pad), txt, font=f, fill=(0, 0, 0, 110))
-        sh = sh.filter(ImageFilter.GaussianBlur(max(1, f.size * 0.08)))
+        ImageDraw.Draw(sh).text((pad - l, pad), txt, font=f, fill=(0, 0, 0, 220 if big else 170))
+        sh = sh.filter(ImageFilter.GaussianBlur(max(1, f.size * 0.12)))
         im.alpha_composite(sh, (0, max(1, round(f.size * 0.03))))
-        ImageDraw.Draw(im).text((pad - l, pad), txt, font=f, fill=(255, 255, 255, 255))
+        im.alpha_composite(sh, (0, 0))
+        ImageDraw.Draw(im).text((pad - l, pad), txt, font=f, fill=(HL_COLOR if hl else (255, 255, 255)) + (255,))
         s.cache[key] = (im, pad, f)
         return s.cache[key]
 
@@ -134,6 +140,12 @@ class Renderer:
         widths = [im.width - 2 * pad for im, pad, _ in imgs]
         if face is None:   # B-roll → una palabra centrada (se gestiona en draw)
             return [(s.W / 2 - wd / 2, s.H * 0.5) for wd in widths]
+        if face == "top":  # plano principal sin cara detectada → arriba, centrado
+            total = sum(widths) + gap * (len(widths) - 1)
+            x, pos = s.W / 2 - total / 2, []
+            for wd in widths:
+                pos.append((x, s.H * 0.14)); x += wd + gap
+            return pos
         cx, ey, fw = face
         n = len(chunk)
         left_n = math.ceil(n / 2) if n > 1 else n
@@ -172,7 +184,7 @@ class Renderer:
         else:
             pos = s.layout(chunk, face)[:len(vis)]
         for w, (x, y) in zip(vis, pos):
-            im, pad, f = s.word_img(w["w"], big=face is None)
+            im, pad, f = s.word_img(w["w"], big=face is None, hl=w.get("hl", False))
             a = min(1, (t - (w["s"] - 0.03)) / FADE)
             if a < 1:
                 arr = np.array(im); arr[..., 3] = (arr[..., 3] * a).astype(np.uint8); im = Image.fromarray(arr)
@@ -187,6 +199,7 @@ def main():
     ap.add_argument("--grade", action="store_true"); ap.add_argument("--dump", action="store_true")
     ap.add_argument("--crf", default="18")
     ap.add_argument("--broll", default="", help="tramos de B-roll 'ini-fin,ini-fin' (s): palabra centrada")
+    ap.add_argument("--cuts", default="", help="cortes extra del A-roll 't1,t2' (s): nueva posición fija")
     a = ap.parse_args()
 
     W, H, fps, dur = probe(a.inp)
@@ -196,22 +209,58 @@ def main():
         print("words.json guardado"); return
     print(f"{len(words)} palabras · detectando caras…", file=sys.stderr)
     fc, step = faces(a.inp, W, H, fps, dur)
-    cks = chunks(words)
+    broll = [tuple(map(float, r.split("-"))) for r in a.broll.split(",") if r]
+    cuts = sorted({t for r in broll for t in r} | {float(c) for c in a.cuts.split(",") if c})
+    cks = chunks(words, cuts)
     R = Renderer(W, H)
 
-    broll = [tuple(map(float, r.split("-"))) for r in a.broll.split(",") if r]
+    # Cada plano (tramo entre cortes) recibe UNA posición de cara fija: la mediana de todas
+    # las detecciones del plano. Así los subtítulos no se mueven aunque la persona se mueva.
+    bounds = [0.0] + cuts + [dur + 1]
+    shot_face = []
+    for s0, s1 in zip(bounds, bounds[1:]):
+        det = [r for r in fc if s0 <= r[0] < s1 and r[1] is not None]
+        tot = [r for r in fc if s0 <= r[0] < s1]
+        is_broll = any(b0 <= (s0 + s1) / 2 < b1 for b0, b1 in broll)
+        if is_broll or not tot or len(det) < 0.4 * len(tot):
+            shot_face.append(None)
+        else:
+            shot_face.append(tuple(float(np.median([r[k] for r in det])) for k in (1, 2, 3)))
 
-    def face_at(t):
-        if any(b0 <= t < b1 for b0, b1 in broll): return None
-        i = min(len(fc) - 1, int(t / step))
-        r = fc[i]
-        return None if r[1] is None else r[1:]
+    def shot_of(t):
+        for k, (s0, s1) in enumerate(zip(bounds, bounds[1:])):
+            if s0 <= t < s1: return k
+        return len(shot_face) - 1
+
+    def chunk_end(i):
+        c = cks[i]
+        end = cks[i + 1][0]["s"] - 0.03 if i + 1 < len(cks) else c[-1]["e"] + 0.6
+        return min(end, c[-1]["e"] + 0.8)
+
+    # Posición de cada bloque: se calcula una vez y no cambia mientras el bloque está en pantalla.
+    anchors = []
+    for i, c in enumerate(cks):
+        t0, t1 = c[0]["s"] - 0.03, chunk_end(i)
+        k = shot_of(t0)
+        s0, s1 = bounds[k], bounds[k + 1]
+        ws = c[0]["s"]
+        if any(b0 - 0.05 <= ws < b1 - 0.05 for b0, b1 in broll):
+            anchors.append(None); continue                       # B-roll → palabra centrada
+        det = [r for r in fc if t0 - 0.1 <= r[0] <= t1 + 0.1 and r[1] is not None]
+        shot = shot_face[k]
+        if not det:
+            anchors.append(shot if shot else "top"); continue    # sin cara → arriba, nunca encima
+        cf = tuple(float(np.median([r[j] for r in det])) for j in (1, 2, 3))
+        if shot and math.hypot(cf[0] - shot[0], cf[1] - shot[1]) < 0.4 * shot[2]:
+            cf = shot                                            # plano quieto → misma posición siempre
+        anchors.append(cf)
+
+    def face_at(t, ci):
+        return anchors[ci]
 
     def chunk_at(t):
         for i, c in enumerate(cks):
-            end = cks[i + 1][0]["s"] - 0.03 if i + 1 < len(cks) else c[-1]["e"] + 0.6
-            end = min(end, c[-1]["e"] + 0.8)
-            if c[0]["s"] - 0.03 <= t < end: return i, c
+            if c[0]["s"] - 0.03 <= t < chunk_end(i): return i, c
         return None, None
 
     filt = (f"[0:v]{GRADE}[g];[g][1:v]overlay=0:0:format=auto,format=yuv420p[v]" if a.grade
@@ -226,12 +275,11 @@ def main():
     for i in range(n):
         t = i / fps
         ci, c = chunk_at(t)
-        face = face_at(t) if c else None
+        face = face_at(t, ci) if c else None
         if c:
             vis = sum(1 for w in c if t >= w["s"] - 0.03)
             fading = any(0 <= t - (w["s"] - 0.03) < FADE for w in c)
-            fkey = None if face is None else tuple(round(v / 6) for v in face)
-            key = (ci, vis, fkey, round(t, 3) if fading else None)
+            key = (ci, vis, face, round(t, 3) if fading else None)
         else:
             key = None
         if key != last_key:
