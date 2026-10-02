@@ -12,6 +12,7 @@ Uso:
   --words  JSON con [{"w": "palabra", "s": inicio, "e": fin}, ...]; si no se
            pasa, se transcribe con Whisper (necesita openaipublic.azureedge.net).
   --grade  aplica la corrección de color del estilo.
+  --broll  tramos de B-roll "1.8-3.0,4.5-6.5": en ellos siempre palabra única centrada.
   --dump   solo transcribe y guarda words.json para revisarlo/corregirlo.
 """
 import argparse, json, math, os, subprocess, sys
@@ -185,6 +186,7 @@ def main():
     ap.add_argument("--words"); ap.add_argument("--model", default="small")
     ap.add_argument("--grade", action="store_true"); ap.add_argument("--dump", action="store_true")
     ap.add_argument("--crf", default="18")
+    ap.add_argument("--broll", default="", help="tramos de B-roll 'ini-fin,ini-fin' (s): palabra centrada")
     a = ap.parse_args()
 
     W, H, fps, dur = probe(a.inp)
@@ -197,7 +199,10 @@ def main():
     cks = chunks(words)
     R = Renderer(W, H)
 
+    broll = [tuple(map(float, r.split("-"))) for r in a.broll.split(",") if r]
+
     def face_at(t):
+        if any(b0 <= t < b1 for b0, b1 in broll): return None
         i = min(len(fc) - 1, int(t / step))
         r = fc[i]
         return None if r[1] is None else r[1:]

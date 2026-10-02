@@ -63,7 +63,9 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
    (`-ss/-to` + concat), quitando silencios > 0,3 s. Monta primero y subtitula después,
    sobre el vídeo ya montado.
 6. **Render**:
-   `python3 reel_subs.py montado.mp4 final.mp4 --words montado.words.json --grade`
+   `python3 reel_subs.py montado.mp4 final.mp4 --words montado.words.json --grade --broll 1.8-3.0,4.6-6.5`
+   (`--broll` con los tramos donde hay B-roll: así siempre sale la palabra centrada aunque
+   en el B-roll aparezcan otras caras)
 7. **Revisión**: extrae 4–6 fotogramas en una sola hoja (`tile`) y comprueba que el
    texto no tapa caras ni se sale del encuadre antes de entregar.
 8. **Entrega**: el chat solo admite archivos pequeños (un vídeo de ~40 MB ya falló).
