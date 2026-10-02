@@ -33,6 +33,7 @@ FACE_GAP = 0.45       # separación texto-cara (en anchos de cara)
 FADE = 0.08           # entrada de cada palabra (s)
 MAX_WORDS = 5         # palabras máximas por bloque
 MAX_GAP = 0.45        # silencio que fuerza bloque nuevo (s)
+SHADOW = True         # sombra suave bajo el texto
 HL_COLOR = (255, 210, 60)   # amarillo para palabras clave ("hl": true en words.json)
 GRADE = "eq=contrast=0.96:saturation=0.9:gamma=1.02,colorbalance=rs=0.02:bs=-0.02:rh=0.03:bh=-0.03"
 
@@ -111,7 +112,17 @@ class Renderer:
 
     def font(s, px):
         f = ImageFont.truetype(FONT, px)
-        f.set_variation_by_axes([min(32, max(14, px * 0.6)), WEIGHT])
+        try:
+            axes = f.get_variation_axes()
+        except Exception:
+            axes = None          # fuente estática: el grosor viene en el propio archivo
+        if axes:
+            vals = []
+            for ax in axes:
+                name = ax["name"].decode() if isinstance(ax["name"], bytes) else ax["name"]
+                v = WEIGHT if name == "Weight" else (px * 0.6 if "Optical" in name else ax["default"])
+                vals.append(min(ax["maximum"], max(ax["minimum"], v)))
+            f.set_variation_by_axes(vals)
         return f
 
     def word_img(s, txt, big=False, hl=False):
@@ -124,7 +135,7 @@ class Renderer:
         w, h = r - l + 2 * pad, round(f.size * 1.5) + 2 * pad
         im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        ImageDraw.Draw(sh).text((pad - l, pad), txt, font=f, fill=(0, 0, 0, 220 if big else 170))
+        if SHADOW: ImageDraw.Draw(sh).text((pad - l, pad), txt, font=f, fill=(0, 0, 0, 220 if big else 170))
         sh = sh.filter(ImageFilter.GaussianBlur(max(1, f.size * 0.12)))
         im.alpha_composite(sh, (0, max(1, round(f.size * 0.03))))
         im.alpha_composite(sh, (0, 0))
@@ -199,8 +210,17 @@ def main():
     ap.add_argument("--grade", action="store_true"); ap.add_argument("--dump", action="store_true")
     ap.add_argument("--crf", default="18")
     ap.add_argument("--broll", default="", help="tramos de B-roll 'ini-fin,ini-fin' (s): palabra centrada")
+    ap.add_argument("--font", help="archivo .ttf (por defecto fonts/Inter.ttf)")
+    ap.add_argument("--weight", type=int, help="grosor para fuentes variables (100–900)")
+    ap.add_argument("--size", type=float, help="tamaño de letra relativo al alto (p. ej. 0.045)")
+    ap.add_argument("--no-shadow", action="store_true", help="sin sombra")
     ap.add_argument("--cuts", default="", help="cortes extra del A-roll 't1,t2' (s): nueva posición fija")
     a = ap.parse_args()
+    global FONT, WEIGHT, SIZE_H, SHADOW
+    if a.font: FONT = a.font
+    if a.weight: WEIGHT = a.weight
+    if a.size: SIZE_H = a.size
+    if a.no_shadow: SHADOW = False
 
     W, H, fps, dur = probe(a.inp)
     words = json.load(open(a.words)) if a.words else transcribe(a.inp, a.model)
