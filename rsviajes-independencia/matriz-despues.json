@@ -3231,6 +3231,212 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "115Sb7xbszY-G7VnnemThDPLd7i8TwxhNStr1Dcdi2x4",
+          "mode": "list",
+          "cachedResultName": "RS Viajes Matriz",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/115Sb7xbszY-G7VnnemThDPLd7i8TwxhNStr1Dcdi2x4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/115Sb7xbszY-G7VnnemThDPLd7i8TwxhNStr1Dcdi2x4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Atiende": "PENDIENTE",
+            "Estado": "SIN IA",
+            "Status": "SIN IA",
+            "FechaContacto": "={{ $now.setZone('America/Mexico_City').toFormat(\"yyyy-MM-dd HH:mm:ss\") }}",
+            "Lead": "={{ $('Origen del mensaje').first().json.contact_id }}",
+            "Usuario": "={{ $('Webhook').first().json.body.full_name || $('Origen del mensaje').first().json.nombre }}",
+            "Plataforma": "whatsapp",
+            "Nombre": "={{ $('Webhook').first().json.body.first_name || $('Origen del mensaje').first().json.nombre }}",
+            "Telefono": "={{ String(($('GHL contacto (origen)').first().json.contact || {}).phone || $('Webhook').first().json.body.phone || '').replace('+', '') }}"
+          },
+          "matchingColumns": [
+            "Lead"
+          ],
+          "schema": [
+            {
+              "id": "Atiende",
+              "displayName": "Atiende",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "FechaContacto",
+              "displayName": "FechaContacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead",
+              "displayName": "Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Plataforma",
+              "displayName": "Plataforma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Destino",
+              "displayName": "Destino",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fechas",
+              "displayName": "Fechas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Adultos",
+              "displayName": "Adultos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Menores",
+              "displayName": "Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Edad Menores",
+              "displayName": "Edad Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Observaciones",
+              "displayName": "Observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -772,
+        208
+      ],
+      "id": "b7720b3a-c3e5-4712-a5d3-bd05507061fd",
+      "name": "CRM Sin IA",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -4099,6 +4305,17 @@
         [
           {
             "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso Sin IA": {
+      "main": [
+        [
+          {
+            "node": "CRM Sin IA",
             "type": "main",
             "index": 0
           }
