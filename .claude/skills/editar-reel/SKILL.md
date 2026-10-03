@@ -1,6 +1,6 @@
 ---
 name: editar-reel
-description: Edita un reel/vídeo corto con el estilo guardado del usuario (subtítulos Bebas Neue pequeños palabra a palabra junto a la cara, palabras clave en amarillo, B-roll con palabra centrada, color cinematográfico suave). Úsalo cuando el usuario diga "toca editar un reel", "edita este reel", "con mi estilo de reels" o similar.
+description: Edita un reel/vídeo corto con el estilo guardado del usuario (gancho en letra grande, subtítulos Bebas Neue palabra a palabra junto a la cara, palabras clave en amarillo, zoom lento en el plano principal, B-roll con palabra centrada, color cinematográfico suave). Úsalo cuando el usuario diga "toca editar un reel", "edita este reel", "con mi estilo de reels" o similar.
 ---
 
 # Editar reel — estilo guardado
@@ -13,7 +13,11 @@ Contesta siempre en español.
 **Subtítulos (lo más característico)**
 - **Configuración fija elegida por el usuario (no cambiarla sin que lo pida):**
   - Tipografía **Bebas Neue** (mayúsculas estrechas, incluida en `fonts/`), blanca.
-  - Tamaño **pequeño**: 3,5 % del alto del frame (opción "A" del muestrario).
+  - Tamaño: **5 % del alto** del frame (se subió desde 3,5 % por feedback: costaba leerlos).
+  - **Gancho (primera frase o dos) en grande**: 16 % del alto, frase completa en varias
+    líneas, en el lado de la pantalla que la cara deja libre durante toda la frase
+    (opción `--hook <segundo en que acaba el gancho>`). Sobre B-roll, palabra a palabra
+    grande y centrada. "Cuanto más llamativo y grande, mejor".
   - **Sin sombra**, sin caja ni contorno.
   - **Palabras clave en amarillo** (`HL_COLOR` = 255, 210, 60): 1 por bloque como máximo,
     las que llevan el mensaje (temas, beneficios, conceptos: "negocio", "reto físico",
@@ -30,6 +34,11 @@ Contesta siempre en español.
   "networking", "desesperados", "relaciones".
 
 **Montaje**
+- **Zoom lento en el plano principal**: cada tramo de A-roll se acerca muy despacio
+  (+1,2 % por segundo, máx. 10 %), con la cara como punto fijo para que los subtítulos no
+  se desplacen. Se hace en el montaje: escalar a 4K con lanczos y
+  `zoompan=z='min(1.10,1+0.012*on/30)':x='PX*(1-1/zoom)':y='PY*(1-1/zoom)':d=1:s=1920x1080:fps=30`
+  (PX, PY = cara en coordenadas 4K; mediana del tramo; si la persona camina, centro).
 - Ritmo rápido: un corte cada ~2,5 s de media (22 cortes en 57 s), sin silencios.
 - Plano principal (A-roll) hablando a cámara con gran angular, alternado con **B-roll
   real del día a día**: reuniones, videollamadas, coche con el equipo, trabajando en
@@ -81,7 +90,7 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
    - El montado se guarda **sin pérdida** (`-c:v libx264 -preset ultrafast -qp 0`, .mkv)
      para que solo haya una compresión: la final del script (`--crf 15 --preset slow`).
 7. **Render**:
-   `python3 reel_subs.py montado.mp4 final.mp4 --words montado.words.json --grade --broll 1.8-3.0,4.6-6.5`
+   `python3 reel_subs.py montado.mkv final.mp4 --words montado.words.json --grade --hook 3.0 --broll 1.8-3.0,4.6-6.5`
    (`--broll` con los tramos donde hay B-roll: así siempre sale la palabra centrada aunque
    en el B-roll aparezcan otras caras). Los subtítulos se colocan una vez por bloque y no
    se mueven; en planos quietos todos los bloques comparten posición. Si no hay cara, el
@@ -97,7 +106,7 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
 
 | Constante | Valor | Qué controla |
 |---|---|---|
-| `SIZE_H` | 0.035 | tamaño de letra (fracción del alto) |
+| `SIZE_H` | 0.05 | tamaño de letra (fracción del alto) |
 | `FONT` | Bebas Neue | tipografía |
 | `SHADOW` | False | sombra bajo el texto |
 | `HL_COLOR` | (255, 210, 60) | color de las palabras clave |
@@ -105,3 +114,4 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
 | `FACE_GAP` | 0.45 | separación entre texto y cara |
 | `MAX_WORDS` | 5 | palabras por bloque |
 | `BROLL_SCALE` | 1.25 | tamaño de la palabra en B-roll |
+| `HOOK_H` | 0.16 | tamaño del gancho |

@@ -15,6 +15,7 @@ Uso:
   --broll  tramos de B-roll "1.8-3.0,4.5-6.5": en ellos siempre palabra única centrada.
   --cuts   cortes del plano principal "12.3,20.1": cada plano usa una posición fija.
   Palabras clave: añade "hl": true a la palabra en words.json → sale en amarillo.
+  --hook   segundo en que acaba el gancho: hasta ahí, frases completas en letra grande.
   --dump   solo transcribe y guarda words.json para revisarlo/corregirlo.
 """
 import argparse, json, math, os, subprocess, sys
@@ -25,7 +26,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FONT = os.path.join(HERE, "fonts", "BebasNeue-Regular.ttf")   # elegida por el usuario (7A)
 
 # ---------------------------------------------------------------- estilo
-SIZE_H = 0.035        # tamaño de letra relativo a la altura del frame ("A · pequeña")
+SIZE_H = 0.05         # tamaño de letra relativo a la altura del frame (feedback: más legible)
+HOOK_H = 0.16         # tamaño del gancho (primera frase): grande y llamativo
+HOOK_MAX_WORDS = 8    # el gancho se muestra como una frase completa
 BROLL_SCALE = 1.25    # palabra única en B-roll, algo más grande
 WEIGHT = 400          # solo afecta a fuentes variables (Bebas Neue es estática)
 WORD_GAP = 0.55       # espacio extra entre palabras (en em)
@@ -56,12 +59,20 @@ def transcribe(path, model):
     return [{"w": w["word"].strip(), "s": w["start"], "e": w["end"]} for s in r["segments"] for w in s["words"]]
 
 
-def chunks(words, cuts=()):
+def chunks(words, cuts=(), hook_end=0.0):
+    """Bloques de palabras. Antes de `hook_end` (gancho) los bloques son frases completas."""
     out, cur = [], []
     for w in words:
         crosses = cur and any(cur[0]["s"] - 0.05 < c <= w["s"] + 0.05 for c in cuts)
-        if cur and (len(cur) >= MAX_WORDS or w["s"] - cur[-1]["e"] > MAX_GAP
-                    or cur[-1]["w"][-1:] in ".?!,;:" or crosses):
+        in_hook = cur and cur[0]["s"] < hook_end
+        if not cur:
+            brk = False
+        elif in_hook:
+            brk = len(cur) >= HOOK_MAX_WORDS or cur[-1]["w"][-1:] in ".?!" or crosses or w["s"] >= hook_end
+        else:
+            brk = (len(cur) >= MAX_WORDS or w["s"] - cur[-1]["e"] > MAX_GAP
+                   or cur[-1]["w"][-1:] in ".?!,;:" or crosses)
+        if cur and brk:
             out.append(cur); cur = []
         cur.append(w)
     if cur: out.append(cur)
@@ -108,6 +119,7 @@ class Renderer:
         s.size = round(H * SIZE_H)
         s.f = s.font(s.size)
         s.fb = s.font(round(s.size * BROLL_SCALE))
+        s.fh = s.font(round(H * HOOK_H))
         s.cache = {}
 
     def font(s, px):
@@ -125,11 +137,11 @@ class Renderer:
             f.set_variation_by_axes(vals)
         return f
 
-    def word_img(s, txt, big=False, hl=False):
+    def word_img(s, txt, big=False, hl=False, hook=False):
         txt = txt.strip(".,;:!?¿¡\"“”«»") or txt   # sin puntuación, como el original
-        key = (txt, big, hl)
+        key = (txt, big, hl, hook)
         if key in s.cache: return s.cache[key]
-        f = s.fb if big else s.f
+        f = s.fh if hook else (s.fb if big else s.f)
         l, t, r, b = f.getbbox(txt)
         pad = round(f.size * 0.4)
         w, h = r - l + 2 * pad, round(f.size * 1.5) + 2 * pad
@@ -185,17 +197,62 @@ class Renderer:
             pos.append((x, ey)); x += wd + gap
         return pos
 
-    def frame(s, t, chunk, face):
+    def layout_hook(s, chunk, face):
+        """Gancho: frase grande en varias líneas en el lado libre de la cara (o centrada)."""
+        imgs = [s.word_img(w["w"], hl=w.get("hl", False), hook=True) for w in chunk]
+        f = imgs[0][2]
+        gap, lh = f.size * 0.28, f.size * 1.02
+        widths = [im.width - 2 * pad for im, pad, _ in imgs]
+        margin = s.W * 0.05
+        if face is None or face == "top":
+            x0, x1, align, yc = margin, s.W - margin, "center", s.H * (0.5 if face is None else 0.3)
+        else:
+            if len(face) == 4:     # recorrido de la cara durante toda la frase
+                lb, rb, ey, _ = face
+            else:
+                cx, ey, fw = face
+                lb, rb = cx - fw * (0.5 + FACE_GAP), cx + fw * (0.5 + FACE_GAP)
+            lfree = lb - margin
+            rfree = s.W - margin - rb
+            if max(lfree, rfree) < s.W * 0.3:
+                x0, x1, align, yc = margin, s.W - margin, "center", s.H * 0.2
+            elif rfree >= lfree:
+                x0, x1, align, yc = s.W - margin - rfree, s.W - margin, "left", max(ey, s.H * 0.32)
+            else:
+                x0, x1, align, yc = margin, margin + lfree, "right", max(ey, s.H * 0.32)
+        lines, cur, cw = [], [], 0
+        for i, wd in enumerate(widths):
+            add = wd + (gap if cur else 0)
+            if cur and cw + add > x1 - x0:
+                lines.append((cur, cw)); cur, cw = [], 0; add = wd
+            cur.append(i); cw += add
+        if cur: lines.append((cur, cw))
+        y = yc - lh * (len(lines) - 1) / 2
+        y = max(margin + f.size * 0.6, min(s.H - margin - lh * (len(lines) - 1), y))
+        pos = [None] * len(chunk)
+        for idx, lw in lines:
+            x = x0 if align == "left" else (x1 - lw if align == "right" else (x0 + x1) / 2 - lw / 2)
+            for i in idx:
+                pos[i] = (x, y); x += widths[i] + gap
+            y += lh
+        return pos
+
+    def frame(s, t, chunk, face, hook=False):
         canvas = Image.new("RGBA", (s.W, s.H), (0, 0, 0, 0))
         vis = [w for w in chunk if t >= w["s"] - 0.03]
         if not vis: return None
-        if face is None:
+        if hook and face is None:
+            vis = vis[-1:]       # gancho sobre B-roll: palabra actual, grande y centrada
+            pos = s.layout_hook(vis, None)
+        elif hook:
+            pos = s.layout_hook(chunk, face)[:len(vis)]
+        elif face is None:
             vis = vis[-1:]       # B-roll: solo la palabra actual
             pos = s.layout(vis, None)
         else:
             pos = s.layout(chunk, face)[:len(vis)]
         for w, (x, y) in zip(vis, pos):
-            im, pad, f = s.word_img(w["w"], big=face is None, hl=w.get("hl", False))
+            im, pad, f = s.word_img(w["w"], big=face is None, hl=w.get("hl", False), hook=hook)
             a = min(1, (t - (w["s"] - 0.03)) / FADE)
             if a < 1:
                 arr = np.array(im); arr[..., 3] = (arr[..., 3] * a).astype(np.uint8); im = Image.fromarray(arr)
@@ -210,6 +267,7 @@ def main():
     ap.add_argument("--grade", action="store_true"); ap.add_argument("--dump", action="store_true")
     ap.add_argument("--crf", default="15")
     ap.add_argument("--preset", default="slow")
+    ap.add_argument("--hook", type=float, default=0.0, help="fin del gancho (s): esas frases salen en grande")
     ap.add_argument("--broll", default="", help="tramos de B-roll 'ini-fin,ini-fin' (s): palabra centrada")
     ap.add_argument("--font", help="archivo .ttf (por defecto fonts/BebasNeue-Regular.ttf)")
     ap.add_argument("--weight", type=int, help="grosor para fuentes variables (100–900)")
@@ -232,7 +290,8 @@ def main():
     fc, step = faces(a.inp, W, H, fps, dur)
     broll = [tuple(map(float, r.split("-"))) for r in a.broll.split(",") if r]
     cuts = sorted({t for r in broll for t in r} | {float(c) for c in a.cuts.split(",") if c})
-    cks = chunks(words, cuts)
+    cks = chunks(words, cuts, a.hook)
+    hook_ids = {i for i, c in enumerate(cks) if c[0]["s"] < a.hook}
     R = Renderer(W, H)
 
     # Cada plano (tramo entre cortes) recibe UNA posición de cara fija: la mediana de todas
@@ -271,6 +330,10 @@ def main():
         shot = shot_face[k]
         if not det:
             anchors.append(shot if shot else "top"); continue    # sin cara → arriba, nunca encima
+        if i in hook_ids:   # gancho: zona que la cara ocupa en algún momento de la frase
+            g = 0.5 + FACE_GAP
+            anchors.append((min(r[1] - r[3] * g for r in det), max(r[1] + r[3] * g for r in det),
+                            float(np.median([r[2] for r in det])), 0)); continue
         cf = tuple(float(np.median([r[j] for r in det])) for j in (1, 2, 3))
         if shot and math.hypot(cf[0] - shot[0], cf[1] - shot[1]) < 0.4 * shot[2]:
             cf = shot                                            # plano quieto → misma posición siempre
@@ -304,7 +367,7 @@ def main():
         else:
             key = None
         if key != last_key:
-            img = R.frame(t, c, face) if c else None
+            img = R.frame(t, c, face, hook=ci in hook_ids) if c else None
             last_buf = img.tobytes() if img is not None else empty
             last_key = key
         ff.stdin.write(last_buf)
