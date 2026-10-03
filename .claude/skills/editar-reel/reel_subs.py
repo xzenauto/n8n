@@ -161,8 +161,8 @@ class Renderer:
         f = imgs[0][2]
         gap = f.size * WORD_GAP
         widths = [im.width - 2 * pad for im, pad, _ in imgs]
-        if face is None:   # B-roll → una palabra centrada (se gestiona en draw)
-            return [(s.W / 2 - wd / 2, s.H * 0.5) for wd in widths]
+        if face is None or face == "low":   # B-roll → una palabra centrada (o en el tercio inferior)
+            return [(s.W / 2 - wd / 2, s.H * (0.78 if face == "low" else 0.5)) for wd in widths]
         if face == "top":  # plano principal sin cara detectada → arriba, centrado
             total = sum(widths) + gap * (len(widths) - 1)
             x, pos = s.W / 2 - total / 2, []
@@ -241,18 +241,20 @@ class Renderer:
         canvas = Image.new("RGBA", (s.W, s.H), (0, 0, 0, 0))
         vis = [w for w in chunk if t >= w["s"] - 0.03]
         if not vis: return None
-        if hook and face is None:
+        broll = face is None or face == "low"
+        if hook and broll:
             vis = vis[-1:]       # gancho sobre B-roll: palabra actual, grande y centrada
             pos = s.layout_hook(vis, None)
+            if face == "low": pos = [(x, s.H * 0.78) for x, _ in pos]
         elif hook:
             pos = s.layout_hook(chunk, face)[:len(vis)]
-        elif face is None:
+        elif broll:
             vis = vis[-1:]       # B-roll: solo la palabra actual
-            pos = s.layout(vis, None)
+            pos = s.layout(vis, face)
         else:
             pos = s.layout(chunk, face)[:len(vis)]
         for w, (x, y) in zip(vis, pos):
-            im, pad, f = s.word_img(w["w"], big=face is None, hl=w.get("hl", False), hook=hook)
+            im, pad, f = s.word_img(w["w"], big=broll, hl=w.get("hl", False), hook=hook)
             a = min(1, (t - (w["s"] - 0.03)) / FADE)
             if a < 1:
                 arr = np.array(im); arr[..., 3] = (arr[..., 3] * a).astype(np.uint8); im = Image.fromarray(arr)
@@ -325,7 +327,9 @@ def main():
         s0, s1 = bounds[k], bounds[k + 1]
         ws = c[0]["s"]
         if any(b0 - 0.05 <= ws < b1 - 0.05 for b0, b1 in broll):
-            anchors.append(None); continue                       # B-roll → palabra centrada
+            det = [r for r in fc if t0 - 0.1 <= r[0] <= t1 + 0.1 and r[1] is not None]
+            busy = any(abs(r[1] - W / 2) < W * 0.25 + r[3] / 2 and abs(r[2] - H / 2) < H * 0.15 + r[3] * 0.7 for r in det)
+            anchors.append("low" if busy else None); continue   # B-roll → palabra centrada (o abajo si hay cara)                       # B-roll → palabra centrada
         det = [r for r in fc if t0 - 0.1 <= r[0] <= t1 + 0.1 and r[1] is not None]
         shot = shot_face[k]
         if not det:

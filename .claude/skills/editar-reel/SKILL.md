@@ -29,7 +29,8 @@ Contesta siempre en español.
 - **Posición: a la altura de los ojos, repartidas a los lados de la cara** — la primera
   mitad del bloque a la izquierda de la cabeza y el resto a la derecha
   (p. ej. `sin saber realmente  [cara]  si`). Nunca tapan la cara.
-- **Planos sin cara (B-roll)**: una sola palabra cada vez, centrada en mitad del plano y
+- **Planos sin cara (B-roll)**: una sola palabra cada vez, centrada en mitad del plano (si
+  en el B-roll hay una cara en el centro, la palabra baja al tercio inferior) y
   un poco más grande (×1,25). Funciona como palabra clave: "instantáneamente",
   "networking", "desesperados", "relaciones".
 
@@ -89,6 +90,19 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
    - Escala con `flags=lanczos`, B-rolls de 60 fps a 30 con `fps=30`.
    - El montado se guarda **sin pérdida** (`-c:v libx264 -preset ultrafast -qp 0`, .mkv)
      para que solo haya una compresión: la final del script (`--crf 15 --preset slow`).
+   - **Grabado a mano (sin trípode) / la toma salta en los cortes** → estabilizar contra un
+     encuadre de referencia (efecto trípode), ver `ejemplos/estabilizar_*.py`:
+     1. Detectar cara en todos los fotogramas (`faces(..., step=1/30)` → `faces_all.json`).
+     2. `estabilizar_detect.py <seg_ref>`: ORB + RANSAC (`estimateAffinePartial2D`) de cada
+        fotograma contra el de referencia, **enmascarando a la persona** (cabeza + cuerpo),
+        así solo cuenta el fondo. Comprueba inliers (>300) y desplazamientos.
+     3. Detectar los cortes (saltos de diferencia de imagen > 4× la mediana) y ponerlos en
+        `CUTS`; el suavizado (mediana de 7 fotogramas) nunca cruza un corte.
+     4. `estabilizar_render.py`: en UNA sola remuestra desde el original (4K si lo hay):
+        estabilización + recorte fijo `BASE=1.08` (oculta bordes) + zoom lento, warp
+        `INTER_CUBIC` a 4K y `INTER_AREA` a 1080p. Salida sin pérdida → luego B-rolls.
+     5. Verificar: diferencia del fondo antes/después de cada corte (debe bajar >50 %).
+   - Si la saturación del plano principal ya es alta, el B-roll solo se baja si la supera.
 7. **Render**:
    `python3 reel_subs.py montado.mkv final.mp4 --words montado.words.json --grade --hook 3.0 --broll 1.8-3.0,4.6-6.5`
    (`--broll` con los tramos donde hay B-roll: así siempre sale la palabra centrada aunque
