@@ -1,0 +1,254 @@
+{
+  "name": "Rs Viajes – Estadísticas: estado de oportunidades (Centro)",
+  "nodes": [
+    {
+      "id": "t1",
+      "name": "Cada hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c1",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Columnas que cuentan como venta ganada o perdida en el tablero de GHL.\n// aplicar: false = solo simula; true = actualiza las oportunidades.\nreturn [{ json: {\"agencia\": \"centro\", \"loc\": \"oC2FNTV3Dc5yhLyrGvoy\", \"pipe\": \"thwp9derGg2kxfJsxuwC\", \"campoPlataforma\": \"u4n9uU1mzk7s8Dexsq3R\", \"ganado\": {\"490f5abf-631a-49d5-9281-f446191d87be\": \"Con Anticipo\", \"1b07617c-940a-4b04-b87b-9eea3b0ddf68\": \"Pagado al completo\", \"adedc55f-ab35-4fca-ac47-ac5dc8c9677d\": \"Mañana sale\", \"1b1abd72-cfc4-46a0-991d-59f39d101a26\": \"En destino\", \"6578c3fa-1d92-4a49-ab6f-ff141ed2ac2e\": \"De regreso\", \"fd044de5-6bf8-4b0b-833e-9fe72afd1248\": \"Cliente Ganado\"}, \"perdido\": {\"b537757d-761e-4801-ba75-edf010c500ab\": \"Cliente perdido\"}, \"aplicar\": false} }];"
+      }
+    },
+    {
+      "id": "h1",
+      "name": "Oportunidades",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/opportunities/search?location_id={{ $json.loc }}&pipeline_id={{ $json.pipe }}&limit=100",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "page",
+                    "value": "={{ $pageCount + 1 }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ ($response.body.opportunities || []).length < 100 }}",
+              "limitPagesFetched": true,
+              "maxRequests": 30,
+              "requestInterval": 300
+            }
+          },
+          "retry": {}
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "W068AAHuix5p3uWC",
+          "name": "GHL - PIT - Centro"
+        }
+      },
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "c2",
+      "name": "Calcular cambios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Estado que debe tener cada oportunidad según su columna, y origen según \"Plataforma\".\n// Mientras CFG.aplicar sea false solo informa lo que cambiaría (simulación).\nconst CFG = $('Configuración').first().json;\nconst opps = $input.all().flatMap(i => i.json.opportunities || []);\nconst fuente = (v) => { v = String(v || '').toLowerCase();\n  if (v.includes('whatsapp') || v === 'waba') return 'WhatsApp';\n  if (v.includes('instagram') || v === 'ig') return 'Instagram';\n  if (v.includes('facebook') || v.includes('messenger') || v === 'fb') return 'Facebook';\n  return null; };\nconst cambios = [];\nfor (const o of opps) {\n  const estado = CFG.ganado[o.pipelineStageId] ? 'won' : (CFG.perdido[o.pipelineStageId] ? 'lost' : 'open');\n  const plat = ((o.customFields || []).find(f => f.id === CFG.campoPlataforma) || {}).fieldValueString;\n  const origen = o.source ? null : fuente(plat);\n  const body = {};\n  if (o.status !== estado) body.status = estado;\n  if (origen) body.source = origen;\n  if (Object.keys(body).length) cambios.push({ id: o.id, nombre: o.name, de: o.status, body });\n}\nconst resumen = { total: opps.length, a_cambiar: cambios.length,\n  por_estado: cambios.filter(c => c.body.status).reduce((a, c) => (a[`${c.de}→${c.body.status}`] = (a[`${c.de}→${c.body.status}`] || 0) + 1, a), {}),\n  con_origen_nuevo: cambios.filter(c => c.body.source).length, aplicar: CFG.aplicar };\nif (!CFG.aplicar || !cambios.length) return [{ json: { resumen, ejemplo: cambios.slice(0, 15) } }];\nreturn cambios.map(c => ({ json: c }));"
+      }
+    },
+    {
+      "id": "i1",
+      "name": "¿Aplicar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "h2",
+      "name": "Actualizar oportunidad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        -80
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 300
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "W068AAHuix5p3uWC",
+          "name": "GHL - PIT - Centro"
+        }
+      },
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Cada hora": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Oportunidades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oportunidades": {
+      "main": [
+        [
+          {
+            "node": "Calcular cambios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular cambios": {
+      "main": [
+        [
+          {
+            "node": "¿Aplicar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Aplicar?": {
+      "main": [
+        [
+          {
+            "node": "Actualizar oportunidad",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "availableInMCP": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
