@@ -116,7 +116,23 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
    Opciones probadas: subirlo a una rama de este repositorio (máx. 100 MB por archivo;
    partir con `ffmpeg -f segment` si hace falta) o pedir al usuario un destino.
 
-## 3. Ajustes rápidos (constantes al principio de `reel_subs.py`)
+## 3. Anuncios / resúmenes verticales (9:16) a partir de un vídeo largo
+
+Probado con el VSL de agencias de viajes → anuncio de 54 s (`ejemplos/anuncio_*.py`):
+1. Transcribir con Whisper **medium** y elegir fragmentos de beneficios (gancho con la
+   promesa más fuerte primero; CTA al final), 40–60 s en total. Cortar SIEMPRE entre
+   palabras (inicio = palabra − 0,10 s, fin = palabra + 0,15 s, sin pisar la siguiente).
+2. Plano vertical desde el 4K en una sola remuestra (`anuncio_aroll_vertical.py`):
+   ventana 9:16 a altura completa centrada en la cara, **alternando plano normal y
+   cerrado (+12 %) en cada corte** para que los saltos parezcan intencionados, + zoom lento.
+   Audio de los mismos fragmentos con fundidos de 15 ms.
+3. B-roll horizontal en vertical: el clip entero en el centro sobre una copia suya
+   desenfocada (`gblur=40`, algo oscurecida) — no recortar pantallas del sistema.
+4. Subtítulos: `reel_subs.py … --vertical --hook <fin gancho>` → bloque completo centrado
+   al 70 % del alto (anuncios se ven sin sonido: subtítulos completos), gancho arriba.
+5. Audio final AAC normalizado: `loudnorm=I=-14:TP=-1.0:LRA=11`.
+
+## 4. Ajustes rápidos (constantes al principio de `reel_subs.py`)
 
 | Constante | Valor | Qué controla |
 |---|---|---|

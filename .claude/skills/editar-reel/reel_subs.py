@@ -36,6 +36,10 @@ FACE_GAP = 0.45       # separación texto-cara (en anchos de cara)
 FADE = 0.08           # entrada de cada palabra (s)
 MAX_WORDS = 5         # palabras máximas por bloque
 MAX_GAP = 0.45        # silencio que fuerza bloque nuevo (s)
+VERTICAL = False      # formato 9:16 (anuncios / reels verticales): subtítulos centrados bajo la cara
+SIZE_V = 0.045        # tamaño de letra en vertical (relativo al alto)
+HOOK_V = 0.075        # tamaño del gancho en vertical
+SUB_Y_V = 0.70        # altura de los subtítulos en vertical
 SHADOW = False        # sin sombra (preferencia del usuario)
 HL_COLOR = (255, 210, 60)   # amarillo para palabras clave ("hl": true en words.json)
 GRADE = "eq=contrast=0.96:saturation=0.9:gamma=1.02,colorbalance=rs=0.02:bs=-0.02:rh=0.03:bh=-0.03"
@@ -116,10 +120,10 @@ def faces(path, W, H, fps, dur, step=0.2):
 class Renderer:
     def __init__(s, W, H):
         s.W, s.H = W, H
-        s.size = round(H * SIZE_H)
+        s.size = round(H * (SIZE_V if VERTICAL else SIZE_H))
         s.f = s.font(s.size)
         s.fb = s.font(round(s.size * BROLL_SCALE))
-        s.fh = s.font(round(H * HOOK_H))
+        s.fh = s.font(round(H * (HOOK_V if VERTICAL else HOOK_H)))
         s.cache = {}
 
     def font(s, px):
@@ -197,6 +201,29 @@ class Renderer:
             pos.append((x, ey)); x += wd + gap
         return pos
 
+    def layout_block(s, chunk, yc, hook=False, maxw=0.86):
+        """Bloque centrado en varias líneas (modo vertical)."""
+        imgs = [s.word_img(w["w"], hl=w.get("hl", False), hook=hook) for w in chunk]
+        f = imgs[0][2]
+        gap, lh = f.size * 0.3, f.size * 1.08
+        widths = [im.width - 2 * pad for im, pad, _ in imgs]
+        x0, x1 = s.W * (1 - maxw) / 2, s.W * (1 + maxw) / 2
+        lines, cur, cw = [], [], 0
+        for i, wd in enumerate(widths):
+            add = wd + (gap if cur else 0)
+            if cur and cw + add > x1 - x0:
+                lines.append((cur, cw)); cur, cw = [], 0; add = wd
+            cur.append(i); cw += add
+        if cur: lines.append((cur, cw))
+        y = yc - lh * (len(lines) - 1) / 2
+        pos = [None] * len(chunk)
+        for idx, lw in lines:
+            x = s.W / 2 - lw / 2
+            for i in idx:
+                pos[i] = (x, y); x += widths[i] + gap
+            y += lh
+        return pos
+
     def layout_hook(s, chunk, face):
         """Gancho: frase grande en varias líneas en el lado libre de la cara (o centrada)."""
         imgs = [s.word_img(w["w"], hl=w.get("hl", False), hook=True) for w in chunk]
@@ -242,7 +269,10 @@ class Renderer:
         vis = [w for w in chunk if t >= w["s"] - 0.03]
         if not vis: return None
         broll = face is None or face == "low"
-        if hook and broll:
+        if VERTICAL:            # 9:16: bloque completo centrado; gancho arriba, resto bajo la cara
+            pos = s.layout_block(chunk, s.H * (0.17 if hook else SUB_Y_V), hook=hook)[:len(vis)]
+            broll = False
+        elif hook and broll:
             vis = vis[-1:]       # gancho sobre B-roll: palabra actual, grande y centrada
             pos = s.layout_hook(vis, None)
             if face == "low": pos = [(x, s.H * 0.78) for x, _ in pos]
@@ -275,13 +305,15 @@ def main():
     ap.add_argument("--weight", type=int, help="grosor para fuentes variables (100–900)")
     ap.add_argument("--size", type=float, help="tamaño de letra relativo al alto (p. ej. 0.045)")
     ap.add_argument("--no-shadow", action="store_true", help="sin sombra")
+    ap.add_argument("--vertical", action="store_true", help="formato 9:16: subtítulos centrados bajo la cara")
     ap.add_argument("--cuts", default="", help="cortes extra del A-roll 't1,t2' (s): nueva posición fija")
     a = ap.parse_args()
-    global FONT, WEIGHT, SIZE_H, SHADOW
+    global FONT, WEIGHT, SIZE_H, SHADOW, VERTICAL, MAX_WORDS
     if a.font: FONT = a.font
     if a.weight: WEIGHT = a.weight
     if a.size: SIZE_H = a.size
     if a.no_shadow: SHADOW = False
+    if a.vertical: VERTICAL, MAX_WORDS = True, 4
 
     W, H, fps, dur = probe(a.inp)
     words = json.load(open(a.words)) if a.words else transcribe(a.inp, a.model)
@@ -356,7 +388,7 @@ def main():
     ff = subprocess.Popen(["ffmpeg", "-v", "error", "-stats", "-y", "-i", a.inp, "-f", "rawvideo", "-pix_fmt", "rgba",
                            "-s", f"{W}x{H}", "-r", str(fps), "-i", "-", "-filter_complex", filt, "-map", "[v]",
                            "-map", "0:a?", "-c:v", "libx264", "-preset", a.preset, "-crf", a.crf, "-profile:v", "high",
-                           "-c:a", "copy", "-movflags", "+faststart", a.out], stdin=subprocess.PIPE)
+                           "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", a.out], stdin=subprocess.PIPE)
     empty = bytes(W * H * 4)
     last_key, last_buf = None, empty
     n = math.ceil(dur * fps)
