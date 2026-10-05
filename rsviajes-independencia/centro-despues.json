@@ -2014,7 +2014,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"u4n9uU1mzk7s8Dexsq3R\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"EFpyFHw0DLfakOHQiPsK\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    }\n  ]\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
