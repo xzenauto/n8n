@@ -73,7 +73,7 @@
     },
     {
       "parameters": {
-        "operation": "update",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "value": "16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA",
@@ -278,11 +278,12 @@
           "id": "5tVcEyMfkgXjzc9v",
           "name": "Xzen_Pruebas"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
-        "operation": "update",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "value": "16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA",
@@ -489,7 +490,8 @@
           "id": "5tVcEyMfkgXjzc9v",
           "name": "Xzen_Pruebas"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -1336,7 +1338,7 @@
     },
     {
       "parameters": {
-        "operation": "update",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "value": "16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA",
@@ -1542,7 +1544,8 @@
           "id": "5tVcEyMfkgXjzc9v",
           "name": "Xzen_Pruebas"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
