@@ -1,0 +1,148 @@
+{
+  "name": "RsIndependencia - Incrementar campo numérico contacto",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.body.contact_id || $json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Get Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        192
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rWAEGS39h2YWXLc7",
+          "name": "GHL - PIT - Independencia"
+        }
+      },
+      "id": "ed508e88-dbb2-48bf-ac39-055c1cf94984"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fieldId = \"0UoVzfqFqUJhYWppkdHq\";\n\nconst contacto = $input.first().json.contact;\n\nconst campoActual = (contacto.customFields || []).find(f => f.id === fieldId);\nconst valorActual = campoActual ? Number(campoActual.value) : 0;\n\nconst nuevoValor = (isNaN(valorActual) ? 0 : valorActual) + 1;\n\nreturn [{\n  json: {\n    contact_id: contacto.id,\n    nuevoValor,\n    customFields: [\n      { id: fieldId, fieldValue: nuevoValor }\n    ]\n  }\n}];"
+      },
+      "name": "Calcular nuevo valor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        192
+      ],
+      "id": "e1ad8450-773f-4203-a510-e32f2df0c9bf"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: $json.customFields }) }}",
+        "options": {}
+      },
+      "name": "Update Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        704,
+        192
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rWAEGS39h2YWXLc7",
+          "name": "GHL - PIT - Independencia"
+        }
+      },
+      "id": "a641f938-0429-437b-b6d4-561755cb18ea"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "campo_respuesta_independencia",
+        "options": {}
+      },
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        192
+      ],
+      "webhookId": "9cec9f0e-5ecf-4d09-af57-16dc41449613",
+      "id": "88a8614a-64fc-46ef-959a-4590da7aaab5"
+    }
+  ],
+  "connections": {
+    "Get Contact": {
+      "main": [
+        [
+          {
+            "node": "Calcular nuevo valor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular nuevo valor": {
+      "main": [
+        [
+          {
+            "node": "Update Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Get Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
+}
