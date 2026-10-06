@@ -42,6 +42,8 @@ HOOK_V = 0.075        # tamaño del gancho en vertical
 SUB_Y_V = 0.70        # altura de los subtítulos en vertical
 SHADOW = False        # sin sombra (preferencia del usuario)
 HL_COLOR = (255, 210, 60)   # amarillo para palabras clave ("hl": true en words.json)
+DARK_TEXT, DARK_HL = (22, 22, 22), (214, 110, 0)   # sobre fondo muy claro (pantallas): texto oscuro
+BRIGHT_BG = 140       # luminancia media a partir de la cual el fondo se considera "blanco"
 GRADE = "eq=contrast=0.96:saturation=0.9:gamma=1.02,colorbalance=rs=0.02:bs=-0.02:rh=0.03:bh=-0.03"
 
 
@@ -81,6 +83,12 @@ def chunks(words, cuts=(), hook_end=0.0):
         cur.append(w)
     if cur: out.append(cur)
     return out
+
+
+def frame_gray(path, t, w=192, h=108):
+    o = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(0, t):.3f}", "-i", path, "-frames:v", "1", "-vf", f"scale={w}:{h}",
+                        "-f", "rawvideo", "-pix_fmt", "gray", "-"], capture_output=True).stdout
+    return np.frombuffer(o, np.uint8).reshape(h, w).astype(float) if len(o) == w * h else np.zeros((h, w))
 
 
 def faces(path, W, H, fps, dur, step=0.2):
@@ -141,9 +149,9 @@ class Renderer:
             f.set_variation_by_axes(vals)
         return f
 
-    def word_img(s, txt, big=False, hl=False, hook=False):
+    def word_img(s, txt, big=False, hl=False, hook=False, dark=False):
         txt = txt.strip(".,;:!?¿¡\"“”«»") or txt   # sin puntuación, como el original
-        key = (txt, big, hl, hook)
+        key = (txt, big, hl, hook, dark)
         if key in s.cache: return s.cache[key]
         f = s.fh if hook else (s.fb if big else s.f)
         l, t, r, b = f.getbbox(txt)
@@ -155,7 +163,7 @@ class Renderer:
         sh = sh.filter(ImageFilter.GaussianBlur(max(1, f.size * 0.12)))
         im.alpha_composite(sh, (0, max(1, round(f.size * 0.03))))
         im.alpha_composite(sh, (0, 0))
-        ImageDraw.Draw(im).text((pad - l, pad), txt, font=f, fill=(HL_COLOR if hl else (255, 255, 255)) + (255,))
+        ImageDraw.Draw(im).text((pad - l, pad), txt, font=f, fill=((DARK_HL if hl else DARK_TEXT) if dark else (HL_COLOR if hl else (255, 255, 255))) + (255,))
         s.cache[key] = (im, pad, f)
         return s.cache[key]
 
@@ -165,8 +173,9 @@ class Renderer:
         f = imgs[0][2]
         gap = f.size * WORD_GAP
         widths = [im.width - 2 * pad for im, pad, _ in imgs]
-        if face is None or face == "low":   # B-roll → una palabra centrada (o en el tercio inferior)
-            return [(s.W / 2 - wd / 2, s.H * (0.78 if face == "low" else 0.5)) for wd in widths]
+        if face is None or face == "low" or isinstance(face, float):   # B-roll → una palabra centrada
+            yf = 0.78 if face == "low" else (face % 10 if isinstance(face, float) else 0.5)
+            return [(s.W / 2 - wd / 2, s.H * yf) for wd in widths]
         if face == "top":  # plano principal sin cara detectada → arriba, centrado
             total = sum(widths) + gap * (len(widths) - 1)
             x, pos = s.W / 2 - total / 2, []
@@ -268,14 +277,15 @@ class Renderer:
         canvas = Image.new("RGBA", (s.W, s.H), (0, 0, 0, 0))
         vis = [w for w in chunk if t >= w["s"] - 0.03]
         if not vis: return None
-        broll = face is None or face == "low"
+        broll = face is None or face == "low" or isinstance(face, float)
         if VERTICAL:            # 9:16: bloque completo centrado; gancho arriba, resto bajo la cara
             pos = s.layout_block(chunk, s.H * (0.17 if hook else SUB_Y_V), hook=hook)[:len(vis)]
             broll = False
         elif hook and broll:
             vis = vis[-1:]       # gancho sobre B-roll: palabra actual, grande y centrada
             pos = s.layout_hook(vis, None)
-            if face == "low": pos = [(x, s.H * 0.78) for x, _ in pos]
+            if face == "low" or isinstance(face, float):
+                pos = [(x, s.H * (0.78 if face == "low" else face % 10)) for x, _ in pos]
         elif hook:
             pos = s.layout_hook(chunk, face)[:len(vis)]
         elif broll:
@@ -284,7 +294,8 @@ class Renderer:
         else:
             pos = s.layout(chunk, face)[:len(vis)]
         for w, (x, y) in zip(vis, pos):
-            im, pad, f = s.word_img(w["w"], big=broll, hl=w.get("hl", False), hook=hook)
+            dark = isinstance(face, float) and face >= 10
+            im, pad, f = s.word_img(w["w"], big=broll, hl=w.get("hl", False), hook=hook, dark=dark)
             a = min(1, (t - (w["s"] - 0.03)) / FADE)
             if a < 1:
                 arr = np.array(im); arr[..., 3] = (arr[..., 3] * a).astype(np.uint8); im = Image.fromarray(arr)
@@ -359,9 +370,22 @@ def main():
         s0, s1 = bounds[k], bounds[k + 1]
         ws = c[0]["s"]
         if any(b0 - 0.05 <= ws < b1 - 0.05 for b0, b1 in broll):
+            # B-roll: palabra centrada en horizontal; en vertical se elige la franja más oscura
+            # (centro, tercio inferior o superior) que no tape caras → se lee sin sombra.
             det = [r for r in fc if t0 - 0.1 <= r[0] <= t1 + 0.1 and r[1] is not None]
-            busy = any(abs(r[1] - W / 2) < W * 0.25 + r[3] / 2 and abs(r[2] - H / 2) < H * 0.15 + r[3] * 0.7 for r in det)
-            anchors.append("low" if busy else None); continue   # B-roll → palabra centrada (o abajo si hay cara)                       # B-roll → palabra centrada
+            g = frame_gray(a.inp, (t0 + t1) / 2)
+            best = None
+            for yf in (0.5, 0.78, 0.22):
+                if any(abs(r[1] - W / 2) < W * 0.25 + r[3] / 2 and abs(r[2] - H * yf) < H * 0.06 + r[3] * 0.7 for r in det):
+                    continue
+                y0, y1 = int(g.shape[0] * (yf - 0.05)), int(g.shape[0] * (yf + 0.05))
+                lum = float(g[y0:y1, int(g.shape[1] * 0.3):int(g.shape[1] * 0.7)].mean()) + (0 if yf == 0.5 else 20)
+                if best is None or lum < best[0]: best = (lum, yf)
+            if best is None:
+                anchors.append(None); continue
+            dark = best[0] - (0 if best[1] == 0.5 else 20) > BRIGHT_BG
+            # float = altura (fracción); +10 marca "fondo blanco → texto oscuro"
+            anchors.append(best[1] + (10 if dark else 0) if (dark or best[1] != 0.5) else None); continue                       # B-roll → palabra centrada
         det = [r for r in fc if t0 - 0.1 <= r[0] <= t1 + 0.1 and r[1] is not None]
         shot = shot_face[k]
         if not det:

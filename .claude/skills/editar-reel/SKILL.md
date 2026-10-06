@@ -29,8 +29,10 @@ Contesta siempre en español.
 - **Posición: a la altura de los ojos, repartidas a los lados de la cara** — la primera
   mitad del bloque a la izquierda de la cabeza y el resto a la derecha
   (p. ej. `sin saber realmente  [cara]  si`). Nunca tapan la cara.
-- **Planos sin cara (B-roll)**: una sola palabra cada vez, centrada en mitad del plano (si
-  en el B-roll hay una cara en el centro, la palabra baja al tercio inferior) y
+- **Planos sin cara (B-roll)**: una sola palabra cada vez, centrada; el script mira la imagen y
+  la pone en la franja más oscura (centro, tercio inferior o superior) sin tapar caras. Si todo
+  el plano es claro (capturas de pantalla del sistema), el texto pasa a **oscuro** (negro, y
+  naranja intenso las palabras clave) — así se lee sin usar sombra. La palabra es
   un poco más grande (×1,25). Funciona como palabra clave: "instantáneamente",
   "networking", "desesperados", "relaciones".
 
@@ -103,6 +105,11 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
         `INTER_CUBIC` a 4K y `INTER_AREA` a 1080p. Salida sin pérdida → luego B-rolls.
      5. Verificar: diferencia del fondo antes/después de cada corte (debe bajar >50 %).
    - Si la saturación del plano principal ya es alta, el B-roll solo se baja si la supera.
+   - **Cámara fija pero saltos de postura en los cortes** (comprobar con `estabilizar_detect.py`:
+     si dx/dy < 2 px no hay que estabilizar): alternar plano normal / cerrado (+10 %) en cada
+     corte que quede en plano principal + zoom lento (`ejemplos/aroll_punch_zoom.py`).
+   - Usar solo B-rolls **horizontales** (comprobar la rotación con ffprobe: 1920x1080 con
+     rotación −90 es vertical).
 7. **Render**:
    `python3 reel_subs.py montado.mkv final.mp4 --words montado.words.json --grade --hook 3.0 --broll 1.8-3.0,4.6-6.5`
    (`--broll` con los tramos donde hay B-roll: así siempre sale la palabra centrada aunque
