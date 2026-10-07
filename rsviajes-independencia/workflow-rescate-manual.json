@@ -1,0 +1,182 @@
+{
+  "name": "Rs Viajes – Rescate manual (responder como la IA)",
+  "nodes": [
+    {
+      "id": "f1",
+      "name": "Formulario",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "d97ac262-84a2-4f16-8664-b7d4e35a1991",
+      "parameters": {
+        "path": "rescate-manual-rsviajes",
+        "formTitle": "Rescate manual – Rs Viajes",
+        "formDescription": "Responde a un cliente como si fuera la IA, sin moverlo a Sin IA. Si dejas la respuesta vacía, la escribe la IA. El cliente sigue con la IA cuando vuelva a escribir.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Agencia",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Independencia"
+                  },
+                  {
+                    "option": "Centro"
+                  },
+                  {
+                    "option": "Periodismo"
+                  },
+                  {
+                    "option": "Matriz"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Contact ID",
+              "requiredField": true,
+              "placeholder": "Ej. d30PFdLAyXGFXNZmuaHd (está en la URL del contacto en GHL)"
+            },
+            {
+              "fieldLabel": "Respuesta",
+              "fieldType": "textarea",
+              "placeholder": "Opcional. Si la dejas vacía, la IA redacta la respuesta."
+            },
+            {
+              "fieldLabel": "Clave",
+              "fieldType": "password",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "✅ Listo. La respuesta se enviará al cliente en unos segundos."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "w1",
+      "name": "Webhook (API)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "aed295b5-a418-490c-9374-c4cc5b14935b",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rescate-manual-api",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "c1",
+      "name": "Validar y preparar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Rescate manual: manda el contacto al agente de su agencia como si el cliente acabara de escribir.\n// - No pasa a \"Sin IA\" (forzar_ia) y conserva la columna de IA.\n// - Si hay respuesta escrita, se envía ese texto; si está vacía, la redacta la IA.\n// - Si el contacto no tiene oportunidad, el flujo principal la crea en Nuevo Lead.\nconst CLAVE = '****';\nconst RUTAS = { 'Independencia': 'rsindependencia', 'Centro': 'Rscentro', 'Periodismo': 'rsperiodismov2', 'Matriz': 'rsmatriz' };\nconst d = $json.body || $json;  // sirve para el formulario y para el webhook\nconst agencia = String(d.Agencia || d.agencia || '').trim();\nconst contactId = String(d['Contact ID'] || d.contact_id || '').trim();\nconst respuesta = String(d.Respuesta || d.respuesta || '').trim();\nconst clave = String(d.Clave || d.clave || '').trim();\nif (clave !== CLAVE) throw new Error('Clave incorrecta');\nconst ruta = RUTAS[agencia.charAt(0).toUpperCase() + agencia.slice(1).toLowerCase()];\nif (!ruta) throw new Error('Agencia no válida: ' + agencia);\nif (!/^[A-Za-z0-9]{15,30}$/.test(contactId)) throw new Error('Contact ID no válido');\nreturn [{ json: {\n  url: 'http://localhost:5678/webhook/' + ruta,\n  payload: { contact_id: contactId, message: { type: 19, body: String(d.mensaje_cliente || '') }, contact: {}, rescate: true, forzar_ia: true, respuesta_manual: respuesta },\n  resumen: `Enviado a ${agencia} (${contactId}): ${respuesta ? 'respuesta escrita' : 'la redacta la IA'}`\n} }];"
+      }
+    },
+    {
+      "id": "h1",
+      "name": "Enviar al agente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "c2",
+      "name": "Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        100
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { ok: true, mensaje: $('Validar y preparar').first().json.resumen } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Formulario": {
+      "main": [
+        [
+          {
+            "node": "Validar y preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook (API)": {
+      "main": [
+        [
+          {
+            "node": "Validar y preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar y preparar": {
+      "main": [
+        [
+          {
+            "node": "Enviar al agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar al agente": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
+}
