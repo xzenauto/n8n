@@ -123,6 +123,21 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
    Opciones probadas: subirlo a una rama de este repositorio (máx. 100 MB por archivo;
    partir con `ffmpeg -f segment` si hace falta) o pedir al usuario un destino.
 
+## 2b. Zoom-ins de énfasis y música (cuando el usuario los pide)
+
+- **Zoom-ins leves para dar dinamismo** (`ejemplos/aroll_zoom_enfasis.py` + `plan_enfasis.py`):
+  además del plano alterno en cortes y el zoom lento, en 6–9 frases clave del plano
+  principal se acerca +7 % en 0,35 s (ease in-out) y se mantiene hasta el siguiente corte.
+  Lista `EMPHASIS` con el segundo de la palabra que arranca la frase clave.
+- **Música de fondo motivacional sin letra**: no descargar música (derechos + red). Se
+  compone una pista original con `ejemplos/musica_motivacional.py <duración> salida.wav`
+  (Am–F–C–G, 100 BPM, capas que crecen: pad+piano → bajo+bombo → palmas → charles).
+  Mezcla: música a −23 dB (`volume=0.07`) con *ducking* por la voz
+  (`sidechaincompress=threshold=0.015:ratio=4:attack=30:release=450`) y `loudnorm=I=-14`.
+  Objetivo: música ≥10 dB por debajo de la voz en las pausas.
+- Scripts que leen archivos descargados: ejecutarlos con `python3 -I` desde una carpeta de
+  trabajo distinta a la de descargas (scripts en `scripts/`, descargas en `in/`).
+
 ## 3. Anuncios / resúmenes verticales (9:16) a partir de un vídeo largo
 
 Probado con el VSL de agencias de viajes → anuncio de 54 s (`ejemplos/anuncio_*.py`):
