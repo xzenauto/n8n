@@ -18,6 +18,8 @@ Contesta siempre en español.
     líneas, en el lado de la pantalla que la cara deja libre durante toda la frase
     (opción `--hook <segundo en que acaba el gancho>`). Sobre B-roll, palabra a palabra
     grande y centrada. "Cuanto más llamativo y grande, mejor".
+    Máximo 3 líneas: si la columna libre junto a la cara es estrecha, el gancho reduce su
+    tamaño automáticamente (hasta el 55 %) en vez de salirse de la pantalla.
   - **Sin sombra**, sin caja ni contorno.
   - **Palabras clave en amarillo** (`HL_COLOR` = 255, 210, 60): 1 por bloque como máximo,
     las que llevan el mensaje (temas, beneficios, conceptos: "negocio", "reto físico",

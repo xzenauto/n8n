@@ -133,6 +133,7 @@ class Renderer:
         s.fb = s.font(round(s.size * BROLL_SCALE))
         s.fh = s.font(round(H * (HOOK_V if VERTICAL else HOOK_H)))
         s.cache = {}
+        s.hook_scale = {}
 
     def font(s, px):
         f = ImageFont.truetype(FONT, px)
@@ -149,11 +150,16 @@ class Renderer:
             f.set_variation_by_axes(vals)
         return f
 
-    def word_img(s, txt, big=False, hl=False, hook=False, dark=False):
+    def word_img(s, txt, big=False, hl=False, hook=False, dark=False, hscale=1.0):
         txt = txt.strip(".,;:!?¿¡\"“”«»") or txt   # sin puntuación, como el original
-        key = (txt, big, hl, hook, dark)
+        key = (txt, big, hl, hook, dark, hscale)
         if key in s.cache: return s.cache[key]
-        f = s.fh if hook else (s.fb if big else s.f)
+        if hook and hscale != 1.0:
+            fk = ("hook", hscale)
+            if fk not in s.cache: s.cache[fk] = s.font(round(s.fh.size * hscale))
+            f = s.cache[fk]
+        else:
+            f = s.fh if hook else (s.fb if big else s.f)
         l, t, r, b = f.getbbox(txt)
         pad = round(f.size * 0.4)
         w, h = r - l + 2 * pad, round(f.size * 1.5) + 2 * pad
@@ -233,9 +239,17 @@ class Renderer:
             y += lh
         return pos
 
-    def layout_hook(s, chunk, face):
-        """Gancho: frase grande en varias líneas en el lado libre de la cara (o centrada)."""
-        imgs = [s.word_img(w["w"], hl=w.get("hl", False), hook=True) for w in chunk]
+    def layout_hook(s, chunk, face, max_lines=3):
+        """Gancho: frase grande en varias líneas en el lado libre de la cara (o centrada).
+        Si no cabe en `max_lines` líneas, reduce el tamaño (hasta el 55 %)."""
+        for hs in (1.0, 0.88, 0.77, 0.66, 0.55):
+            pos, n = s._layout_hook(chunk, face, hs)
+            if n <= max_lines: break
+        s.hook_scale[id(chunk)] = hs
+        return pos
+
+    def _layout_hook(s, chunk, face, hs):
+        imgs = [s.word_img(w["w"], hl=w.get("hl", False), hook=True, hscale=hs) for w in chunk]
         f = imgs[0][2]
         gap, lh = f.size * 0.28, f.size * 1.02
         widths = [im.width - 2 * pad for im, pad, _ in imgs]
@@ -271,7 +285,7 @@ class Renderer:
             for i in idx:
                 pos[i] = (x, y); x += widths[i] + gap
             y += lh
-        return pos
+        return pos, len(lines)
 
     def frame(s, t, chunk, face, hook=False):
         canvas = Image.new("RGBA", (s.W, s.H), (0, 0, 0, 0))
@@ -295,7 +309,8 @@ class Renderer:
             pos = s.layout(chunk, face)[:len(vis)]
         for w, (x, y) in zip(vis, pos):
             dark = isinstance(face, float) and face >= 10
-            im, pad, f = s.word_img(w["w"], big=broll, hl=w.get("hl", False), hook=hook, dark=dark)
+            im, pad, f = s.word_img(w["w"], big=broll, hl=w.get("hl", False), hook=hook, dark=dark,
+                                    hscale=s.hook_scale.get(id(chunk), 1.0) if hook and not broll else 1.0)
             a = min(1, (t - (w["s"] - 0.03)) / FADE)
             if a < 1:
                 arr = np.array(im); arr[..., 3] = (arr[..., 3] * a).astype(np.uint8); im = Image.fromarray(arr)
