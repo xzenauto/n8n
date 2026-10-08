@@ -140,6 +140,22 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
 - Scripts que leen archivos descargados: ejecutarlos con `python3 -I` desde una carpeta de
   trabajo distinta a la de descargas (scripts en `scripts/`, descargas en `in/`).
 
+## 2c. Apoyos visuales: maquetas de anuncios y B-roll vertical (`ejemplos/*paneles*`, `maquetas_anuncios.py`)
+
+- **Maquetas de anuncios de Facebook/Instagram** cuando el usuario las pide: se diseñan con
+  PIL (tarjeta tipo feed: avatar, "Publicidad", texto, foto, barra de título con precio y botón
+  CTA, reacciones). Marca **ficticia** ("Viajes Horizonte"), nunca logos/marcas reales.
+  Fotos: fotogramas de los propios clips del usuario. Si muestran resultados/métricas
+  inventadas → etiqueta **"EJEMPLO"**. Animación: entra desde abajo (0,4 s) a la izquierda
+  (centro en 30 % del ancho) sobre el plano principal desenfocado y oscurecido; si se habla
+  de "dar clic", animar un toque (círculo) sobre el botón.
+- **B-roll vertical que el usuario pide expresamente** (p. ej. pantallas del CRM o de la
+  automatización): se coloca entero a la izquierda sobre una copia desenfocada de sí mismo.
+- En esos tramos los subtítulos van con `--panel ini-fin,...`: palabra única a la derecha
+  (74 % del ancho), en oscuro si el fondo es claro.
+- Para separar texto y cara se usa el ancho MÁXIMO de la cara en el bloque (los zooms de
+  énfasis la agrandan mientras la frase está en pantalla).
+
 ## 3. Anuncios / resúmenes verticales (9:16) a partir de un vídeo largo
 
 Probado con el VSL de agencias de viajes → anuncio de 54 s (`ejemplos/anuncio_*.py`):

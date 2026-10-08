@@ -179,6 +179,8 @@ class Renderer:
         f = imgs[0][2]
         gap = f.size * WORD_GAP
         widths = [im.width - 2 * pad for im, pad, _ in imgs]
+        if isinstance(face, dict):          # panel: palabra en la zona libre (derecha)
+            return [(s.W * face["x"] - wd / 2, s.H * face["y"]) for wd in widths]
         if face is None or face == "low" or isinstance(face, float):   # B-roll → una palabra centrada
             yf = 0.78 if face == "low" else (face % 10 if isinstance(face, float) else 0.5)
             return [(s.W / 2 - wd / 2, s.H * yf) for wd in widths]
@@ -291,14 +293,16 @@ class Renderer:
         canvas = Image.new("RGBA", (s.W, s.H), (0, 0, 0, 0))
         vis = [w for w in chunk if t >= w["s"] - 0.03]
         if not vis: return None
-        broll = face is None or face == "low" or isinstance(face, float)
+        broll = face is None or face == "low" or isinstance(face, (float, dict))
         if VERTICAL:            # 9:16: bloque completo centrado; gancho arriba, resto bajo la cara
             pos = s.layout_block(chunk, s.H * (0.17 if hook else SUB_Y_V), hook=hook)[:len(vis)]
             broll = False
         elif hook and broll:
             vis = vis[-1:]       # gancho sobre B-roll: palabra actual, grande y centrada
             pos = s.layout_hook(vis, None)
-            if face == "low" or isinstance(face, float):
+            if isinstance(face, dict):
+                pos = s.layout(vis, face)
+            elif face == "low" or isinstance(face, float):
                 pos = [(x, s.H * (0.78 if face == "low" else face % 10)) for x, _ in pos]
         elif hook:
             pos = s.layout_hook(chunk, face)[:len(vis)]
@@ -308,7 +312,7 @@ class Renderer:
         else:
             pos = s.layout(chunk, face)[:len(vis)]
         for w, (x, y) in zip(vis, pos):
-            dark = isinstance(face, float) and face >= 10
+            dark = (isinstance(face, float) and face >= 10) or (isinstance(face, dict) and face["dark"])
             im, pad, f = s.word_img(w["w"], big=broll, hl=w.get("hl", False), hook=hook, dark=dark,
                                     hscale=s.hook_scale.get(id(chunk), 1.0) if hook and not broll else 1.0)
             a = min(1, (t - (w["s"] - 0.03)) / FADE)
@@ -332,6 +336,7 @@ def main():
     ap.add_argument("--size", type=float, help="tamaño de letra relativo al alto (p. ej. 0.045)")
     ap.add_argument("--no-shadow", action="store_true", help="sin sombra")
     ap.add_argument("--vertical", action="store_true", help="formato 9:16: subtítulos centrados bajo la cara")
+    ap.add_argument("--panel", default="", help="tramos con apoyo visual a la izquierda: palabra a la derecha")
     ap.add_argument("--cuts", default="", help="cortes extra del A-roll 't1,t2' (s): nueva posición fija")
     a = ap.parse_args()
     global FONT, WEIGHT, SIZE_H, SHADOW, VERTICAL, MAX_WORDS
@@ -349,6 +354,8 @@ def main():
     print(f"{len(words)} palabras · detectando caras…", file=sys.stderr)
     fc, step = faces(a.inp, W, H, fps, dur)
     broll = [tuple(map(float, r.split("-"))) for r in a.broll.split(",") if r]
+    panel = [tuple(map(float, r.split("-"))) for r in a.panel.split(",") if r]
+    broll += panel
     cuts = sorted({t for r in broll for t in r} | {float(c) for c in a.cuts.split(",") if c})
     cks = chunks(words, cuts, a.hook)
     hook_ids = {i for i, c in enumerate(cks) if c[0]["s"] < a.hook}
@@ -384,6 +391,11 @@ def main():
         k = shot_of(t0)
         s0, s1 = bounds[k], bounds[k + 1]
         ws = c[0]["s"]
+        if any(p0 - 0.05 <= ws < p1 - 0.05 for p0, p1 in panel):
+            # apoyo visual a la izquierda (maqueta / B-roll vertical) → palabra a la derecha
+            g = frame_gray(a.inp, (t0 + t1) / 2)
+            lum = float(g[int(g.shape[0] * 0.44):int(g.shape[0] * 0.56), int(g.shape[1] * 0.58):int(g.shape[1] * 0.9)].mean())
+            anchors.append({"x": 0.74, "y": 0.5, "dark": lum > BRIGHT_BG - 25}); continue
         if any(b0 - 0.05 <= ws < b1 - 0.05 for b0, b1 in broll):
             # B-roll: palabra centrada en horizontal; en vertical se elige la franja más oscura
             # (centro, tercio inferior o superior) que no tape caras → se lee sin sombra.
@@ -409,7 +421,8 @@ def main():
             g = 0.5 + FACE_GAP
             anchors.append((min(r[1] - r[3] * g for r in det), max(r[1] + r[3] * g for r in det),
                             float(np.median([r[2] for r in det])), 0)); continue
-        cf = tuple(float(np.median([r[j] for r in det])) for j in (1, 2, 3))
+        # centro = mediana; ancho = el MÁXIMO del bloque (los zooms de énfasis agrandan la cara)
+        cf = (float(np.median([r[1] for r in det])), float(np.median([r[2] for r in det])), float(max(r[3] for r in det)))
         if shot and math.hypot(cf[0] - shot[0], cf[1] - shot[1]) < 0.4 * shot[2]:
             cf = shot                                            # plano quieto → misma posición siempre
         anchors.append(cf)
