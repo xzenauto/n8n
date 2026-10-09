@@ -15,6 +15,7 @@ Uso:
   --broll  tramos de B-roll "1.8-3.0,4.5-6.5": en ellos siempre palabra única centrada.
   --cuts   cortes del plano principal "12.3,20.1": cada plano usa una posición fija.
   Palabras clave: añade "hl": true a la palabra en words.json → sale en amarillo.
+  Palabra más grande (p. ej. numeración "[#1]"): añade "scale": 1.5.
   --hook   segundo en que acaba el gancho: hasta ahí, frases completas en letra grande.
   --dump   solo transcribe y guarda words.json para revisarlo/corregirlo.
 """
@@ -91,6 +92,12 @@ def frame_gray(path, t, w=192, h=108):
     return np.frombuffer(o, np.uint8).reshape(h, w).astype(float) if len(o) == w * h else np.zeros((h, w))
 
 
+def frame_rgb(path, t, w=192, h=108):
+    o = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(0, t):.3f}", "-i", path, "-frames:v", "1", "-vf", f"scale={w}:{h}",
+                        "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True).stdout
+    return np.frombuffer(o, np.uint8).reshape(h, w, 3) if len(o) == w * h * 3 else np.zeros((h, w, 3), np.uint8)
+
+
 def faces(path, W, H, fps, dur, step=0.2):
     """Cara principal muestreada cada `step` s → lista (t, cx, cy_ojos, ancho) o None.
     Usa MediaPipe (modelo de largo alcance: aguanta perfiles y caras pequeñas)."""
@@ -150,9 +157,9 @@ class Renderer:
             f.set_variation_by_axes(vals)
         return f
 
-    def word_img(s, txt, big=False, hl=False, hook=False, dark=False, hscale=1.0):
+    def word_img(s, txt, big=False, hl=False, hook=False, dark=False, hscale=1.0, scale=1.0):
         txt = txt.strip(".,;:!?¿¡\"“”«»") or txt   # sin puntuación, como el original
-        key = (txt, big, hl, hook, dark, hscale)
+        key = (txt, big, hl, hook, dark, hscale, scale)
         if key in s.cache: return s.cache[key]
         if hook and hscale != 1.0:
             fk = ("hook", hscale)
@@ -160,6 +167,10 @@ class Renderer:
             f = s.cache[fk]
         else:
             f = s.fh if hook else (s.fb if big else s.f)
+        if scale != 1.0:          # palabra destacada más grande ("scale" en words.json, p. ej. [#1])
+            fk = ("scale", f.size, scale)
+            if fk not in s.cache: s.cache[fk] = s.font(round(f.size * scale))
+            f = s.cache[fk]
         l, t, r, b = f.getbbox(txt)
         pad = round(f.size * 0.4)
         w, h = r - l + 2 * pad, round(f.size * 1.5) + 2 * pad
@@ -175,8 +186,8 @@ class Renderer:
 
     def layout(s, chunk, face):
         """Posición (x, y_centro) de cada palabra del bloque."""
-        imgs = [s.word_img(w["w"], big=face is None) for w in chunk]
-        f = imgs[0][2]
+        imgs = [s.word_img(w["w"], big=face is None, scale=w.get("scale", 1.0)) for w in chunk]
+        f = s.fb if face is None else s.f
         gap = f.size * WORD_GAP
         widths = [im.width - 2 * pad for im, pad, _ in imgs]
         if isinstance(face, dict):          # panel: palabra en la zona libre (derecha)
@@ -312,13 +323,20 @@ class Renderer:
         else:
             pos = s.layout(chunk, face)[:len(vis)]
         for w, (x, y) in zip(vis, pos):
-            dark = (isinstance(face, float) and face >= 10) or (isinstance(face, dict) and face["dark"])
+            x += w.get("dx", 0)
+            dark = (isinstance(face, float) and face >= 10) or (isinstance(face, dict) and face["dark"]) or w.get("dark", False)
             im, pad, f = s.word_img(w["w"], big=broll, hl=w.get("hl", False), hook=hook, dark=dark,
-                                    hscale=s.hook_scale.get(id(chunk), 1.0) if hook and not broll else 1.0)
+                                    hscale=s.hook_scale.get(id(chunk), 1.0) if hook and not broll else 1.0,
+                                    scale=1.0 if hook else w.get("scale", 1.0))
+            yoff = 0.0
+            if w.get("scale", 1.0) != 1.0 and not hook:   # centrar en vertical con el resto del bloque
+                base = s.fb if broll else s.f
+                _, gt, _, gb = f.getbbox("H")
+                yoff = (base.size - f.size) * (0.75 - (gt + gb) / 2 / f.size)
             a = min(1, (t - (w["s"] - 0.03)) / FADE)
             if a < 1:
                 arr = np.array(im); arr[..., 3] = (arr[..., 3] * a).astype(np.uint8); im = Image.fromarray(arr)
-            canvas.alpha_composite(im, (round(x - pad), round(y - pad - f.size * 0.75)))
+            canvas.alpha_composite(im, (round(x - pad), round(y - pad - f.size * 0.75 - yoff)))
         return canvas
 
 
@@ -426,6 +444,35 @@ def main():
         if shot and math.hypot(cf[0] - shot[0], cf[1] - shot[1]) < 0.4 * shot[2]:
             cf = shot                                            # plano quieto → misma posición siempre
         anchors.append(cf)
+
+    # Plano principal: fondo detrás de cada lado del bloque (izq./dcha. de la cara). Si cae sobre
+    # una zona clara y neutra (pared beige, ventana…) el grupo se desplaza hacia fuera hasta una
+    # zona oscura si cabe; si no cabe, ese grupo va en oscuro (negro / naranja). Sin sombra.
+    for i, c in enumerate(cks):
+        if VERTICAL or i in hook_ids or not (isinstance(anchors[i], tuple) and len(anchors[i]) == 3): continue
+        rgb = frame_rgb(a.inp, (c[0]["s"] + chunk_end(i)) / 2).astype(float)
+        mx, mn = rgb.max(2), rgb.min(2)
+        light = (rgb.mean(2) > 160) & ((mx - mn) / np.maximum(mx, 1) < 0.45)
+        sx, sy = rgb.shape[1] / W, rgb.shape[0] / H
+        pos = R.layout(c, anchors[i])
+        cx = anchors[i][0]
+        ws = [R.word_img(w["w"], scale=w.get("scale", 1.0)) for w in c]
+        for side in (0, 1):
+            idx = [j for j, (x, y) in enumerate(pos) if (x >= cx) == bool(side)]
+            if not idx: continue
+            x0 = min(pos[j][0] for j in idx); x1 = max(pos[j][0] + ws[j][0].width - 2 * ws[j][1] for j in idx)
+            y = pos[idx[0]][1]
+            band = light[max(0, int((y - R.size * 0.6) * sy)):int((y + R.size * 0.4) * sy) + 1].mean(0)
+            col = lambda a_, b_: band[max(0, int(a_ * sx)):int(b_ * sx) + 1]
+            if col(x0, x1).size == 0 or col(x0, x1).max() < 0.5: continue
+            dx, margin = None, W * 0.035
+            for d in range(0, int(W * 0.3), max(1, int(W / 192))):
+                a_, b_ = (x0 + d, x1 + d) if side else (x0 - d, x1 - d)
+                if a_ < margin or b_ > W - margin: break
+                if col(a_ - W * 0.01, b_ + W * 0.01).max() < 0.3: dx = d if side else -d; break
+            for j in idx:
+                if dx is not None: c[j]["dx"] = dx
+                else: c[j]["dark"] = col(x0, x1).mean() > 0.5
 
     def face_at(t, ci):
         return anchors[ci]

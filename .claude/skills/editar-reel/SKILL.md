@@ -156,6 +156,27 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
 - Para separar texto y cara se usa el ancho MÁXIMO de la cara en el bloque (los zooms de
   énfasis la agrandan mientras la frase está en pantalla).
 
+## 2d. Listas numeradas, música inspiracional, whoosh y legibilidad en A-roll
+
+- **Puntos numerados `[#1]`, `[#2]`, `[#3]`** (cuando el vídeo es "las 3 cosas que…"):
+  `ejemplos/numerar_puntos.py words.json words.json` junta "Número 1" en una palabra `[#1]`
+  con `"hl": true` y `"scale": 1.5` (algo mayor que el resto, en amarillo) y la deja en el
+  mismo bloque que el título del punto. Cualquier palabra admite `"scale"` en `words.json`.
+- **Cambio de plano por sección**: en una toma única en trípode, cada punto `[#n]` arranca con
+  cambio normal/cerrado (`JUMPS` en `ejemplos/plan_secciones.py`, con `aroll_zoom_enfasis.py`)
+  y dentro de cada sección 1–2 zoom-ins de énfasis. Pasa esos mismos tiempos a `--cuts`
+  (un poco antes de la palabra, p. ej. 6.80 si la palabra empieza en 6.86).
+- **Música inspiracional** (más calmada que la motivacional): `ejemplos/musica_inspiracional.py`
+  (C–G–Am–F, 80 BPM, piano + pad, latido suave, campanitas al final). Mezcla a `volume=0.09`
+  con el mismo ducking.
+- **Efecto de sonido de movimiento de cámara**: `ejemplos/sfx_whoosh.py <dur> sfx.wav t1 t2…`
+  con los tiempos de cada zoom/cambio de plano; mezclar a `volume=0.10` (picos ≈ −27 dB,
+  discreto). Mezcla final:
+  `[voz][música con ducking][sfx]amix=inputs=3:normalize=0,loudnorm=I=-14:TP=-1.0:LRA=11`.
+- **Fondo claro junto a la cara** (pared beige/blanca): `reel_subs.py` lo detecta solo. El
+  grupo de palabras de ese lado se desplaza hacia fuera hasta una zona oscura (p. ej. la
+  madera) si cabe; si no, va en oscuro (negro / naranja). El amarillo nunca queda sobre beige.
+
 ## 3. Anuncios / resúmenes verticales (9:16) a partir de un vídeo largo
 
 Probado con el VSL de agencias de viajes → anuncio de 54 s (`ejemplos/anuncio_*.py`):
