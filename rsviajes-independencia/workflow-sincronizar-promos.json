@@ -61,12 +61,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Convierte las filas de cada pestaña al formato de las tablas de promos\nfunction fecha(v) {\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number') return new Date(Date.UTC(1899, 11, 30) + v * 864e5).toISOString().slice(0, 10);\n  const s = String(v).trim();\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{2,4})$/);\n  // \"11 oct\", \"01 NOV\": sin año, se toma el próximo (si el mes ya pasó hace más de 2 meses, el año que viene)\n  const t = s.toLowerCase().match(/^(\\d{1,2})\\s*(?:de\\s+)?(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/);\n  if (t) {\n    const mes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'].indexOf(t[2]) + 1;\n    const hoy = new Date(); let y = hoy.getUTCFullYear();\n    if (mes < hoy.getUTCMonth() + 1 - 2) y += 1;\n    return `${y}-${String(mes).padStart(2, '0')}-${t[1].padStart(2, '0')}`;\n  }\n  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }\n  return null;\n}\nconst texto = (v) => (v === null || v === undefined || String(v).trim() === '') ? null : String(v).trim();\nconst numero = (v) => {\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number') return v;\n  const n = parseFloat(String(v).replace(/[^\\d.\\-]/g, ''));\n  return isNaN(n) ? null : n;\n};\nconst siNo = (v) => {\n  const s = String(v ?? '').trim().toLowerCase();\n  if (s === '') return true;\n  return ['si', 'sí', 'true', '1', 'x', 'activa', 'yes'].includes(s);\n};\nconst slug = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')\n  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);\nconst adIds = (v) => {\n  if (v === null || v === undefined || v === '') return [];\n  if (typeof v === 'number') return [BigInt(Math.round(v)).toString()];\n  return String(v).split(/[\\s,;|]+/).map(x => x.replace(/\\D/g, '')).filter(Boolean);\n};\n\n// Una pestaña por agencia; la fila 1 de cada pestaña son los encabezados\n// Matriz es de otro dueño: sus promos están en la pestaña \"Promos\" del archivo RS Viajes Matriz\nconst AGENCIAS = { 'Rs Independencia': 'independencia', 'Rs Centro': 'centro', 'Rs Periodismo': 'periodismo', 'Promos': 'matriz' };\nconst salida = [];\nconst rangos = [...($('Leer promos del Sheet').first().json.valueRanges || []), ...($('Leer promos Matriz').first().json.valueRanges || [])];\nfor (const rango of rangos) {\n  const pestana = rango.range.split('!')[0].replace(/^'|'$/g, '');\n  const agencia = AGENCIAS[pestana];\n  if (!agencia) continue;\n  const valores = rango.values || [];\n  const encabezados = (valores[0] || []).map(h => String(h).trim().toLowerCase().replace(/\\s+/g, '_'));\n  const filas = valores.slice(1).map(fila => Object.fromEntries(encabezados.map((h, i) => [h, fila[i] ?? ''])));\n\n  const vistos = new Set();\n  const promos = [];\n  for (const r of filas) {\n  const titulo = texto(r.titulo);\n  if (!titulo) continue;\n  let id = texto(r.id) ? slug(r.id) : slug(titulo);\n  if (vistos.has(id)) id = `${id}-${vistos.size + 1}`;\n  vistos.add(id);\n  promos.push({\n    id, activa: siNo(r.activa), titulo,\n    destino: texto(r.destino), hotel: texto(r.hotel), ad_ids: adIds(r.ad_ids ?? r.ad_id),\n    vigencia_desde: fecha(r.vigencia_desde), vigencia_hasta: fecha(r.vigencia_hasta),\n    viaje_desde: fecha(r.viaje_desde), viaje_hasta: fecha(r.viaje_hasta),\n    noches: numero(r.noches) === null ? null : Math.round(numero(r.noches)),\n    plan: texto(r.plan), dias_aplica: texto(r.dias_aplica), precio_desde: numero(r.precio_desde),\n    precio_detalle: texto(r.precio_detalle), precios_menores: texto(r.precios_menores),\n    incluye: texto(r.incluye), no_incluye: texto(r.no_incluye), condiciones: texto(r.condiciones),\n    descripcion: texto(r.descripcion), imagen_url: texto(r.imagen_url)\n  });\n}\n  salida.push({ json: { agencia, promos } });\n}\nreturn salida;"
+        "jsCode": "// Convierte las filas de cada pestaña al formato de las tablas de promos\nfunction fecha(v) {\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number') return new Date(Date.UTC(1899, 11, 30) + v * 864e5).toISOString().slice(0, 10);\n  const s = String(v).trim();\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/\\-.](\\d{1,2})[\\/\\-.](\\d{2,4})$/);\n  // \"11 oct\", \"01 NOV\": sin año, se toma el próximo (si el mes ya pasó hace más de 2 meses, el año que viene)\n  const t = s.toLowerCase().match(/^(\\d{1,2})\\s*(?:de\\s+)?(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/);\n  if (t) {\n    const mes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'].indexOf(t[2]) + 1;\n    const hoy = new Date(); let y = hoy.getUTCFullYear();\n    if (mes < hoy.getUTCMonth() + 1 - 2) y += 1;\n    return `${y}-${String(mes).padStart(2, '0')}-${t[1].padStart(2, '0')}`;\n  }\n  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`; }\n  return null;\n}\nconst texto = (v) => (v === null || v === undefined || String(v).trim() === '') ? null : String(v).trim();\nconst numero = (v) => {\n  if (v === null || v === undefined || v === '') return null;\n  if (typeof v === 'number') return v;\n  const n = parseFloat(String(v).replace(/[^\\d.\\-]/g, ''));\n  return isNaN(n) ? null : n;\n};\nconst siNo = (v) => {\n  const s = String(v ?? '').trim().toLowerCase();\n  if (s === '') return true;\n  return ['si', 'sí', 'true', '1', 'x', 'activa', 'yes'].includes(s);\n};\nconst slug = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')\n  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);\nconst adIds = (v) => {\n  if (v === null || v === undefined || v === '') return [];\n  if (typeof v === 'number') return [BigInt(Math.round(v)).toString()];\n  return String(v).split(/[\\s,;|]+/).map(x => x.replace(/\\D/g, '')).filter(Boolean);\n};\n\n// Una pestaña por agencia; la fila 1 de cada pestaña son los encabezados\n// Matriz es de otro dueño: sus promos están en la pestaña \"Promos\" del archivo RS Viajes Matriz\n// Hijar también tiene su propio archivo \"Promos - RS Viajes Hijar\" (pestaña \"Promos\")\nconst AGENCIAS = { 'Rs Independencia': 'independencia', 'Rs Centro': 'centro', 'Rs Periodismo': 'periodismo' };\nconst salida = [];\nconst rangos = [\n  ...($('Leer promos del Sheet').first().json.valueRanges || []).map(r => [r, null]),\n  ...($('Leer promos Matriz').first().json.valueRanges || []).map(r => [r, 'matriz']),\n  ...($('Leer promos Hijar').first().json.valueRanges || []).map(r => [r, 'hijar'])\n];\nfor (const [rango, fija] of rangos) {\n  const pestana = rango.range.split('!')[0].replace(/^'|'$/g, '');\n  const agencia = fija || AGENCIAS[pestana];\n  if (!agencia) continue;\n  const valores = rango.values || [];\n  const encabezados = (valores[0] || []).map(h => String(h).trim().toLowerCase().replace(/\\s+/g, '_'));\n  const filas = valores.slice(1).map(fila => Object.fromEntries(encabezados.map((h, i) => [h, fila[i] ?? ''])));\n\n  const vistos = new Set();\n  const promos = [];\n  for (const r of filas) {\n  const titulo = texto(r.titulo);\n  if (!titulo) continue;\n  let id = texto(r.id) ? slug(r.id) : slug(titulo);\n  if (vistos.has(id)) id = `${id}-${vistos.size + 1}`;\n  vistos.add(id);\n  promos.push({\n    id, activa: siNo(r.activa), titulo,\n    destino: texto(r.destino), hotel: texto(r.hotel), ad_ids: adIds(r.ad_ids ?? r.ad_id),\n    vigencia_desde: fecha(r.vigencia_desde), vigencia_hasta: fecha(r.vigencia_hasta),\n    viaje_desde: fecha(r.viaje_desde), viaje_hasta: fecha(r.viaje_hasta),\n    noches: numero(r.noches) === null ? null : Math.round(numero(r.noches)),\n    plan: texto(r.plan), dias_aplica: texto(r.dias_aplica), precio_desde: numero(r.precio_desde),\n    precio_detalle: texto(r.precio_detalle), precios_menores: texto(r.precios_menores),\n    incluye: texto(r.incluye), no_incluye: texto(r.no_incluye), condiciones: texto(r.condiciones),\n    descripcion: texto(r.descripcion), imagen_url: texto(r.imagen_url)\n  });\n}\n  salida.push({ json: { agencia, promos } });\n}\nreturn salida;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        440,
+        660,
         0
       ],
       "id": "dde9580a-8c2d-40e3-bac5-c4be42320b2e",
@@ -86,7 +86,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        660,
+        880,
         0
       ],
       "id": "97b09099-a448-4f92-881b-a899d57d8232",
@@ -138,6 +138,44 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1mMoTbb8yRqxJAp4N7jGwyRomJEilyF-UQTO3RbDzwxs/values:batchGet?ranges=Promos%21A1%3AU500",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "valueRenderOption",
+              "value": "UNFORMATTED_VALUE"
+            },
+            {
+              "name": "dateTimeRenderOption",
+              "value": "SERIAL_NUMBER"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        160
+      ],
+      "id": "a3e75ed4-77ad-48f4-bd7b-c7a2efbb4d08",
+      "name": "Leer promos Hijar",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     }
   ],
   "connections": {
@@ -175,6 +213,17 @@
       ]
     },
     "Leer promos Matriz": {
+      "main": [
+        [
+          {
+            "node": "Leer promos Hijar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer promos Hijar": {
       "main": [
         [
           {
