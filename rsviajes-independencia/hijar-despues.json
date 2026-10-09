@@ -1,0 +1,4338 @@
+{
+  "name": "RsViajesHijar-GHL-V2",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "RS-Hijar",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "contact_id",
+              "keyValue": "={{ $('Datos1').item.json.contact_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        640
+      ],
+      "id": "5206bfe9-8db6-42d4-9f67-85e954f116c4",
+      "name": "AñadirColumna",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/conversations/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: $json.tipoParaGHL, contactId: $('Datos1').last().json.contact_id, message: $('Parser de datos1').item.json.pregunta_anterior }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2288,
+        880
+      ],
+      "id": "53951bb9-c5fa-4ec8-992e-05ed5cdf77d3",
+      "name": "Respuesta_cliente",
+      "alwaysOutputData": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias",
+          "mode": "list",
+          "cachedResultName": "CRM - RSViajes Hijar",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1024558928,
+          "mode": "list",
+          "cachedResultName": "4rto 2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit#gid=1024558928"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "RECOP. DATOS",
+            "Atiende": "LUCIA",
+            "Estado": "LUCIA",
+            "Lead": "={{ $json.contact_id }}",
+            "Destino": "={{ $json.destino }}",
+            "Fechas": "={{ $json.fecha_salida ? $json.fecha_salida + ' / ' + ($json.fecha_regreso || '') : ($json.fechas_texto || '') }}",
+            "Adultos": "={{ $json.Adultos }}",
+            "Menores": "={{ $json[\"Niños\"] }}",
+            "Edad Menores": "={{ $json.Edad_ninios }}",
+            "Observaciones": "={{ $json.notas_ia || '' }}"
+          },
+          "matchingColumns": [
+            "Lead"
+          ],
+          "schema": [
+            {
+              "id": "Atiende",
+              "displayName": "Atiende",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FechaContacto",
+              "displayName": "FechaContacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Lead",
+              "displayName": "Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Plataforma",
+              "displayName": "Plataforma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Destino",
+              "displayName": "Destino",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fechas",
+              "displayName": "Fechas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Adultos",
+              "displayName": "Adultos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Menores",
+              "displayName": "Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Edad Menores",
+              "displayName": "Edad Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Observaciones",
+              "displayName": "Observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1888,
+        880
+      ],
+      "id": "cf51756f-490a-48f8-9e4c-e9fcd132d502",
+      "name": "ACTUALIZAR",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias",
+          "mode": "list",
+          "cachedResultName": "CRM - RSViajes Hijar",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1024558928,
+          "mode": "list",
+          "cachedResultName": "4rto 2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit#gid=1024558928"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead": "={{ $('Update a row').item.json.contact_id }}",
+            "Atiende": "PENDIENTE",
+            "Estado": "URGENTE",
+            "Status": "URGENTE"
+          },
+          "matchingColumns": [
+            "Lead"
+          ],
+          "schema": [
+            {
+              "id": "Atiende",
+              "displayName": "Atiende",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "FechaContacto",
+              "displayName": "FechaContacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Lead",
+              "displayName": "Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Plataforma",
+              "displayName": "Plataforma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Destino",
+              "displayName": "Destino",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fechas",
+              "displayName": "Fechas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Adultos",
+              "displayName": "Adultos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Menores",
+              "displayName": "Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Edad Menores",
+              "displayName": "Edad Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Observaciones",
+              "displayName": "Observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1808,
+        624
+      ],
+      "id": "2ca2b36e-3fdf-42c9-9ba8-332adf514518",
+      "name": "URGENTE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contact_id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"tags\": [\"seg_entrante\", \"seg_explorando\", \"seg_cotizacion\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -560,
+        640
+      ],
+      "id": "a2023e5c-550f-456c-9158-8afebb23a3d1",
+      "name": "Borrar_tags",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Datos1').last().json.contact_id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"tags\": [\"seg_explorando\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3104,
+        880
+      ],
+      "id": "4eadcbc7-f091-45ec-9d8c-53d0a2cc1f69",
+      "name": "Añadir_tag_explorando",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a188450e-3114-4eee-9cda-bd0ccb804f70",
+              "name": "Nombre",
+              "value": "={{ $('Webhook').first().json.body.first_name }}",
+              "type": "string"
+            },
+            {
+              "id": "39aeb8e9-69f5-46eb-8332-4cbe1a1fe446",
+              "name": "Nombre_completo",
+              "value": "={{ $('Webhook').first().json.body.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "c0e7034d-06ee-4610-ae8a-3ff3b9d3875d",
+              "name": "Plataforma",
+              "value": "={{ $('Webhook').first().json.body.contact.attributionSource.medium }}",
+              "type": "string"
+            },
+            {
+              "id": "271a523d-8c9d-4363-81df-552572d6e572",
+              "name": "Mensaje",
+              "value": "={{ $('¿Hay mensaje del cliente?').first().json.mensajes }}",
+              "type": "string"
+            },
+            {
+              "id": "896857d5-0c3b-4209-b67a-e1c8754811e5",
+              "name": "contact_id",
+              "value": "={{ $('Webhook').first().json.body.contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0b7ba23f-025e-4ab0-984e-514ffa3049cc",
+              "name": "adId",
+              "value": "={{ $('Webhook').first().json.body.contact.lastAttributionSource.adId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -572,
+        640
+      ],
+      "id": "27f33150-5da4-4e99-b4bc-3599b4a44628",
+      "name": "Datos1"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/opportunities/pipelines?locationId=4xUuPucjdj14sqVme6sO",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        400,
+        400
+      ],
+      "id": "4516d9be-1255-407b-9d6a-8ab5b7768c2a",
+      "name": "Buscar columnas1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pipelineId: $json.pipelines[0].id, locationId: $json.locationId, contactId: $('Datos1').last().json.contact_id, name: $('Datos1').last().json.Nombre_completo || $('Datos1').last().json.Nombre || $('Webhook').first().json.body.phone || 'Lead sin nombre', pipelineStageId: $json.nuevo_lead, status: 'open' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        768,
+        400
+      ],
+      "id": "b905aabe-cb09-429b-bce8-43d089b75b0c",
+      "name": "Buscar id_tarjeta1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3ef4c86a-0392-4d6b-a971-6f813e12adef",
+              "leftValue": "={{ Object.keys($json).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -160,
+        640
+      ],
+      "id": "152d7aff-a0a7-4120-a6f5-f8e4cac8c93c",
+      "name": "Existe?1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const agente = $('Agente Mariel').item.json.output;\nconst datos = $('Datos1').last().json;\nconst filaAnterior = $('AñadirColumna').last().json;\n\nconst mensajeCliente = datos.Mensaje || null;\n\nfunction normalizarPresupuesto(valor) {\n  if (!valor) return null;\n  const numeros = valor.match(/\\d[\\d.,]*/g);\n  if (!numeros || numeros.length === 0) return null;\n  const limpiar = (n) => parseFloat(n.replace(/,/g, \"\"));\n  const valores = numeros.map(limpiar).filter((n) => !isNaN(n));\n  if (valores.length === 0) return null;\n  if (valores.length === 1) return Math.round(valores[0]);\n  return Math.round((valores[0] + valores[1]) / 2);\n}\n\n// Si el agente deja un dato vacío, se conserva el que ya estaba guardado\n// --- Historial: registra la interacción de ESTE turno (cliente + agente) ---\nlet historial = [];\ntry {\n  historial = Array.isArray(filaAnterior.historial_conversacion)\n    ? filaAnterior.historial_conversacion\n    : JSON.parse(filaAnterior.historial_conversacion || \"[]\");\n} catch (e) {\n  historial = [];\n}\n\nhistorial.push({\n  cliente: mensajeCliente,\n  agente: agente.mensaje_para_cliente\n});\n\nhistorial = historial.slice(-3);\n\nconst update = {\n  nombre: agente.nombre || filaAnterior.nombre || datos.Nombre || null,\n  destino: agente.destino || filaAnterior.destino || null,\n  fecha: agente.fecha || filaAnterior.fecha_salida || null,\n  fecha_regreso: agente.fecha_regreso || filaAnterior.fecha_regreso || null,\n  Adultos: agente.adultos ? parseInt(agente.adultos, 10) : (filaAnterior.Adultos ?? null),\n  Niños: agente.ninos !== \"\" && agente.ninos != null ? parseInt(agente.ninos, 10) : (filaAnterior['Niños'] ?? null),\n  Edad_ninios: agente.edad_ninios || filaAnterior.Edad_ninios || null,\n  fechas_texto: agente.fechas_texto || filaAnterior.fechas_texto || null,\n  notas_ia: agente.notas || filaAnterior.notas_ia || null,\n  completo: agente.todos_los_datos_completos === true,\n  es_duda: agente.es_duda === true,\n  pregunta_duda: agente.pregunta_duda || null,\n  campo_decision: agente.campo_decision || null,\n  pregunta_anterior: agente.mensaje_para_cliente || null,\n  respuesta_anterior: mensajeCliente,\n  historial_conversacion: JSON.stringify(historial),\n  ult_mensaje: new Date().toISOString()\n};\n\n\n// ===== Red de seguridad (no depender solo del modelo) =====\nconst PERSONA = 'Mariel de RsViajes Hijar';\nconst esPrimer = !filaAnterior.contact_id;\nconst textoCliente = String(mensajeCliente || '');\n// 1) No aceptar fechas exactas nuevas si el cliente no mencionó una fecha en este mensaje\nconst mencionaFecha = /\\d{1,2}\\s*(de|al|a|\\/|-)\\s*\\d{0,2}|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|hoy|mañana|semana|puente|noche|d[ií]as?\\b|fin de/i.test(textoCliente);\nif (!filaAnterior.fecha_salida && update.fecha && !mencionaFecha) { update.fecha = filaAnterior.fecha_salida || null; update.fecha_regreso = filaAnterior.fecha_regreso || null; }\n// 1c) Tampoco cambiar fechas ya guardadas si el cliente no habló de fechas en este mensaje\nif (!mencionaFecha && !/\\b([1-9]|[12]\\d|3[01])\\b|primero|opci[oó]n/i.test(textoCliente)) { update.fecha = filaAnterior.fecha_salida || null; update.fecha_regreso = filaAnterior.fecha_regreso || null; }\n// 1d) Si el cliente dio días sin mes (ej. \"del 29 al 31\"), no se supone el mes: solo cuenta si el CLIENTE lo dijo\nconst MES_CLIENTE = /(\\d\\s*|\\b)(ene|feb|mar|abr|may|jun|jul|ago|sept?|oct|nov|dic)\\b|enero|febrero|marzo|abril|mayo|junio|julio|agosto|sept?iembre|octubre|noviembre|diciembre|\\d{1,2}\\s*[\\/-]\\s*\\d{1,2}|hoy|mañana|pasado mañana|semana|puente|quincena|fin de|pr[oó]xim|este mes|mes que viene|navidad|a[nñ]o nuevo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|este|esta/i;\nconst textosCliente = [textoCliente, ...historial.map(h => h.cliente || '')].join(' ');\nlet faltaMes = '';\nif (!filaAnterior.fecha_salida && update.fecha && !MES_CLIENTE.test(textosCliente)) {\n  update.fecha = null; update.fecha_regreso = null;\n  if (update.fechas_texto && !MES_CLIENTE.test(update.fechas_texto)) update.fechas_texto = filaAnterior.fechas_texto || null;\n  faltaMes = (textoCliente.match(/\\bdel?\\s+\\d{1,2}(\\s*(al|a|y|-)\\s*\\d{1,2})?/i) || textoCliente.match(/\\b\\d{1,2}\\s*(al|a|y|-)\\s*\\d{1,2}\\b/i) || textoCliente.match(/\\b\\d{1,2}\\b(?!\\s*(adult|niñ|person|noche|d[ií]a|a[nñ]o|hab|cuarto|pareja|menor|beb|mayor|pax|hora))/i) || [''])[0].trim();\n  if (faltaMes && !/^del?\\s/i.test(faltaMes)) faltaMes = (/\\d\\s*(al|a|y|-)\\s*\\d/.test(faltaMes) ? 'del ' : 'el ') + faltaMes;\n  if (faltaMes && !String(update.notas_ia || '').includes('falta el mes')) update.notas_ia = [update.notas_ia, `Días: ${faltaMes}, falta el mes`].filter(Boolean).join('. ');\n}\n// 1b) Fechas que no existen en el calendario (ej. 31 de noviembre): no se guardan y la IA vuelve a preguntar\nconst fechaExiste = (s) => { const m = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(String(s || '')); if (!m) return true;\n  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])); return d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3]; };\nif (!fechaExiste(update.fecha)) update.fecha = null;\nif (!fechaExiste(update.fecha_regreso)) update.fecha_regreso = null;\n// 2) Qué datos están resueltos (un \"no sé\" anotado cuenta como resuelto)\nconst notas = String(update.notas_ia || '').toLowerCase();\nconst num = (v) => v !== null && v !== undefined && v !== '' && !isNaN(v);\nconst r = {\n  destino: !!update.destino,\n  fechas: !!((update.fecha && update.fecha_regreso) || update.fechas_texto),\n  adultos: num(update.Adultos) || /adult/.test(notas),\n  ninos: num(update['Niños']) || /(niñ|menor)/.test(notas),\n};\nr.edades = !(Number(update['Niños']) > 0) || !!update.Edad_ninios || /edad/.test(notas);\nconst completoCalc = Object.values(r).every(Boolean);\nconst PREGUNTAS = {\n  destino: '¿A qué destino te gustaría viajar? 🏖️',\n  fechas: '¿Qué fechas tienes en mente para tu viaje? Si aún no lo sabes, no hay problema 😊',\n  adultos: '¿Cuántos adultos viajarán?',\n  ninos: '¿Viajan niños? Si es así, ¿cuántos?',\n  edades: '¿Qué edades tienen los niños?',\n};\nconst pendiente = Object.keys(r).find(k => !r[k]);\nlet mensaje = String(agente.mensaje_para_cliente || '');\n// 3) Texto roto (caracteres de control) → no se envía así\nconst roto = /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]/.test(mensaje);\n// 4) Pregunta por fechas cuando ya están resueltas → se cambia por el siguiente dato pendiente\nconst preguntaFechas = r.fechas && /\\?/.test(mensaje) && /(fecha|noches|cu[aá]ndo|regres|salir|salida)/i.test(mensaje.split(/[.!]\\s/).pop());\nif (completoCalc && !agente.todos_los_datos_completos) {\n  mensaje = '¡Perfecto! Con esto ya tengo lo necesario para preparar tu cotización 😊';\n} else if (roto || preguntaFechas || !mensaje.trim()) {\n  const saludo = esPrimer ? `¡Hola! Soy ${PERSONA} 😊 ` : (preguntaFechas ? '¡Gracias! ' : '');\n  mensaje = saludo + (pendiente ? PREGUNTAS[pendiente] : '¡Perfecto! Ya tengo lo necesario para preparar tu cotización 😊');\n}\n// 5) Días sin mes → se pregunta el mes (la IA a veces lo supone por las promos)\nif (faltaMes) mensaje = (esPrimer ? `¡Hola! Soy ${PERSONA} 😊 ` : '¡Perfecto! ') + `¿${faltaMes.charAt(0).toUpperCase() + faltaMes.slice(1)} de qué mes te gustaría viajar? 😊`;\nupdate.completo = (agente.todos_los_datos_completos === true || completoCalc) && !faltaMes;\n// 6) Nunca decir que no hay promociones: se quita esa frase y queda solo la parte positiva\nmensaje = mensaje.replace(/(actualmente\\s+|por (el )?momento\\s+|por ahora\\s+)?no (tenemos|contamos con|manejamos|hay) (ninguna |otras |más )?promoci[oó]n(es)?[^.!?,;]*[,;.!]?\\s*(pero\\s+)?/gi, '').replace(/\\s{2,}/g, ' ').trim();\nmensaje = mensaje.charAt(0).toUpperCase() + mensaje.slice(1);\n// 7) Rescate manual: si alguien escribió la respuesta en el formulario, se envía ese texto tal cual\nconst respuestaManual = String(($('Webhook').first().json.body || {}).respuesta_manual || '').trim();\nif (respuestaManual) mensaje = respuestaManual;\nupdate.pregunta_anterior = mensaje;\nif (historial.length) historial[historial.length - 1].agente = mensaje;\nupdate.historial_conversacion = JSON.stringify(historial);\n\nreturn [{ json: update }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        736
+      ],
+      "id": "0b7b09e4-3fb9-461e-b9cc-70aa93ad8bf7",
+      "name": "Parser de datos1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "RS-Hijar",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "contact_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Datos1').last().json.contact_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nombre",
+              "fieldValue": "={{ $json.nombre }}"
+            },
+            {
+              "fieldId": "destino",
+              "fieldValue": "={{ $json.destino }}"
+            },
+            {
+              "fieldId": "fecha_salida",
+              "fieldValue": "={{ $json.fecha }}"
+            },
+            {
+              "fieldId": "Adultos",
+              "fieldValue": "={{ $json.Adultos }}"
+            },
+            {
+              "fieldId": "Niños",
+              "fieldValue": "={{ $json[\"Niños\"] }}"
+            },
+            {
+              "fieldId": "Edad_ninios",
+              "fieldValue": "={{ $json.Edad_ninios }}"
+            },
+            {
+              "fieldId": "respuesta_anterior",
+              "fieldValue": "={{ $json.respuesta_anterior }}"
+            },
+            {
+              "fieldId": "pregunta_anterior",
+              "fieldValue": "={{ $json.pregunta_anterior }}"
+            },
+            {
+              "fieldId": "historial_conversacion",
+              "fieldValue": "={{ $json.historial_conversacion }}"
+            },
+            {
+              "fieldId": "fecha_regreso",
+              "fieldValue": "={{ $json.fecha_regreso }}"
+            },
+            {
+              "fieldId": "fechas_texto",
+              "fieldValue": "={{ $json.fechas_texto }}"
+            },
+            {
+              "fieldId": "notas_ia",
+              "fieldValue": "={{ $json.notas_ia }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        880
+      ],
+      "id": "b8e76774-3fe7-4cbc-bad2-ed395fd96110",
+      "name": "Update a row4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        464,
+        1040
+      ],
+      "id": "babbbce2-4433-4015-a5df-931aee51c5d7",
+      "name": "OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "W5zBaQ7k25sn9YQz",
+          "name": "RsViaje Independencia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"nombre\": {\n      \"type\": \"string\",\n      \"description\": \"nombre del cliente, vacío si no se ha extraído\"\n    },\n    \"destino\": {\n      \"type\": \"string\",\n      \"description\": \"destino del viaje mencionado por el cliente, vacío si no se ha extraído\"\n    },\n    \"fecha\": {\n      \"type\": \"string\",\n      \"description\": \"fecha de salida, formato ISO AAAA-MM-DD, vacío si no se extrajo\"\n    },\n    \"fecha_regreso\": {\n      \"type\": \"string\",\n      \"description\": \"fecha de regreso, formato ISO AAAA-MM-DD. Si el cliente da número de noches/días en vez de fecha exacta, calcúlala sumando a la fecha de salida. Vacío si no se extrajo ninguna de las dos formas\"\n    },\n    \"adultos\": {\n      \"type\": \"string\",\n      \"description\": \"número entero como texto, vacío si no se extrajo\"\n    },\n    \"ninos\": {\n      \"type\": \"string\",\n      \"description\": \"número entero como texto (puede ser '0'), vacío si no se extrajo\"\n    },\n    \"edad_ninios\": {\n      \"type\": \"string\",\n      \"description\": \"edades de los niños en texto libre, vacío si no aplica o no se extrajo\"\n    },\n    \"todos_los_datos_completos\": {\n      \"type\": \"boolean\"\n    },\n    \"es_duda\": {\n      \"type\": \"boolean\"\n    },\n    \"pregunta_duda\": {\n      \"type\": \"string\"\n    },\n    \"campo_decision\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"\",\n        \"enojado\",\n        \"humano\"\n      ],\n      \"description\": \"'' si la conversación es normal. 'enojado' si el cliente muestra molestia, frustración o queja clara. 'humano' si pide explícitamente hablar con una persona/asesor humano.\"\n    },\n    \"mensaje_para_cliente\": {\n      \"type\": \"string\",\n      \"description\": \"siguiente pregunta o confirmación a enviar\"\n    },\n    \"fechas_texto\": {\n      \"type\": \"string\",\n      \"description\": \"Fechas aproximadas tal como las dijo el cliente (ej. 'mediados de noviembre', 'Semana Santa') o 'sin fecha definida' si no sabe. Vacío si dio fechas exactas o aún no se ha hablado de fechas.\"\n    },\n    \"notas\": {\n      \"type\": \"string\",\n      \"description\": \"Datos que el cliente no sabe o dio aproximados (ej. 'adultos: 4 o 5', 'edades: no las dio', 'destino: busca recomendaciones'). Vacío si no hay.\"\n    }\n  },\n  \"required\": [\n    \"nombre\",\n    \"destino\",\n    \"fecha\",\n    \"fecha_regreso\",\n    \"adultos\",\n    \"ninos\",\n    \"edad_ninios\",\n    \"todos_los_datos_completos\",\n    \"es_duda\",\n    \"pregunta_duda\",\n    \"campo_decision\",\n    \"mensaje_para_cliente\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        1040
+      ],
+      "id": "b075b62c-b6a4-4ff0-a1a4-56e0063fe054",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8440e39f-f1ac-445f-bdde-a6f8b2c02b7a",
+              "leftValue": "={{ $json.completo }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1408,
+        976
+      ],
+      "id": "7035ee90-4b63-4b25-8cc1-b09532c7e3bd",
+      "name": "Completo?1"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Update a row4').item.json.id_opotunity }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"pipelineId\": \"GUvcGrI1qq62OcntR5br\",\n  \"pipelineStageId\": \"c2f34317-6a57-45a0-8fa1-08f956097324\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2912,
+        880
+      ],
+      "id": "ba59aebe-dff7-496b-b77d-bbeeffa9e724",
+      "name": "Mover a explorando opciones1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.campo_decision }}",
+                    "rightValue": "enojado",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "88bff6d5-95d2-4e69-b052-f80e09f70503"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "At_Personalizada"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "902cd78b-953a-46bf-bbc9-25a4eccfaa5a",
+                    "leftValue": "={{ $json.campo_decision }}",
+                    "rightValue": "humano",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "At_Humana"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        720
+      ],
+      "id": "acc3d4af-cba8-4ce2-b9fa-c9c587e1f4f2",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Update a row').last().json.id_opotunity }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"pipelineId\": \"GUvcGrI1qq62OcntR5br\",\n  \"pipelineStageId\": \"abd6520c-4e17-40e4-b8d0-564b6fa67b8e\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1600,
+        624
+      ],
+      "id": "91077daa-3874-416e-8180-961dbee6060b",
+      "name": "Mover aPersonalizada1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Canal por el que se contesta (valor exacto que exige el API de GHL).\n// Se toma del último mensaje del cliente; si no se conoce, de la plataforma del contacto.\n// Antes solo se reconocía \"whatsapp\"/\"facebook\"/\"instagram\": con \"whatsapp_coex\" o sin dato GHL rechazaba el envío (422).\nconst normalizar = (s) => {\n  s = String(s || '').toLowerCase();\n  if (s.includes('whatsapp')) return 'WhatsApp';\n  if (s.includes('instagram')) return 'IG';\n  if (s.includes('facebook') || s.includes('messenger') || s === 'fb') return 'FB';\n  return null;\n};\nlet origen = {};\ntry { origen = $('Origen del mensaje').first().json || {}; } catch (e) {}\nconst plataformaOriginal = $('Datos1').last().json.Plataforma;\nconst tipoParaGHL = normalizar(origen.canalTipo) || (origen.esWhatsApp ? 'WhatsApp' : null) || normalizar(plataformaOriginal) || 'WhatsApp';\n\nreturn {\n  json: {\n    ...items[0].json,\n    tipoParaGHL: tipoParaGHL\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        880
+      ],
+      "id": "4a677ae2-c154-49b2-b060-6e0951ed9d34",
+      "name": "Code in JavaScript9"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Rshijar",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -944,
+        640
+      ],
+      "id": "d337bcbd-c881-4388-99cc-643cc60a194b",
+      "name": "Webhook",
+      "webhookId": "435a4f06-e3f9-407a-9c2a-abd22b0084f1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8e6e3d36-2f13-4e8f-a01f-d7b83a3c773a",
+              "name": "pipelines[0].id",
+              "value": "={{ $json.pipelines[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "f7545ab8-c79d-4f8f-97c0-7ead37c6e7ab",
+              "name": "nuevo_lead",
+              "value": "={{ $json.pipelines[0].stages[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "4abb3653-0fde-4130-b8e7-2a485efea86a",
+              "name": "explorando_opciones",
+              "value": "={{ $json.pipelines[0].stages[1].id }}",
+              "type": "string"
+            },
+            {
+              "id": "33d5269e-62e8-4df5-9e69-041309ecb40e",
+              "name": "atpersonalizada",
+              "value": "={{ $json.pipelines[0].stages[2].id }}",
+              "type": "string"
+            },
+            {
+              "id": "4065ef9a-9c2e-45e5-a0c5-67100b9a8d8e",
+              "name": "locationId",
+              "value": "={{ $json.pipelines[0].locationId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        576,
+        400
+      ],
+      "id": "d876c10b-c451-4f93-abfe-a59a150e1b6f",
+      "name": "Datos2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "RS-Hijar",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "contact_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Datos1').last().json.contact_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nombre",
+              "fieldValue": "={{ $json.nombre }}"
+            },
+            {
+              "fieldId": "destino",
+              "fieldValue": "={{ $json.destino }}"
+            },
+            {
+              "fieldId": "fecha_salida",
+              "fieldValue": "={{ $json.fecha }}"
+            },
+            {
+              "fieldId": "Adultos",
+              "fieldValue": "={{ $json.Adultos }}"
+            },
+            {
+              "fieldId": "Niños",
+              "fieldValue": "={{ $json[\"Niños\"] }}"
+            },
+            {
+              "fieldId": "Edad_ninios",
+              "fieldValue": "={{ $json.Edad_ninios }}"
+            },
+            {
+              "fieldId": "respuesta_anterior",
+              "fieldValue": "={{ $json.respuesta_anterior }}"
+            },
+            {
+              "fieldId": "pregunta_anterior",
+              "fieldValue": "={{ $json.pregunta_anterior }}"
+            },
+            {
+              "fieldId": "historial_conversacion",
+              "fieldValue": "={{ $json.historial_conversacion }}"
+            },
+            {
+              "fieldId": "fecha_regreso",
+              "fieldValue": "={{ $json.fecha_regreso }}"
+            },
+            {
+              "fieldId": "fechas_texto",
+              "fieldValue": "={{ $json.fechas_texto }}"
+            },
+            {
+              "fieldId": "notas_ia",
+              "fieldValue": "={{ $json.notas_ia }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        624
+      ],
+      "id": "fa6cf1b3-6d93-45a8-89bd-713ad2e8e12e",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "RS-Hijar",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "contact_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Datos1').last().json.contact_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nombre",
+              "fieldValue": "={{ $json.nombre }}"
+            },
+            {
+              "fieldId": "destino",
+              "fieldValue": "={{ $json.destino }}"
+            },
+            {
+              "fieldId": "fecha_salida",
+              "fieldValue": "={{ $json.fecha }}"
+            },
+            {
+              "fieldId": "Adultos",
+              "fieldValue": "={{ $json.Adultos }}"
+            },
+            {
+              "fieldId": "Niños",
+              "fieldValue": "={{ $json[\"Niños\"] }}"
+            },
+            {
+              "fieldId": "Edad_ninios",
+              "fieldValue": "={{ $json.Edad_ninios }}"
+            },
+            {
+              "fieldId": "respuesta_anterior",
+              "fieldValue": "={{ $json.respuesta_anterior }}"
+            },
+            {
+              "fieldId": "pregunta_anterior",
+              "fieldValue": "={{ $json.pregunta_anterior }}"
+            },
+            {
+              "fieldId": "historial_conversacion",
+              "fieldValue": "={{ $json.historial_conversacion }}"
+            },
+            {
+              "fieldId": "fecha_regreso",
+              "fieldValue": "={{ $json.fecha_regreso }}"
+            },
+            {
+              "fieldId": "fechas_texto",
+              "fieldValue": "={{ $json.fechas_texto }}"
+            },
+            {
+              "fieldId": "notas_ia",
+              "fieldValue": "={{ $json.notas_ia }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        1152
+      ],
+      "id": "95846e20-f2ba-4c52-a007-aaa509729e21",
+      "name": "Update a row6",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5a51439b-75ba-4289-9237-32a2f8151d73",
+              "leftValue": "={{ $json.Urgente }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2288,
+        1152
+      ],
+      "id": "707ba733-ace6-4319-ade3-13e56a2211d0",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fechaStr = $('Parser de datos1').first().json.fecha;\n\n// Parseamos la fecha asumiendo formato DD/MM/YYYY (como \"12/08/2026\")\n// Si en algún caso llega en otro formato, ajusta el split de abajo\nfunction parsearFecha(str) {\n  if (!str) return null;\n  \n  // Intenta DD/MM/YYYY\n  const partes = str.split('/');\n  if (partes.length === 3) {\n    const [dia, mes, anio] = partes.map(p => parseInt(p, 10));\n    if (!isNaN(dia) && !isNaN(mes) && !isNaN(anio)) {\n      return new Date(anio, mes - 1, dia);\n    }\n  }\n  \n  // Fallback: intenta que JS lo parsee directo (ISO, etc.)\n  const fallback = new Date(str);\n  return isNaN(fallback.getTime()) ? null : fallback;\n}\n\nconst fechaViaje = parsearFecha(fechaStr);\nconst hoy = new Date();\nhoy.setHours(0, 0, 0, 0); // normaliza para comparar solo días completos\n\nlet urgente = false;\nlet diasFaltantes = null;\n\nif (fechaViaje) {\n  fechaViaje.setHours(0, 0, 0, 0);\n  const diffMs = fechaViaje.getTime() - hoy.getTime();\n  diasFaltantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));\n  urgente = diasFaltantes >= 0 && diasFaltantes < 15;\n}\n\nreturn [{\n  json: {\n    ...items[0].json,\n    Urgente: urgente,\n    diasFaltantes\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        1152
+      ],
+      "id": "6c06802a-ddae-4b13-9e49-cb7c45206052",
+      "name": "Code in JavaScript12"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias",
+          "mode": "list",
+          "cachedResultName": "CRM - RSViajes Hijar",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1024558928,
+          "mode": "list",
+          "cachedResultName": "4rto 2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit#gid=1024558928"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead": "={{ $json.contact_id }}",
+            "Atiende": "COMPLETO",
+            "Estado": "COMPLETO",
+            "Status": "COMPLETO",
+            "Destino": "={{ $json.destino }}",
+            "Fechas": "={{ $json.fecha_salida ? $json.fecha_salida + ' / ' + ($json.fecha_regreso || '') : ($json.fechas_texto || '') }}",
+            "Adultos": "={{ $json.Adultos }}",
+            "Menores": "={{ $json[\"Niños\"] }}",
+            "Edad Menores": "={{ $json.Edad_ninios }}",
+            "Observaciones": "={{ $json.notas_ia || '' }}"
+          },
+          "matchingColumns": [
+            "Lead"
+          ],
+          "schema": [
+            {
+              "id": "Atiende",
+              "displayName": "Atiende",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FechaContacto",
+              "displayName": "FechaContacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Lead",
+              "displayName": "Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Plataforma",
+              "displayName": "Plataforma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Destino",
+              "displayName": "Destino",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fechas",
+              "displayName": "Fechas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Adultos",
+              "displayName": "Adultos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Menores",
+              "displayName": "Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Edad Menores",
+              "displayName": "Edad Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Observaciones",
+              "displayName": "Observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1888,
+        1152
+      ],
+      "id": "48633667-1cb9-47a8-b9cf-bb3d94c541e8",
+      "name": "COMPLETO",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Update a row6').last().json.id_opotunity }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"pipelineId\": \"GUvcGrI1qq62OcntR5br\",\n  \"pipelineStageId\": \"3c415459-1969-434b-b0f5-ba6d9658afe2\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2576,
+        1056
+      ],
+      "id": "f24cb7ee-57b8-4f43-98a4-fa10158dd2d3",
+      "name": "Mover a COMPLETO",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Update a row6').last().json.id_opotunity }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"pipelineId\": \"GUvcGrI1qq62OcntR5br\",\n  \"pipelineStageId\": \"6d8f35a8-2e99-462a-9645-3295fb13db1e\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2576,
+        1216
+      ],
+      "id": "8f106700-2ad5-4415-8407-49a9b3962bc7",
+      "name": "Mover a URGENTE",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('Agente Mariel').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"yjxhqrWQzJvuH0WkdyJa\",\n  fecha: \"7LNYTbyGtTvZllf2aUzC\",\n  fecha_regreso: \"TK65HUxtn4ezBHfUr0WR\",\n  adultos: \"ItzxUFhljCQ1b0rHHi2f\",\n  ninos: \"OjkGnNkApRb619SkLAdN\",\n  edad_ninios: \"I33gtSyTGXCNshcFWzcU\"\n};\n\nconst contact_id = $('Update a row4').first().json.contact_id;\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\ncustomFields.push({ id: \"xn9ufQ9mPpXDys2BX7no\", fieldValue: contact_id });\n\nreturn [{ json: { customFields } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        880
+      ],
+      "id": "d90bf8dd-bbe9-4440-b310-3afd1648c9f3",
+      "name": "customFields_oportunity"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Update a row4').item.json.id_opotunity }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"customFields\": {{ JSON.stringify($json.customFields) }} }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2704,
+        880
+      ],
+      "id": "b1d51189-a33f-48ac-b5cc-4cf1070b3306",
+      "name": "Suscribir datos oportunity",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias",
+          "mode": "list",
+          "cachedResultName": "CRM - RSViajes Hijar",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1024558928,
+          "mode": "list",
+          "cachedResultName": "4rto 2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit#gid=1024558928"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Atiende": "LUCIA",
+            "Estado": "LUCIA",
+            "Status": "RECOP. DATOS",
+            "FechaContacto": "={{ $now.setZone('America/Mexico_City').toFormat(\"yyyy-MM-dd HH:mm:ss\") }}",
+            "Lead": "={{ $('Create a row').item.json.contact_id }}",
+            "Usuario": "={{ $('Webhook').last().json.body.full_name }}",
+            "Nombre": "={{ $('Create a row').last().json.nombre }}",
+            "Plataforma": "={{ $('Datos1').last().json.Plataforma }}",
+            "Telefono": "={{ $('Webhook').last().json.body.phone }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Atiende",
+              "displayName": "Atiende",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FechaContacto",
+              "displayName": "FechaContacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead",
+              "displayName": "Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Plataforma",
+              "displayName": "Plataforma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Destino",
+              "displayName": "Destino",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fechas",
+              "displayName": "Fechas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Adultos",
+              "displayName": "Adultos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Menores",
+              "displayName": "Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Edad Menores",
+              "displayName": "Edad Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Observaciones",
+              "displayName": "Observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2224,
+        400
+      ],
+      "id": "0479f953-95de-4c42-8293-15a039ff4535",
+      "name": "NuevoLead1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Datos1').last().json.contact_id }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"tags\": [\"seg_entrante\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2416,
+        400
+      ],
+      "id": "42f9e72e-4c3f-434b-87c3-8d3d9bc009c6",
+      "name": "Añadir_tag_entrante1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "RS-Hijar",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "created_at",
+              "fieldValue": "={{ $now.setZone('America/Mexico_City').toISO() }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('Datos1').item.json.contact_id }}"
+            },
+            {
+              "fieldId": "id_opotunity",
+              "fieldValue": "={{ $json.opportunity.id }}"
+            },
+            {
+              "fieldId": "nombre",
+              "fieldValue": "={{ $('Datos1').item.json.Nombre }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        400
+      ],
+      "id": "3dbb0b18-356a-49c3-9f46-2fd5c4deb38b",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Buscar id_tarjeta1').item.json.opportunity.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"pipelineId\": \"{{ $('Datos2').item.json.pipelines[0].id }}\",\n  \"pipelineStageId\": \"{{ $('Datos2').item.json.nuevo_lead }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2000,
+        400
+      ],
+      "id": "65636ec3-8281-4167-8a18-9a2aec57a629",
+      "name": "Mover a nuevo lead",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Canal por el que se contesta (valor exacto que exige el API de GHL).\n// Se toma del último mensaje del cliente; si no se conoce, de la plataforma del contacto.\n// Antes solo se reconocía \"whatsapp\"/\"facebook\"/\"instagram\": con \"whatsapp_coex\" o sin dato GHL rechazaba el envío (422).\nconst normalizar = (s) => {\n  s = String(s || '').toLowerCase();\n  if (s.includes('whatsapp')) return 'WhatsApp';\n  if (s.includes('instagram')) return 'IG';\n  if (s.includes('facebook') || s.includes('messenger') || s === 'fb') return 'FB';\n  return null;\n};\nlet origen = {};\ntry { origen = $('Origen del mensaje').first().json || {}; } catch (e) {}\nconst plataformaOriginal = $('Datos1').last().json.Plataforma;\nconst tipoParaGHL = normalizar(origen.canalTipo) || (origen.esWhatsApp ? 'WhatsApp' : null) || normalizar(plataformaOriginal) || 'WhatsApp';\n\nreturn {\n  json: {\n    ...items[0].json,\n    tipoParaGHL: tipoParaGHL\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        400
+      ],
+      "id": "76e5bc04-4b8e-4715-b5e9-582cf9d336e5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Create a row').last().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"XsczmxPNoUQ0wlUguFo3\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2800,
+        400
+      ],
+      "id": "378a833c-1606-471e-8f31-734086547bb0",
+      "name": "Suscribir datos1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('Agente Mariel').first().json.output;\n\nconst fieldIdsContacto = {\n  destino: \"k18GpPVDDB8YjA6HdkgQ\",\n  fecha: \"hhdawp3kHNnQToyuzpXh\",\n  fecha_regreso: \"1gthRdQu1XpQEK5yF2lM\",\n  adultos: \"YEyhwGZoGDbaGuxiEHHC\",\n  ninos: \"9OEpPclHBvjj2N1TZBZN\",\n  edad_ninios: \"irGZGPZVR7TCRplcoDd0\"\n};\n\nconst contact_id = $('Update a row4').first().json.contact_id;\n\n// Si no dio fechas exactas, guarda las aproximadas en el campo de fecha (es de texto)\nif (!output.fecha && output.fechas_texto) output.fecha = output.fechas_texto;\n\nconst customFields = Object.entries(fieldIdsContacto)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\n// Agrega el propio contact_id como un custom field más\ncustomFields.push({ id: \"zEGjwDVRXCJhmyGCMDd7\", fieldValue: contact_id });\n\nreturn [{ json: { contact_id, customFields } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3312,
+        880
+      ],
+      "id": "91760ce0-02ee-45a6-8c9e-63e5755b3c1b",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Update a row4').last().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customFields\": {{ JSON.stringify($json.customFields) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3504,
+        880
+      ],
+      "id": "4c20d86c-e0e4-49d4-9bbd-55fd3fb9890e",
+      "name": "Suscribir datos contact1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Create a row').last().json.id_opotunity }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"eJzJ2i8rjqDgx6F20pFZ\",\n      \"value\": \"{{ $('Code in JavaScript').last().json.tipoParaGHL }}\"\n    },\n    {\n      \"id\": \"xn9ufQ9mPpXDys2BX7no\",\n      \"value\": \"{{ $('Datos1').last().json.contact_id }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2608,
+        400
+      ],
+      "id": "e265acbb-b624-48a9-b47e-b778c9c582b9",
+      "name": "Suscribir plataforma1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Cliente: {{ $('Datos1').last().json.Nombre }}\nMensaje del cliente: {{ $('Datos1').last().json.Mensaje }}\nFecha y hora de hoy: {{ $now }}\n\nNombre guardado: {{ $('AñadirColumna').last().json.nombre || $('Datos1').last().json.Nombre }}\nDestino guardado: {{ $('AñadirColumna').last().json.destino }}\nFecha de salida guardada: {{ $('AñadirColumna').last().json.fecha_salida }}\nFecha de regreso guardada: {{ $('AñadirColumna').last().json.fecha_regreso }}\nAdultos guardados: {{ $('AñadirColumna').last().json.Adultos }}\nNiños guardados: {{ $('AñadirColumna').last().json.Niños }}\nEdad de los niños guardada: {{ $('AñadirColumna').last().json.Edad_ninios }}\nFechas aproximadas guardadas: {{ $('AñadirColumna').last().json.fechas_texto }}\nNotas guardadas (datos que no sabe o aproximados): {{ $('AñadirColumna').last().json.notas_ia }}\n\nPregunta anterior del agente: {{ $('AñadirColumna').last().json.pregunta_anterior }}\nRespuesta del cliente a esa pregunta: {{ $('Datos1').last().json.Mensaje }}\nHistorial de las últimas 3 interacciones: {{ $('AñadirColumna').last().json.historial_conversacion }}\n\n¿Es el primer mensaje del cliente?: {{ $('Promo del anuncio').last().json.es_primer_mensaje ? 'SÍ' : 'NO' }}\nPromo del anuncio por el que llegó: {{ $('Promo del anuncio').last().json.promo_anuncio }}\nDestino que le interesa al cliente: {{ $('Promo del anuncio').last().json.destino_interes }}\nOtras promos del mismo destino: {{ $('Promo del anuncio').last().json.promos_mismo_destino }}\nOtros destinos con promociones (solo nombres): {{ $('Promo del anuncio').last().json.otros_destinos }}\nDetalle de promos de otros destinos (úsalo SOLO si el cliente pregunta por uno de esos destinos): {{ $('Promo del anuncio').last().json.promos_otros_destinos }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=## ROL\nEres la agente de \"Rs Viajes Hijar\" llamada Mariel, una agencia de viajes. Conversas con el cliente para completar los datos de su viaje: destino, fecha de salida, fecha de regreso, cantidad de adultos, cantidad de niños (y sus edades si aplica). No agendas ni confirmas nada — solo extraes y validas estos datos.\n\n## FUENTE DE VERDAD\nLos campos \"guardados\" que recibes son la única fuente de verdad de qué ya se sabe. El \"historial de las últimas 3 interacciones\" es solo contexto de apoyo para mantener continuidad y tono natural — nunca lo uses para decidir qué avanzar o repetir, eso lo decides únicamente con los campos guardados y la pregunta/respuesta anterior.\n\nDirección: C. Hidalgo 181, Centro, La Piedad de Cabadas, Mich.\n\n## PROMOCIONES\n- \"Promo del anuncio\" es la promo del anuncio de Meta por el que llegó el cliente (\"ninguna\" si no vino de un anuncio con promo).\n- Si el cliente pregunta por la promo, el anuncio, el precio, qué incluye o si sigue disponible (en cualquier mensaje, también en el primero), SIEMPRE respóndele con la \"Promo del anuncio\": hotel/destino, noches, plan y fechas en que aplica (el precio solo si viene en los datos), y pregúntale si quiere cotizar esa promo o prefiere otro destino. Si no pregunta por ella, no hace falta mencionarla.\n- Si el cliente confirma que le interesa la promo, puedes tomar el destino de la promo como destino. NUNCA tomes de la promo las fechas, el número de adultos ni de niños: esos datos solo cuentan si el cliente los dice con sus palabras. Pregúntaselos (las fechas deben caer dentro de las fechas en que aplica la promo; si no, avísale amablemente).\n- Si el cliente pregunta qué otras promociones tienen, qué opciones hay o por promociones en general:\n  1) Aunque pregunte por un mes o en general (\"¿qué tienen para diciembre?\"), primero ofrécele SOLO las promociones del destino que le interesa: la \"Promo del anuncio\" (si la hay) y las de \"Otras promos del mismo destino\". Menciona hotel, plan y fechas en que aplica cada una (precio solo si viene en los datos). Si una promo trae \"flyer\", comparte ese link para que vea los detalles.\n  2) Después, en UNA frase corta, menciónale que también manejamos promociones en otros destinos usando solo los nombres de \"Otros destinos con promociones\" (ej. \"Y si te interesa, también tenemos promociones en Europa y Puerto Vallarta 😊\"). NO des hoteles, fechas, precios ni detalles de esos otros destinos.\n     Si el cliente pregunta expresamente por uno de esos destinos (ej. \"¿y de Europa qué tienen?\") o por un tipo de viaje que encaja (ej. \"algo de playa\"), entonces sí dale el detalle de esas promos usando \"Detalle de promos de otros destinos\", con el mismo formato y la misma aclaración de disponibilidad. No le repitas la lista que ya le diste.\n  3) SIEMPRE aclara que todas las promociones están sujetas a disponibilidad y que tu asesor de viajes te confirmará disponibilidad y precio al cotizar.\n  4) Si todavía no hay \"Destino que le interesa\", menciona solo los nombres de los destinos con promociones y pregúntale cuál le interesa, en positivo (ej. \"¡Claro! Tenemos promociones en Ixtapa, Puerto Vallarta y Europa; todas están sujetas a disponibilidad y tu asesor de viajes te confirmará disponibilidad y precio al cotizar 😊 ¿Cuál te interesa?\"). Nunca digas \"no tenemos promociones para…\".\n- Cada vez que ofrezcas o describas una promoción, aclara en pocas palabras que está sujeta a disponibilidad y que tu asesor de viajes te confirmará disponibilidad y precio al cotizar. Usa esa frase tal cual: \"tu asesor de viajes te confirmará disponibilidad y precio al cotizar\".\n- Si las fechas del cliente quedan fuera de las fechas en que aplica la promo, NO le ofrezcas cotizar esa promo en esas fechas. Explícale amablemente hasta cuándo aplica y que, para sus fechas, su asesor de viajes le cotiza con la tarifa vigente (en temporada vacacional el precio puede variar), sujeto a disponibilidad. Toma sus fechas aproximadas como resueltas y sigue con el siguiente dato pendiente. Respeta SIEMPRE las fechas que quiere el cliente: nunca le propongas cambiarlas para que entren en la promo ni des por hecho otras fechas. Ejemplo: \"La promo de Park Royal aplica hasta el 11 de diciembre 😊 Para la tercera o cuarta semana de diciembre tu asesor de viajes te confirmará disponibilidad y precio al cotizar; al ser temporada vacacional el precio puede variar. ¿Cuántos adultos viajarían?\".\n- No repitas en cada mensaje \"¿quieres que te cotice esta promo o prefieres otro destino?\": pregúntalo solo una vez; si el cliente ya respondió o sigue dando datos, continúa con el siguiente dato pendiente.\n  Luego continúa pidiendo el siguiente dato pendiente. No repitas la misma pregunta que hiciste en tu mensaje anterior.\n- Si \"Otros destinos con promociones\" es \"ninguno\" y el cliente pregunta por otros lugares, NO digas \"solo tenemos promociones en…\" ni \"no tenemos promociones en otros destinos\" ni ninguna frase con \"no tenemos\": no menciones que faltan promociones. Dile en positivo que con gusto su asesor de viajes le cotiza el destino que prefiera (ej. \"¡Claro! Dime a dónde te gustaría ir y tu asesor de viajes te cotiza con gusto; te confirmará disponibilidad y precio 😊\") y sigue con el siguiente dato pendiente.\n- Si no hay ninguna promo (todo dice \"ninguna\"/\"ninguno\"), dile que con gusto su asesor de viajes le comparte las promociones disponibles para sus fechas y sigue pidiendo los datos.\n- Usa únicamente la información de promos que recibes; nunca la completes ni la inventes.\n- NUNCA digas que no hay promociones, que una promo no está disponible, que no la tienes o que no tienes información de ella (aunque \"Promo del anuncio\" y \"Otras promos vigentes\" sean \"ninguna\"). Tampoco ofrezcas \"otro destino\" en su lugar.\n- Si el cliente menciona una promo, hotel o anuncio que NO está en la información que recibes: responde con entusiasmo que con gusto le ayudas con esa promoción (ej. \"¡Claro! Con gusto te ayudo con la promoción de Park Royal 😊\"), toma esa promo/hotel como su destino tal cual lo dice (ej. \"Promo Park Royal\") y continúa la conversación normal pidiendo el siguiente dato pendiente (fechas, adultos, niños). No inventes precios, fechas, qué incluye ni condiciones. Si pregunta el precio o qué incluye esa promo, dile que su asesor de viajes le comparte el precio exacto y lo que incluye al cotizar con sus fechas y personas, y pide el siguiente dato pendiente. Ejemplo: \"¡Claro! Tu asesor de viajes te comparte el precio exacto y todo lo que incluye la promo de Park Royal en cuanto tenga tus datos 😊 ¿En qué fechas te gustaría viajar?\". Nunca digas lo que incluye (hotel, noches, alimentos, vuelo…) si no viene en los datos de promos, aunque lo hayas dicho antes en la conversación.\n\n\n## REGLA DE ORO (evitar repetir preguntas)\n0. Revisa \"Pregunta anterior del agente\" y \"Respuesta del cliente a esa pregunta\". Si esa respuesta existe y contesta con claridad esa pregunta, NO la repitas bajo ninguna circunstancia — continúa con el siguiente dato pendiente. Solo repítela (reformulada, no idéntica) si la respuesta anterior fue vacía o ambigua, y como máximo UNA vez (ver NO INSISTIR).\n1. Solo pregunta por los datos que estén vacíos en \"guardados\". Si un campo ya tiene valor, no lo cuestiones ni lo repitas, salvo que el cliente lo mencione para cambiarlo.\n2. Si \"¿Es el primer mensaje del cliente?\" es SÍ, mensaje_para_cliente DEBE empezar con un saludo y tu presentación, por ejemplo \"¡Hola {nombre}! Soy Mariel de RsViajes Hijar 😊\" (usa su nombre solo si parece un nombre real; si no, saluda sin nombre). Después responde de forma breve a lo que escribió y termina con UNA sola pregunta. Si es NO, no vuelvas a saludar.\n\n## NO INSISTIR (muy importante)\n- Cada dato se pregunta como máximo DOS veces en toda la conversación (la pregunta y una sola repetición reformulada). Usa \"Pregunta anterior del agente\" y el historial para saber si ya lo preguntaste.\n- Si el cliente dice que no sabe, que aún no lo define, lo evade o vuelve a no contestarlo, acéptalo con amabilidad (ej. \"¡Sin problema! Tu asesor de viajes te ayuda a definirlo\"), anótalo y pasa al siguiente dato:\n  · Fechas → fechas_texto = \"sin fecha definida\".\n  · Destino → destino = \"Por definir (busca recomendaciones)\".\n  · Adultos, niños o edades → déjalo vacío y anótalo en notas (ej. \"edades: no las dio\").\n- Nunca vuelvas a preguntar un dato que ya tenga valor, que esté en \"Fechas aproximadas guardadas\" o que aparezca en \"Notas guardadas\".\n- Copia siempre en fechas_texto y notas lo que ya estaba guardado, agregando lo nuevo.\n\n## EXTRACCIÓN TOTAL (no limitarse a la pregunta activa)\nEl cliente puede dar varios datos en un solo mensaje, aunque solo se le haya preguntado uno. SIEMPRE revisa el mensaje completo del cliente y extrae TODOS los datos que mencione con claridad, sin importar cuál fue la última pregunta hecha. Por ejemplo, si preguntaste la fecha de salida y el cliente responde \"del 15 al 18 de agosto\", debes extraer tanto fecha (15 de agosto) como fecha_regreso (18 de agosto) en el mismo turno — nunca vuelvas a preguntar un dato que el cliente ya dio, aunque haya venido \"adelantado\".\n\n## DETECCIÓN DE ESTADO DEL CLIENTE\nEvalúa el tono del mensaje del cliente y clasifica en campo_decision:\n- \"humano\": si pide explícitamente hablar con una persona, un asesor, un agente humano, o dice cosas como \"quiero hablar con alguien\", \"pásame con un agente\", \"no quiero hablar con un bot\".\n- \"enojado\": si el mensaje muestra molestia, frustración o queja clara (tono agresivo, repetir la misma queja, insultos, signos de exasperación como mayúsculas sostenidas o exclamaciones con tono negativo).\n- \"\" (vacío): cualquier otro caso.\nEsta clasificación no cambia el resto de tu comportamiento — sigue extrayendo y preguntando los datos normalmente, solo reporta el campo.\n\n## ORDEN DE LAS PREGUNTAS (un dato a la vez)\n1. NUNCA preguntes el nombre del cliente: se lo pide otra automatización cuando sus datos están completos. Si el cliente lo dice por su cuenta, guárdalo en \"nombre\"; si no, déjalo vacío. Empieza siempre por el destino.\n2. Destino.\n3. Fecha de salida — normalízala SIEMPRE a formato ISO AAAA-MM-DD usando la fecha de hoy como referencia para calcular cualquier fecha relativa (\"en dos semanas\", \"el próximo puente\"). Si da una fecha aproximada (un mes, una quincena, \"Semana Santa\", \"vacaciones de diciembre\"), NO le pidas la fecha exacta: guárdala tal cual en fechas_texto y deja fecha/fecha_regreso vacíos (llénalos solo si el día es claro). Si no sabe, usa fechas_texto = \"sin fecha definida\".\n   MES OBLIGATORIO: si el cliente da solo días sin decir el mes (ej. \"del 29 al 31\", \"el 15\", \"del 3 al 7\") y el CLIENTE no ha dicho el mes con sus palabras antes en la conversación ni está en lo guardado, NO supongas el mes (ni el actual, ni el siguiente, ni el de una promo o anuncio: que la promo o tus mensajes mencionen un mes NO cuenta como que el cliente lo dijo) y NO llenes fecha, fecha_regreso ni fechas_texto. Pregúntale el mes de forma natural, recordándole sus días, ej.: \"¡Perfecto! ¿Del 29 al 31 de qué mes te gustaría viajar? 😊\". Anota los días en notas (ej. \"Días: del 29 al 31, falta el mes\") para no volver a preguntarlos y, cuando diga el mes, arma las fechas completas. Cuando armes la fecha, revisa que el día exista en ese mes (abril, junio, septiembre y noviembre tienen 30 días; febrero 28, o 29 en año bisiesto). Si no existe (ej. \"del 29 al 31 de noviembre\"), no la inventes ni la cambies: pregúntale amablemente, ej.: \"Noviembre tiene 30 días 😊 ¿Tu regreso sería el 30 de noviembre o el 1 de diciembre?\".\n4. Fecha de regreso. El cliente puede darla de dos formas:\n   a) Como fecha explícita (\"regreso el 20\").\n   b) Como duración (\"5 noches\", \"una semana\", \"4 días\"). En ese caso CALCULA tú misma fecha_regreso sumando esa duración a fecha de salida — no le pidas al cliente que la convierta.\n   IMPORTANTE: si ya hay \"Fechas aproximadas guardadas\" (o fechas_texto tiene valor), las fechas YA están resueltas: NO preguntes salida, regreso ni cuántas noches, y NUNCA conviertas una fecha aproximada en fechas exactas. fecha y fecha_regreso solo se llenan con días que el cliente dijo con sus palabras.\n   Si no dio ninguna de las dos formas, pregunta directamente \"¿qué fecha regresas?\" o \"¿cuántas noches/días te quedarás?\".\n5. Cantidad de adultos — número entero mayor a 0. Si da un rango (\"4 o 5\"), usa el número mayor y anota el rango en notas; no vuelvas a preguntar.\n6. Cantidad de niños — número entero, puede ser 0.\n7. Si niños es mayor a 0, pregunta las edades de los niños (formato libre, ej. \"5 y 8 años\"). Si niños es 0, no preguntes esto y deja ese campo vacío.\n\n## REGLAS DURAS\n- Nunca inventes un dato que el cliente no haya dicho con claridad. Si dudas, marca el campo como no extraído en vez de adivinar.\n- Nunca calcules fechas relativas sin usar la fecha de hoy provista.\n- Si el mensaje del cliente es una pregunta o duda, márcala con es_duda=true y pregunta_duda. Respóndela brevemente SOLO si la respuesta está en la información de promos o en los datos de la agencia de este mensaje; si no está, dile que su asesor de viajes se lo confirma en la cotización. Nunca inventes precios, fechas, disponibilidad ni condiciones. Después continúa con el siguiente dato pendiente.\n- todos_los_datos_completos es true cuando cada uno de estos datos está resuelto: destino (con valor, aunque sea \"Por definir\"); fechas (fecha y fecha_regreso exactas, O fechas_texto con fechas aproximadas o \"sin fecha definida\"); adultos (número, o anotado en notas que no lo sabe); niños (número, puede ser 0, o anotado en notas); y si niños es mayor a 0, sus edades (o anotado en notas que no las dio). Un dato resuelto con \"no sé\" cuenta como resuelto: no retengas al cliente por eso. Las fechas NO están resueltas si el cliente dio días sin mes: en ese caso todos_los_datos_completos es false hasta que diga el mes.\n- Cuando todos_los_datos_completos sea true, el mensaje_para_cliente debe ser una confirmación breve de que ya tienes todo lo necesario para preparar su cotización — no repitas ninguna pregunta.\n- Usa \"\" (string vacío) para cualquier campo no extraído todavía — nunca null ni omitas el campo.\n- Responde ÚNICAMENTE en el formato del output parser, sin texto adicional."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        644,
+        736
+      ],
+      "id": "f0d198b8-9145-4455-a049-ccba1bc81f79",
+      "name": "Agente Mariel",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('Agente Mariel').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"yjxhqrWQzJvuH0WkdyJa\",\n  fecha: \"7LNYTbyGtTvZllf2aUzC\",\n  fecha_regreso: \"TK65HUxtn4ezBHfUr0WR\",\n  adultos: \"ItzxUFhljCQ1b0rHHi2f\",\n  ninos: \"OjkGnNkApRb619SkLAdN\",\n  edad_ninios: \"I33gtSyTGXCNshcFWzcU\"\n};\n\nconst contact_id = $('Update a row6').first().json.contact_id;\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\ncustomFields.push({ id: \"xn9ufQ9mPpXDys2BX7no\", fieldValue: contact_id });\n\nreturn [{ json: { customFields } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2816,
+        1056
+      ],
+      "id": "1d3002e5-391c-49f3-b9a5-f8e25fe60b87",
+      "name": "customFields_oportunity1"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Update a row6').item.json.id_opotunity }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"customFields\": {{ JSON.stringify($json.customFields) }} }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3008,
+        1056
+      ],
+      "id": "af85474b-1604-4ef1-baea-52585f6e720e",
+      "name": "Suscribir datos oportunity1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('Agente Mariel').first().json.output;\n\nconst fieldIdsOportunidad = {\n  destino: \"yjxhqrWQzJvuH0WkdyJa\",\n  fecha: \"7LNYTbyGtTvZllf2aUzC\",\n  fecha_regreso: \"TK65HUxtn4ezBHfUr0WR\",\n  adultos: \"ItzxUFhljCQ1b0rHHi2f\",\n  ninos: \"OjkGnNkApRb619SkLAdN\",\n  edad_ninios: \"I33gtSyTGXCNshcFWzcU\"\n};\n\nconst contact_id = $('Update a row6').first().json.contact_id;\n\nconst customFields = Object.entries(fieldIdsOportunidad)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\ncustomFields.push({ id: \"xn9ufQ9mPpXDys2BX7no\", fieldValue: contact_id });\n\nreturn [{ json: { customFields } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2816,
+        1216
+      ],
+      "id": "94f57c43-a462-45e0-bd7a-3d93cb6e6d7f",
+      "name": "customFields_oportunity2"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $('Update a row6').item.json.id_opotunity }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"customFields\": {{ JSON.stringify($json.customFields) }} }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3008,
+        1216
+      ],
+      "id": "0f75a98a-10d5-4972-8dce-17501af612ac",
+      "name": "Suscribir datos oportunity2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('Agente Mariel').first().json.output;\n\nconst fieldIdsContacto = {\n  destino: \"k18GpPVDDB8YjA6HdkgQ\",\n  fecha: \"hhdawp3kHNnQToyuzpXh\",\n  fecha_regreso: \"1gthRdQu1XpQEK5yF2lM\",\n  adultos: \"YEyhwGZoGDbaGuxiEHHC\",\n  ninos: \"9OEpPclHBvjj2N1TZBZN\",\n  edad_ninios: \"irGZGPZVR7TCRplcoDd0\"\n};\n\nconst contact_id = $('Update a row6').first().json.contact_id;\n\n// Si no dio fechas exactas, guarda las aproximadas en el campo de fecha (es de texto)\nif (!output.fecha && output.fechas_texto) output.fecha = output.fechas_texto;\n\nconst customFields = Object.entries(fieldIdsContacto)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\n// Agrega el propio contact_id como un custom field más\ncustomFields.push({ id: \"zEGjwDVRXCJhmyGCMDd7\", fieldValue: contact_id });\n\nreturn [{ json: { contact_id, customFields } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        1056
+      ],
+      "id": "157c8ee2-9bd3-4664-80fc-878f5211bfde",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Update a row6').last().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customFields\": {{ JSON.stringify($json.customFields) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3408,
+        1056
+      ],
+      "id": "90387e9b-cdd3-40dd-8d8d-aeababa1578a",
+      "name": "Suscribir datos contact",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('Agente Mariel').first().json.output;\n\nconst fieldIdsContacto = {\n  destino: \"k18GpPVDDB8YjA6HdkgQ\",\n  fecha: \"hhdawp3kHNnQToyuzpXh\",\n  fecha_regreso: \"1gthRdQu1XpQEK5yF2lM\",\n  adultos: \"YEyhwGZoGDbaGuxiEHHC\",\n  ninos: \"9OEpPclHBvjj2N1TZBZN\",\n  edad_ninios: \"irGZGPZVR7TCRplcoDd0\"\n};\n\nconst contact_id = $('Update a row6').first().json.contact_id;\n\n// Si no dio fechas exactas, guarda las aproximadas en el campo de fecha (es de texto)\nif (!output.fecha && output.fechas_texto) output.fecha = output.fechas_texto;\n\nconst customFields = Object.entries(fieldIdsContacto)\n  .filter(([key]) => output[key] && output[key] !== \"\")\n  .map(([key, id]) => ({ id, fieldValue: output[key] }));\n\n// Agrega el propio contact_id como un custom field más\ncustomFields.push({ id: \"zEGjwDVRXCJhmyGCMDd7\", fieldValue: contact_id });\n\nreturn [{ json: { contact_id, customFields } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        1216
+      ],
+      "id": "ce23106e-f60f-4313-9d90-8d8c79aca9b8",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Update a row6').last().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customFields\": {{ JSON.stringify($json.customFields) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3408,
+        1216
+      ],
+      "id": "a924defe-2f0d-4162-b15e-098a50360da2",
+      "name": "Suscribir datos contact2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "RSHijar_promos_vigentes",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        204,
+        736
+      ],
+      "id": "80fdd57b-d356-4351-afd3-a28c5e70f0f3",
+      "name": "Buscar promos",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el contexto de promos para el agente (una sola salida)\n// Regla: se detallan las promos del destino que le interesa al cliente; de los demás destinos solo se dan los nombres.\nconst adId = String($('Datos1').last().json.adId || '').trim();\nconst promos = $('Buscar promos').all().map(i => i.json).filter(p => p && p.id);\nconst fila = $('AñadirColumna').last().json || {};\nconst esPrimerMensaje = !fila.contact_id;\n\nconst resumir = (p) => ({\n  titulo: p.titulo, destino: p.destino, hotel: p.hotel, plan: p.plan, noches: p.noches,\n  viaje_desde: p.viaje_desde, viaje_hasta: p.viaje_hasta, dias_aplica: p.dias_aplica,\n  vigencia_hasta: p.vigencia_hasta, precio_desde: p.precio_desde, precio_detalle: p.precio_detalle,\n  precios_menores: p.precios_menores, incluye: p.incluye, no_incluye: p.no_incluye,\n  condiciones: p.condiciones, descripcion: p.descripcion, flyer: p.imagen_url || null\n});\nconst norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();\nconst bonito = (s) => String(s || '').toLowerCase().replace(/(^|\\s)\\S/g, c => c.toUpperCase());\n\nconst promoAnuncio = adId ? promos.find(p => (p.ad_ids || []).map(String).includes(adId)) : null;\n// Las promos de prueba (id \"prueba-...\") solo se muestran a quien llega por su anuncio\nconst publicas = promos.filter(p => !String(p.id).startsWith('prueba-'));\n\n// Destino que le interesa: el de la promo del anuncio, o el destino guardado si coincide con alguna promo\nconst destinos = [...new Set(publicas.map(p => norm(p.destino)).filter(Boolean))];\nconst guardado = norm(fila.destino);\nconst destinoInteres = promoAnuncio ? norm(promoAnuncio.destino)\n  : (destinos.find(d => guardado && (guardado.includes(d) || d.includes(guardado))) || '');\n\nconst mismoDestino = publicas.filter(p => destinoInteres && norm(p.destino) === destinoInteres && (!promoAnuncio || p.id !== promoAnuncio.id));\nconst promosOtros = publicas.filter(p => norm(p.destino) !== destinoInteres);\nconst otrosDestinos = [...new Set(publicas.filter(p => norm(p.destino) !== destinoInteres).map(p => bonito(p.destino)).filter(Boolean))];\n\nreturn [{ json: {\n  es_primer_mensaje: esPrimerMensaje,\n  ad_id: adId,\n  promo_id: promoAnuncio ? promoAnuncio.id : '',\n  promo_anuncio: promoAnuncio ? JSON.stringify(resumir(promoAnuncio)) : 'ninguna',\n  destino_interes: destinoInteres ? bonito(destinoInteres) : 'ninguno todavía',\n  promos_mismo_destino: mismoDestino.length ? JSON.stringify(mismoDestino.map(resumir)) : 'ninguna',\n  otros_destinos: otrosDestinos.length ? otrosDestinos.join(', ') : 'ninguno',\n  promos_otros_destinos: promosOtros.length ? JSON.stringify(promosOtros.map(resumir)) : 'ninguna',\n  // compatibilidad con nodos que aún lean este campo\n  otras_promos: mismoDestino.length ? JSON.stringify(mismoDestino.map(resumir)) : 'ninguna'\n} }];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        424,
+        736
+      ],
+      "id": "cabcbed2-dbb8-4453-817b-0d3375520000",
+      "name": "Promo del anuncio"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "21835e8f-9e50-4b20-9bd2-f24610df641b",
+              "leftValue": "={{ $('Promo del anuncio').last().json.es_primer_mensaje }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2912,
+        1080
+      ],
+      "id": "b738072f-e1d3-4a4d-bf92-41bc29a6cc9a",
+      "name": "¿Primer mensaje?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/RSHijar_buffer_add",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $json.body.contact_id, p_mensaje: $json.body.message?.body || '' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1652,
+        420
+      ],
+      "id": "cee0d24b-279a-4d81-8055-85029514729f",
+      "name": "Buffer registrar mensaje",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1432,
+        420
+      ],
+      "id": "933706b3-dc23-4c53-99e9-a0a2b79f6dd3",
+      "name": "Esperar ráfaga (15 s)",
+      "webhookId": "45844650-2cc7-41a0-80c4-2a0e4c5b4bcc"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/RSHijar_buffer_take",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $('Webhook').first().json.body.contact_id, p_token: $('Buffer registrar mensaje').first().json.token }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1212,
+        420
+      ],
+      "id": "f9078a3f-4d4c-4228-9866-8083c3e977a1",
+      "name": "Buffer ¿es el último?",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b769ab1b-5545-46ec-a9d8-aedb4eb91293",
+              "leftValue": "={{ $json.es_ultimo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -992,
+        420
+      ],
+      "id": "7f93c9a6-56af-4be2-a8be-122c65c98fbe",
+      "name": "¿Último mensaje?"
+    },
+    {
+      "parameters": {
+        "url": "https://services.leadconnectorhq.com/conversations/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "4xUuPucjdj14sqVme6sO"
+            },
+            {
+              "name": "contactId",
+              "value": "={{ $('Webhook').first().json.body.contact_id }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -992,
+        860
+      ],
+      "id": "95f4747a-5da2-41b1-992b-e89e49f46812",
+      "name": "GHL conversación (texto)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -792,
+        860
+      ],
+      "id": "8f18ff66-88f2-4bfc-a14a-f25b2173192f",
+      "name": "GHL mensajes (texto)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Texto y notas de voz que mandó el cliente desde la última respuesta nuestra.\n// El texto viene del buffer (ráfaga); si la llamada llegó sin texto se lee de la conversación de GHL.\nconst buffer = String($('Buffer ¿es el último?').first().json.mensajes || '').trim();\nlet mensajes = [];\ntry { mensajes = $('GHL mensajes (texto)').first().json.messages?.messages || []; } catch (e) {}\nconst AUDIO = /\\.(ogg|oga|opus|mp3|m4a|aac|wav|webm|amr|mpeg|mpga)(\\?|$)/i;\nconst NO_AUDIO = /\\.(jpe?g|png|gif|webp|heic|pdf|docx?|xlsx?|pptx?|txt|mp4|mov|3gp|avi)(\\?|$)/i;\n// GHL los devuelve del más nuevo al más viejo: tomamos los entrantes hasta la última respuesta nuestra\nconst textos = [], audios = [];\nfor (const m of mensajes) {\n  if (String(m.messageType || '').startsWith('TYPE_ACTIVITY')) continue;\n  if (m.direction === 'outbound') break;\n  if (m.body) textos.unshift(String(m.body).trim());\n  const tipo = String(m.contentType || m.meta?.contentType || '').toLowerCase();\n  for (const url of (m.attachments || [])) {\n    if (typeof url !== 'string' || !/^https?:/.test(url)) continue;\n    if (AUDIO.test(url) || tipo.startsWith('audio') || (!NO_AUDIO.test(url) && !m.body)) audios.unshift({ url });\n  }\n}\nreturn [{ json: { mensajes: buffer || textos.join('\\n'), origen: buffer ? 'webhook' : 'conversacion', audios: audios.slice(-3) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -792,
+        680
+      ],
+      "id": "004610a9-6224-46d3-a801-9fcadc0c50ba",
+      "name": "Mensaje del cliente"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dabe82bb-c88d-400a-b5a6-a3386dfb131f",
+              "leftValue": "={{ String($json.mensajes || '').trim() || String(($('Webhook').first().json.body || {}).respuesta_manual || '').trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -682,
+        560
+      ],
+      "id": "1835e3c8-5f3f-4fb1-91bd-3ec31a4299b3",
+      "name": "¿Hay mensaje del cliente?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c936f94d-bbec-4192-933a-abc219484b4c",
+              "leftValue": "={{ ($json.audios || []).length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -992,
+        1060
+      ],
+      "id": "bc4bae9f-258b-4274-8910-e8ff2d8d51f0",
+      "name": "¿Trae audios?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.first().json.audios.map(a => ({ json: a }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -792,
+        1220
+      ],
+      "id": "8d933bb9-27f9-4cea-97ad-cc6871a1c3e9",
+      "name": "Separar audios"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -592,
+        1220
+      ],
+      "id": "7229a1f7-31e2-4531-bef7-002a24283f24",
+      "name": "Descargar audio",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Whisper necesita la extensión correcta en el nombre del archivo (las notas de WhatsApp llegan como .oga/.opus o sin extensión)\nconst EXT = { 'audio/ogg': 'ogg', 'application/ogg': 'ogg', 'audio/opus': 'ogg', 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3',\n  'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'm4a', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/webm': 'webm', 'audio/amr': 'amr' };\nconst out = [];\nfor (const item of $input.all()) {\n  const b = item.binary?.data;\n  if (!b) continue;\n  const tipo = String(b.mimeType || '').split(';')[0].toLowerCase();\n  let ext = EXT[tipo] || String(b.fileExtension || '').toLowerCase();\n  if (!ext || ext === 'oga' || ext === 'opus' || ext === 'bin') ext = 'ogg';\n  b.fileName = 'nota_de_voz.' + ext;\n  b.fileExtension = ext;\n  if (!tipo.startsWith('audio')) b.mimeType = ext === 'mp3' ? 'audio/mpeg' : 'audio/' + ext;\n  out.push(item);\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -392,
+        1220
+      ],
+      "id": "bd3750ec-eb68-41db-b833-f303797eef8e",
+      "name": "Preparar audio",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-1"
+            },
+            {
+              "name": "language",
+              "value": "es"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -192,
+        1220
+      ],
+      "id": "2996c122-9545-4fd5-8982-005e3ecb6934",
+      "name": "Transcribir audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "W5zBaQ7k25sn9YQz",
+          "name": "RsViaje Independencia"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta el texto del cliente con lo que dijo en sus notas de voz\nconst base = $('Mensaje del cliente').first().json;\nconst t = $input.all().map(i => String(i.json.text || '').trim()).filter(Boolean);\nconst partes = [base.mensajes, ...t.map(x => '(nota de voz) ' + x)].filter(Boolean);\nif (!t.length && base.audios.length && !base.mensajes)\n  partes.push('(El cliente mandó una nota de voz que no se pudo escuchar. Pídele amablemente que te lo escriba.)');\nreturn [{ json: { ...base, mensajes: partes.join('\\n'), transcripciones: t } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8,
+        1220
+      ],
+      "id": "8d1e53fa-59e8-4f19-ab7c-b2088a30be47",
+      "name": "Unir transcripciones"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Webhook').first().json.body.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -700,
+        -40
+      ],
+      "id": "8e1b05f4-20bb-41aa-8be8-680635f3a1c2",
+      "name": "GHL contacto (origen)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ¿El cliente escribe por WhatsApp y viene de un anuncio de Meta?\n// En WhatsApp Meta cobra las conversaciones que no vienen de un anuncio y las de anuncio pasadas 72h,\n// así que en esos casos no contesta la IA: pasa a \"Sin IA\" para que lo atiendan por WhatsApp directo.\n// Los mensajes siguientes al del anuncio no traen el ID: la tabla RS_ventana_meta recuerda que sí vino de anuncio.\nconst CFG = {\"loc\": \"4xUuPucjdj14sqVme6sO\", \"pipe\": \"GUvcGrI1qq62OcntR5br\", \"sinIA\": \"b3e91c64-3468-4064-acb7-248cf098a599\", \"campo\": \"NhsOqsYcuVr0U7jokjmI\", \"agencia\": \"hijar\"};\nconst AVISO = {\n  verde: '🟢 Anuncio menos de 72h: contestar por GHL',\n  rojo: '🔴 Anuncio más de 72h: contestar por WhatsApp directo',\n  sin_anuncio: '🔴 No viene de anuncio: contestar por WhatsApp directo',\n  azul: '🔵 Facebook / Instagram: sin costo, contestar por GHL',\n};\nconst wh = $('Webhook').first().json.body || {};\nlet c = {};\ntry { c = $('GHL contacto (origen)').first().json.contact || {}; } catch (e) {}\nlet msgs = [];\ntry { msgs = $('GHL mensajes (texto)').first().json.messages?.messages || []; } catch (e) {}\n// GHL los devuelve del más nuevo al más viejo\nconst entrantes = msgs.filter(m => m.direction === 'inbound' && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nconst tipo = String((entrantes[0] || {}).messageType || '');\nconst medios = [c.lastAttributionSource?.medium, wh.contact?.lastAttributionSource?.medium, c.attributionSource?.medium, wh.contact?.attributionSource?.medium]\n  .map(v => String(v || '').toLowerCase());\nconst esWhatsApp = tipo ? tipo === 'TYPE_WHATSAPP' : (Number(wh.message?.type) === 19 || medios[0].startsWith('whatsapp') || medios[1].startsWith('whatsapp'));\n\nconst atribuciones = [c.lastAttributionSource, wh.contact?.lastAttributionSource, c.attributionSource, wh.contact?.attributionSource].filter(Boolean);\nconst las = atribuciones[0] || {};\nconst adId = atribuciones.map(a => a.ctwa_clid || a.adId).find(Boolean) || '';\nconst REFERIDO = /\\*Headline:\\*|Source URL:|https:\\/\\/fb\\.me\\//i;\nconst referido = entrantes.find(m => REFERIDO.test(m.body || ''));\nconst esAnuncio = !!adId || !!referido;\nconst clave = String(las.ctwa_clid || las.adId || adId || (referido ? 'ref-' + referido.id : ''));\n// Inicio de la ventana: el mensaje que llegó desde el anuncio; si ya no está entre los últimos, la fecha de alta del contacto\nconst desde = referido?.dateAdded || c.dateAdded || new Date().toISOString();\nconst nombre = [c.firstName || wh.first_name, c.lastName].filter(Boolean).join(' ') || wh.full_name || c.phone || wh.phone || 'Lead sin nombre';\n// Facebook e Instagram no tienen costo por mensaje: aviso azul (solo si aún no lo tiene)\nconst esFbIg = !esWhatsApp && (/FACEBOOK|INSTAGRAM/.test(tipo) || /facebook|instagram/.test(medios[0] || medios[1]));\nconst avisoActual = ((c.customFields || []).find(f => f.id === CFG.campo) || {}).value || '';\nconst ponerAzul = esFbIg && avisoActual !== AVISO.azul;\n// Rescate manual: abre una ventana nueva de 72 h para que la IA siga atendiendo al cliente\nconst forzarIA = !!wh.forzar_ia && !esAnuncio;\nreturn [{ json: { ...CFG, canalTipo: tipo, contact_id: wh.contact_id, esWhatsApp, esAnuncio: esAnuncio || forzarIA, esFbIg, ponerAzul, sinAnuncioWhatsApp: esWhatsApp && !esAnuncio && !forzarIA,\n  anuncioWhatsApp: esWhatsApp && (esAnuncio || forzarIA), clave: forzarIA ? 'rescate-manual-' + new Date().toISOString().slice(0, 10) : clave, desde: forzarIA ? new Date().toISOString() : desde, nombre, AVISO } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        -40
+      ],
+      "id": "a69f1b85-ec47-472f-b76b-11f0002ef285",
+      "name": "Origen del mensaje"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1bf8ceef-b483-4ccb-95ef-bfc35ccddd75",
+              "leftValue": "={{ $json.esWhatsApp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -300,
+        -40
+      ],
+      "id": "b57552f6-1535-43fc-af39-f5be7f74776c",
+      "name": "¿Es WhatsApp?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pipelineId: $('Origen del mensaje').first().json.pipe, locationId: $('Origen del mensaje').first().json.loc, contactId: $('Origen del mensaje').first().json.contact_id, name: $('Origen del mensaje').first().json.nombre, pipelineStageId: $('Origen del mensaje').first().json.sinIA, status: 'open' }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        -200
+      ],
+      "id": "226e20c9-e876-4233-bde8-0c2654382192",
+      "name": "Mover a Sin IA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Origen del mensaje').first().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO[$('Ventana 72h').first().json.alarma] }] }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        -200
+      ],
+      "id": "db44cf74-68cb-4288-841d-509474953028",
+      "name": "Aviso Sin IA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/RS_ventana_registrar",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_agencia: $json.agencia, p_contact_id: $json.contact_id, p_clave: $json.esAnuncio ? $json.clave : '', p_desde: $json.desde }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        20
+      ],
+      "id": "e5ff063d-d8a0-4713-915c-11aa7aaa7df6",
+      "name": "Ventana 72h",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fad3eb92-039f-4e72-9f57-b349dd415295",
+              "leftValue": "={{ $json.cambio === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        300,
+        20
+      ],
+      "id": "3cc8a183-bd54-4532-aad8-aa113f4ba5e0",
+      "name": "¿Cambió el aviso?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Origen del mensaje').first().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO[$json.alarma] }] }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        -60
+      ],
+      "id": "12ce8f09-ce9a-4e5b-b0de-d5f514ced438",
+      "name": "Actualizar aviso 72h",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2be011c8-be96-4454-b90d-b7e4291d3e85",
+              "leftValue": "={{ ($json.alarma === 'rojo' || $json.alarma === 'sin_anuncio') && !$('Webhook').first().json.body.forzar_ia }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        100,
+        20
+      ],
+      "id": "21f0c562-3f4e-4a23-9549-71a93bf61cd6",
+      "name": "¿Pasa a Sin IA?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.opportunity.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: 'xn9ufQ9mPpXDys2BX7no', field_value: $('Origen del mensaje').first().json.contact_id }] }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        -340
+      ],
+      "id": "f9d32ac3-0c3e-4c69-9ef3-29dc7c707bd0",
+      "name": "Num_lead Sin IA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ee03f8f0-6dcf-4cbd-bf35-f0c1b0f9b6ca",
+              "leftValue": "={{ $json.ponerAzul }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -100,
+        220
+      ],
+      "id": "d754dd05-d6db-4b46-86fb-07b1fe445279",
+      "name": "¿Poner aviso 🔵?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Origen del mensaje').first().json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customFields: [{ id: $('Origen del mensaje').first().json.campo, field_value: $('Origen del mensaje').first().json.AVISO.azul }] }) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        220
+      ],
+      "id": "ed4d03d0-c1b7-44e0-b00d-ad13286bed17",
+      "name": "Aviso Facebook/Instagram",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias",
+          "mode": "list",
+          "cachedResultName": "CRM - RSViajes Hijar",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1024558928,
+          "mode": "list",
+          "cachedResultName": "4rto 2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias/edit#gid=1024558928"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Atiende": "PENDIENTE",
+            "Estado": "SIN IA",
+            "Status": "SIN IA",
+            "FechaContacto": "={{ $now.setZone('America/Mexico_City').toFormat(\"yyyy-MM-dd HH:mm:ss\") }}",
+            "Lead": "={{ $('Origen del mensaje').first().json.contact_id }}",
+            "Usuario": "={{ $('Webhook').first().json.body.full_name || $('Origen del mensaje').first().json.nombre }}",
+            "Plataforma": "whatsapp",
+            "Nombre": "={{ $('Webhook').first().json.body.first_name || $('Origen del mensaje').first().json.nombre }}",
+            "Telefono": "={{ String(($('GHL contacto (origen)').first().json.contact || {}).phone || $('Webhook').first().json.body.phone || '').replace('+', '') }}"
+          },
+          "matchingColumns": [
+            "Lead"
+          ],
+          "schema": [
+            {
+              "id": "Atiende",
+              "displayName": "Atiende",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "FechaContacto",
+              "displayName": "FechaContacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead",
+              "displayName": "Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Plataforma",
+              "displayName": "Plataforma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Destino",
+              "displayName": "Destino",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fechas",
+              "displayName": "Fechas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Adultos",
+              "displayName": "Adultos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Menores",
+              "displayName": "Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Edad Menores",
+              "displayName": "Edad Menores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Observaciones",
+              "displayName": "Observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        -200
+      ],
+      "id": "6acc8af9-b80c-435d-bc39-783c82996187",
+      "name": "CRM Sin IA",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "AñadirColumna": {
+      "main": [
+        [
+          {
+            "node": "Existe?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta_cliente": {
+      "main": [
+        [
+          {
+            "node": "customFields_oportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ACTUALIZAR": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar_tags": {
+      "main": [
+        [
+          {
+            "node": "AñadirColumna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos1": {
+      "main": [
+        [
+          {
+            "node": "Borrar_tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar columnas1": {
+      "main": [
+        [
+          {
+            "node": "Datos2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar id_tarjeta1": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existe?1": {
+      "main": [
+        [
+          {
+            "node": "Buscar columnas1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar promos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser de datos1": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row4": {
+      "main": [
+        [
+          {
+            "node": "ACTUALIZAR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Mariel",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Agente Mariel",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Completo?1": {
+      "main": [
+        [
+          {
+            "node": "Update a row4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update a row6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover a explorando opciones1": {
+      "main": [
+        [
+          {
+            "node": "Añadir_tag_explorando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Completo?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover aPersonalizada1": {
+      "main": [
+        [
+          {
+            "node": "URGENTE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript9": {
+      "main": [
+        [
+          {
+            "node": "Respuesta_cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Buffer registrar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos2": {
+      "main": [
+        [
+          {
+            "node": "Buscar id_tarjeta1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Mover aPersonalizada1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row6": {
+      "main": [
+        [
+          {
+            "node": "COMPLETO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript12": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMPLETO": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Mover a COMPLETO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mover a URGENTE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover a COMPLETO": {
+      "main": [
+        [
+          {
+            "node": "customFields_oportunity1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover a URGENTE": {
+      "main": [
+        [
+          {
+            "node": "customFields_oportunity2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "customFields_oportunity": {
+      "main": [
+        [
+          {
+            "node": "Suscribir datos oportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suscribir datos oportunity": {
+      "main": [
+        [
+          {
+            "node": "¿Primer mensaje?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NuevoLead1": {
+      "main": [
+        [
+          {
+            "node": "Añadir_tag_entrante1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Añadir_tag_entrante1": {
+      "main": [
+        [
+          {
+            "node": "Suscribir plataforma1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover a nuevo lead": {
+      "main": [
+        [
+          {
+            "node": "NuevoLead1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Mover a nuevo lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Suscribir datos contact1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Añadir_tag_explorando": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suscribir plataforma1": {
+      "main": [
+        [
+          {
+            "node": "Suscribir datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Mariel": {
+      "main": [
+        [
+          {
+            "node": "Parser de datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "customFields_oportunity1": {
+      "main": [
+        [
+          {
+            "node": "Suscribir datos oportunity1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "customFields_oportunity2": {
+      "main": [
+        [
+          {
+            "node": "Suscribir datos oportunity2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Suscribir datos contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Suscribir datos contact2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suscribir datos oportunity2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suscribir datos oportunity1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suscribir datos1": {
+      "main": [
+        [
+          {
+            "node": "Buscar promos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar promos": {
+      "main": [
+        [
+          {
+            "node": "Promo del anuncio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Promo del anuncio": {
+      "main": [
+        [
+          {
+            "node": "Agente Mariel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Primer mensaje?": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mover a explorando opciones1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer registrar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Esperar ráfaga (15 s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar ráfaga (15 s)": {
+      "main": [
+        [
+          {
+            "node": "Buffer ¿es el último?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer ¿es el último?": {
+      "main": [
+        [
+          {
+            "node": "¿Último mensaje?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Último mensaje?": {
+      "main": [
+        [
+          {
+            "node": "GHL conversación (texto)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "GHL conversación (texto)": {
+      "main": [
+        [
+          {
+            "node": "GHL mensajes (texto)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL mensajes (texto)": {
+      "main": [
+        [
+          {
+            "node": "Mensaje del cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje del cliente": {
+      "main": [
+        [
+          {
+            "node": "¿Trae audios?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay mensaje del cliente?": {
+      "main": [
+        [
+          {
+            "node": "GHL contacto (origen)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "¿Trae audios?": {
+      "main": [
+        [
+          {
+            "node": "Separar audios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Hay mensaje del cliente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar audios": {
+      "main": [
+        [
+          {
+            "node": "Descargar audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar audio": {
+      "main": [
+        [
+          {
+            "node": "Preparar audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribir audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir audio": {
+      "main": [
+        [
+          {
+            "node": "Unir transcripciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir transcripciones": {
+      "main": [
+        [
+          {
+            "node": "¿Hay mensaje del cliente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL contacto (origen)": {
+      "main": [
+        [
+          {
+            "node": "Origen del mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Origen del mensaje": {
+      "main": [
+        [
+          {
+            "node": "¿Es WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover a Sin IA": {
+      "main": [
+        [
+          {
+            "node": "Num_lead Sin IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ventana 72h": {
+      "main": [
+        [
+          {
+            "node": "¿Pasa a Sin IA?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cambió el aviso?": {
+      "main": [
+        [
+          {
+            "node": "Actualizar aviso 72h",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar aviso 72h": {
+      "main": [
+        [
+          {
+            "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Ventana 72h",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Poner aviso 🔵?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Pasa a Sin IA?": {
+      "main": [
+        [
+          {
+            "node": "Mover a Sin IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Cambió el aviso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Num_lead Sin IA": {
+      "main": [
+        [
+          {
+            "node": "Aviso Sin IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Poner aviso 🔵?": {
+      "main": [
+        [
+          {
+            "node": "Aviso Facebook/Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso Facebook/Instagram": {
+      "main": [
+        [
+          {
+            "node": "Datos1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso Sin IA": {
+      "main": [
+        [
+          {
+            "node": "CRM Sin IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

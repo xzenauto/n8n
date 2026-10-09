@@ -1,0 +1,343 @@
+{
+  "name": "Rs Viajes – Rescate de leads sin respuesta (Hijar)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,12,15,18,21 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5d1d9792-f0e5-44bd-8aa0-a988d2f09d50",
+      "name": "9, 12, 15, 18 y 21 h"
+    },
+    {
+      "parameters": {
+        "url": "https://services.leadconnectorhq.com/conversations/search?locationId=4xUuPucjdj14sqVme6sO&lastMessageDirection=inbound&sortBy=last_message_date&sort=desc&limit=100",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "27f9eaae-6bbf-4296-8d40-7881db7a5e9b",
+      "name": "Conversaciones sin respuesta",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Conversaciones donde el último mensaje es del cliente (WhatsApp/Facebook/Instagram),\n// de hace más de 10 minutos y menos de 23 horas (aún se le puede contestar).\n// Cada mensaje se revisa una sola vez: se marca como visto en \"Marcar visto\" (si el envío falla, se reintenta en la siguiente vuelta).\nconst AG = {\"agencia\": \"hijar\", \"pipe\": \"GUvcGrI1qq62OcntR5br\", \"etapasIA\": [\"3f6cef8a-9563-407e-b3ca-493806b89f2b\", \"c2f34317-6a57-45a0-8fa1-08f956097324\", \"95b71dfd-d6ce-4471-9f35-1b7003de88ba\"]};\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst ahora = Date.now();\nfor (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];\nconst out = [];\nfor (const c of ($input.first().json.conversations || [])) {\n  const t = Number(c.lastMessageDate || 0);\n  const tipo = String(c.lastMessageType || '');\n  if (!/WHATSAPP|FACEBOOK|INSTAGRAM/.test(tipo)) continue;\n  if (ahora - t < 10 * 60e3 || ahora - t > 23 * 3600e3) continue;\n  const clave = `${c.id}:${t}`;\n  if (memoria.vistos[clave]) continue;\n  out.push({ json: { ...AG, clave, contactId: c.contactId, convId: c.id, nombre: c.fullName || c.contactName || '', telefono: c.phone || '',\n    medio: /WHATSAPP/.test(tipo) ? 'whatsapp' : /INSTAGRAM/.test(tipo) ? 'instagram' : 'facebook', tipo } });\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "b6b35661-e61d-4e44-a84b-8a82c078057d",
+      "name": "Candidatos"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/opportunities/search?location_id=4xUuPucjdj14sqVme6sO&contact_id={{ $json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "3d734af7-ac5d-4a07-b9d2-8f30bb4ef552",
+      "name": "Oportunidades del contacto",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Se rescata si no tiene oportunidad abierta en el pipeline, o si está en una etapa de la IA (Nuevo Lead / Explorando opciones).\n// No se toca si la lleva una vendedora: oportunidad en otra etapa, o ya le escribió una persona del equipo\n// (sus mensajes llevan usuario; los de la IA no, y los automáticos de GHL vienen como \"workflow\").\nconst cand = $('Candidatos').item.json;\nconst opps = ($('Oportunidades del contacto').item.json.opportunities || []).filter(o => o.pipelineId === cand.pipe && o.status === 'open');\nconst enIA = opps.some(o => cand.etapasIA.includes(o.pipelineStageId));\nconst mensajes = $json.messages?.messages || [];\nconst escribioPersona = mensajes.some(m => m.direction === 'outbound' && m.source !== 'workflow' && m.userId !== undefined && m.userId !== null\n  && !String(m.messageType || '').startsWith('TYPE_ACTIVITY'));\nlet rescatar = false, motivo = 'lo lleva una vendedora';\nif (!escribioPersona && opps.length === 0) { rescatar = true; motivo = 'sin oportunidad'; }\nelse if (!escribioPersona && enIA) { rescatar = true; motivo = 'sin respuesta en etapa IA'; }\nelse if (escribioPersona) motivo = 'ya le escribió una persona del equipo';\nconst [nombre1] = String(cand.nombre).split(' ');\nreturn { json: { rescatar, motivo,\n  payload: { contact_id: cand.contactId, first_name: nombre1 || '', full_name: cand.nombre, phone: cand.telefono,\n    message: { type: cand.medio === 'whatsapp' ? 19 : 11, body: '' }, contact: { attributionSource: { medium: cand.medio }, lastAttributionSource: { medium: cand.medio } }, rescate: true } } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "3e3dfc59-bcc7-4e18-bc0b-25bf0f2cbe78",
+      "name": "¿Rescatar?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d16dbf97-6415-43de-94b6-eb49757d5f1c",
+              "leftValue": "={{ $json.rescatar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "335ed689-1429-4b5a-b2d8-a4be8618d8d5",
+      "name": "Rescatar"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/Rshijar",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 4000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -80
+      ],
+      "id": "84562638-54bb-4f3c-a9b5-7264a0d8eb48",
+      "name": "Enviar al agente (Hijar)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Recuerda los mensajes ya revisados para no rescatarlos dos veces.\n// Si el envío al agente falló, no se marca y se reintenta en la siguiente vuelta.\nif ($json.error) return { json: $json };\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nmemoria.vistos[$('Candidatos').item.json.clave] = Date.now();\nreturn { json: { marcado: $('Candidatos').item.json.clave } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "3a549d1a-dbea-4192-8d56-c8d5b9900364",
+      "name": "Marcar visto"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ $('Candidatos').item.json.convId }}/messages?limit=20",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        770,
+        160
+      ],
+      "id": "8d0c62de-6988-4014-b865-ae9d0f9f51d0",
+      "name": "Mensajes de la conversación",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "9, 12, 15, 18 y 21 h": {
+      "main": [
+        [
+          {
+            "node": "Conversaciones sin respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversaciones sin respuesta": {
+      "main": [
+        [
+          {
+            "node": "Candidatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidatos": {
+      "main": [
+        [
+          {
+            "node": "Oportunidades del contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oportunidades del contacto": {
+      "main": [
+        [
+          {
+            "node": "Mensajes de la conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Rescatar?": {
+      "main": [
+        [
+          {
+            "node": "Rescatar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rescatar": {
+      "main": [
+        [
+          {
+            "node": "Enviar al agente (Hijar)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar visto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar al agente (Hijar)": {
+      "main": [
+        [
+          {
+            "node": "Marcar visto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensajes de la conversación": {
+      "main": [
+        [
+          {
+            "node": "¿Rescatar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  }
+}

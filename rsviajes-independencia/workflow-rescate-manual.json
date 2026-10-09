@@ -34,6 +34,9 @@
                   },
                   {
                     "option": "Matriz"
+                  },
+                  {
+                    "option": "Hijar"
                   }
                 ]
               }
@@ -92,7 +95,7 @@
         100
       ],
       "parameters": {
-        "jsCode": "// Rescate manual: manda el contacto al agente de su agencia como si el cliente acabara de escribir.\n// - No pasa a \"Sin IA\" (forzar_ia) y conserva la columna de IA.\n// - Si hay respuesta escrita, se envía ese texto; si está vacía, la redacta la IA.\n// - Si el contacto no tiene oportunidad, el flujo principal la crea en Nuevo Lead.\nconst CLAVE = '****';\nconst RUTAS = { 'Independencia': 'rsindependencia', 'Centro': 'Rscentro', 'Periodismo': 'rsperiodismov2', 'Matriz': 'rsmatriz' };\nconst d = $json.body || $json;  // sirve para el formulario y para el webhook\nconst agencia = String(d.Agencia || d.agencia || '').trim();\nconst contactId = String(d['Contact ID'] || d.contact_id || '').trim();\nconst respuesta = String(d.Respuesta || d.respuesta || '').trim();\nconst clave = String(d.Clave || d.clave || '').trim();\nif (clave !== CLAVE) throw new Error('Clave incorrecta');\nconst ruta = RUTAS[agencia.charAt(0).toUpperCase() + agencia.slice(1).toLowerCase()];\nif (!ruta) throw new Error('Agencia no válida: ' + agencia);\nif (!/^[A-Za-z0-9]{15,30}$/.test(contactId)) throw new Error('Contact ID no válido');\nreturn [{ json: {\n  url: 'http://localhost:5678/webhook/' + ruta,\n  payload: { contact_id: contactId, message: { type: 19, body: String(d.mensaje_cliente || '') }, contact: {}, rescate: true, forzar_ia: true, respuesta_manual: respuesta },\n  resumen: `Enviado a ${agencia} (${contactId}): ${respuesta ? 'respuesta escrita' : 'la redacta la IA'}`\n} }];"
+        "jsCode": "// Rescate manual: manda el contacto al agente de su agencia como si el cliente acabara de escribir.\n// - No pasa a \"Sin IA\" (forzar_ia) y conserva la columna de IA.\n// - Si hay respuesta escrita, se envía ese texto; si está vacía, la redacta la IA.\n// - Si el contacto no tiene oportunidad, el flujo principal la crea en Nuevo Lead.\nconst CLAVE = '****';\nconst RUTAS = { 'Independencia': 'rsindependencia', 'Centro': 'Rscentro', 'Periodismo': 'rsperiodismov2', 'Matriz': 'rsmatriz', 'Hijar': 'Rshijar' };\nconst d = $json.body || $json;  // sirve para el formulario y para el webhook\nconst agencia = String(d.Agencia || d.agencia || '').trim();\nconst contactId = String(d['Contact ID'] || d.contact_id || '').trim();\nconst respuesta = String(d.Respuesta || d.respuesta || '').trim();\nconst clave = String(d.Clave || d.clave || '').trim();\nif (clave !== CLAVE) throw new Error('Clave incorrecta');\nconst ruta = RUTAS[agencia.charAt(0).toUpperCase() + agencia.slice(1).toLowerCase()];\nif (!ruta) throw new Error('Agencia no válida: ' + agencia);\nif (!/^[A-Za-z0-9]{15,30}$/.test(contactId)) throw new Error('Contact ID no válido');\nreturn [{ json: {\n  url: 'http://localhost:5678/webhook/' + ruta,\n  payload: { contact_id: contactId, message: { type: 19, body: String(d.mensaje_cliente || '') }, contact: {}, rescate: true, forzar_ia: true, respuesta_manual: respuesta },\n  resumen: `Enviado a ${agencia} (${contactId}): ${respuesta ? 'respuesta escrita' : 'la redacta la IA'}`\n} }];"
       }
     },
     {

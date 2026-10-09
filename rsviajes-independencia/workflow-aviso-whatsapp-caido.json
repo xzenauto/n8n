@@ -187,7 +187,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Detecta si el WhatsApp de alguna agencia está caído: en las últimas 3 h hay 2+ envíos fallidos y ninguno entregado.\n// No cuenta los fallos normales de \"más de 24 h sin respuesta del cliente\". Avisa al caer, recuerda cada 6 h y avisa al recuperarse.\nconst AGENCIAS = ['Independencia', 'Centro', 'Periodismo', 'Matriz'];\nconst est = $getWorkflowStaticData('global');\nest.agencias = est.agencias || {};\nconst ahora = Date.now();\nconst correos = [];\nfor (const ag of AGENCIAS) {\n  let r = {};\n  try { r = $('WhatsApp ' + ag).first().json || {}; } catch (e) {}\n  const prevEst = est.agencias[ag] || { caido: false, ultimoAviso: 0 };\n  if (r.error || !Array.isArray(r.messages)) {\n    correos.push({ asunto: `⚠️ No se pudo revisar el WhatsApp de ${ag}`, cuerpo: `No se pudieron consultar los mensajes de WhatsApp de RS Viajes ${ag} en GHL.\\nDetalle: ${JSON.stringify(r.error || r).slice(0, 400)}\\n\\nPuede ser un problema temporal de GHL o de la credencial de la API.` , solo_si: !prevEst.errorApi });\n    est.agencias[ag] = { ...prevEst, errorApi: true };\n    continue;\n  }\n  const salientes = r.messages.filter(m => m.direction === 'outbound');\n  const fallidos = salientes.filter(m => m.status === 'failed' && !/24 hours/i.test(String(m.error || '')));\n  const okCount = salientes.filter(m => ['delivered', 'read', 'sent'].includes(m.status)).length;\n  const entrantes = r.messages.filter(m => m.direction === 'inbound').length;\n  const caido = fallidos.length >= 2 && okCount === 0;\n  const errores = [...new Set(fallidos.map(m => String(m.error || 'sin detalle').slice(0, 160)))];\n  if (caido && (!prevEst.caido || ahora - (prevEst.ultimoAviso || 0) > 6 * 3600 * 1000)) {\n    correos.push({ asunto: `🚨 WhatsApp caído en RS Viajes ${ag}`, cuerpo:\n      `En las últimas 3 horas fallaron ${fallidos.length} mensajes de WhatsApp de RS Viajes ${ag} y no se entregó ninguno.\\n` +\n      `Mensajes de clientes recibidos en ese tiempo: ${entrantes}.\\n\\nError de Meta:\\n- ${errores.join('\\n- ')}\\n\\n` +\n      `Qué hacer: en GHL → subcuenta ${ag} → Configuración → WhatsApp, reconecta el número y revisa su estado en WhatsApp Manager de Meta. ` +\n      `Mientras tanto, contesten desde la app de WhatsApp Business del celular.\\n\\nTe vuelvo a avisar cada 6 horas mientras siga fallando.` });\n    est.agencias[ag] = { caido: true, ultimoAviso: ahora, desde: prevEst.caido ? prevEst.desde : ahora };\n  } else if (!caido && prevEst.caido && okCount > 0) {\n    const horas = Math.round((ahora - (prevEst.desde || ahora)) / 3600000);\n    correos.push({ asunto: `✅ WhatsApp de RS Viajes ${ag} recuperado`, cuerpo:\n      `El WhatsApp de RS Viajes ${ag} vuelve a entregar mensajes (${okCount} entregados en las últimas 3 horas). Estuvo fallando unas ${horas} h.\\n\\n` +\n      `Revisa los mensajes que fallaron en ese tiempo para reenviarlos, y la app del celular por si algún cliente escribió y no entró a GHL.` });\n    est.agencias[ag] = { caido: false, ultimoAviso: 0 };\n  } else {\n    est.agencias[ag] = { ...prevEst, errorApi: false, caido: caido || (prevEst.caido && okCount === 0) };\n  }\n}\nreturn correos.filter(c => c.solo_si !== false).map(c => ({ json: { asunto: c.asunto, cuerpo: c.cuerpo } }));"
+        "jsCode": "// Detecta si el WhatsApp de alguna agencia está caído: en las últimas 3 h hay 2+ envíos fallidos y ninguno entregado.\n// No cuenta los fallos normales de \"más de 24 h sin respuesta del cliente\". Avisa al caer, recuerda cada 6 h y avisa al recuperarse.\nconst AGENCIAS = ['Independencia', 'Centro', 'Periodismo', 'Matriz', 'Hijar'];\nconst est = $getWorkflowStaticData('global');\nest.agencias = est.agencias || {};\nconst ahora = Date.now();\nconst correos = [];\nfor (const ag of AGENCIAS) {\n  let r = {};\n  try { r = $('WhatsApp ' + ag).first().json || {}; } catch (e) {}\n  const prevEst = est.agencias[ag] || { caido: false, ultimoAviso: 0 };\n  if (r.error || !Array.isArray(r.messages)) {\n    correos.push({ asunto: `⚠️ No se pudo revisar el WhatsApp de ${ag}`, cuerpo: `No se pudieron consultar los mensajes de WhatsApp de RS Viajes ${ag} en GHL.\\nDetalle: ${JSON.stringify(r.error || r).slice(0, 400)}\\n\\nPuede ser un problema temporal de GHL o de la credencial de la API.` , solo_si: !prevEst.errorApi });\n    est.agencias[ag] = { ...prevEst, errorApi: true };\n    continue;\n  }\n  const salientes = r.messages.filter(m => m.direction === 'outbound');\n  const fallidos = salientes.filter(m => m.status === 'failed' && !/24 hours/i.test(String(m.error || '')));\n  const okCount = salientes.filter(m => ['delivered', 'read', 'sent'].includes(m.status)).length;\n  const entrantes = r.messages.filter(m => m.direction === 'inbound').length;\n  const caido = fallidos.length >= 2 && okCount === 0;\n  const errores = [...new Set(fallidos.map(m => String(m.error || 'sin detalle').slice(0, 160)))];\n  if (caido && (!prevEst.caido || ahora - (prevEst.ultimoAviso || 0) > 6 * 3600 * 1000)) {\n    correos.push({ asunto: `🚨 WhatsApp caído en RS Viajes ${ag}`, cuerpo:\n      `En las últimas 3 horas fallaron ${fallidos.length} mensajes de WhatsApp de RS Viajes ${ag} y no se entregó ninguno.\\n` +\n      `Mensajes de clientes recibidos en ese tiempo: ${entrantes}.\\n\\nError de Meta:\\n- ${errores.join('\\n- ')}\\n\\n` +\n      `Qué hacer: en GHL → subcuenta ${ag} → Configuración → WhatsApp, reconecta el número y revisa su estado en WhatsApp Manager de Meta. ` +\n      `Mientras tanto, contesten desde la app de WhatsApp Business del celular.\\n\\nTe vuelvo a avisar cada 6 horas mientras siga fallando.` });\n    est.agencias[ag] = { caido: true, ultimoAviso: ahora, desde: prevEst.caido ? prevEst.desde : ahora };\n  } else if (!caido && prevEst.caido && okCount > 0) {\n    const horas = Math.round((ahora - (prevEst.desde || ahora)) / 3600000);\n    correos.push({ asunto: `✅ WhatsApp de RS Viajes ${ag} recuperado`, cuerpo:\n      `El WhatsApp de RS Viajes ${ag} vuelve a entregar mensajes (${okCount} entregados en las últimas 3 horas). Estuvo fallando unas ${horas} h.\\n\\n` +\n      `Revisa los mensajes que fallaron en ese tiempo para reenviarlos, y la app del celular por si algún cliente escribió y no entró a GHL.` });\n    est.agencias[ag] = { caido: false, ultimoAviso: 0 };\n  } else {\n    est.agencias[ag] = { ...prevEst, errorApi: false, caido: caido || (prevEst.caido && okCount === 0) };\n  }\n}\nreturn correos.filter(c => c.solo_si !== false).map(c => ({ json: { asunto: c.asunto, cuerpo: c.cuerpo } }));"
       }
     },
     {
@@ -214,6 +214,45 @@
           "name": "Gmail Xzen"
         }
       }
+    },
+    {
+      "id": "21a7fc01-ef62-416d-990e-2b7011f5714e",
+      "name": "WhatsApp Hijar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/messages/export?locationId=4xUuPucjdj14sqVme6sO&channel=WhatsApp&limit=100&startDate={{ $now.minus({hours: 3}).toUTC().toISO() }}&endDate={{ $now.toUTC().toISO() }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aOLNoZxnstcTG6kV",
+          "name": "GHL - PIT - Hijar"
+        }
+      },
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
     }
   ],
   "connections": {
@@ -265,7 +304,7 @@
       "main": [
         [
           {
-            "node": "Evaluar",
+            "node": "WhatsApp Hijar",
             "type": "main",
             "index": 0
           }
@@ -277,6 +316,17 @@
         [
           {
             "node": "Enviar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Hijar": {
+      "main": [
+        [
+          {
+            "node": "Evaluar",
             "type": "main",
             "index": 0
           }
