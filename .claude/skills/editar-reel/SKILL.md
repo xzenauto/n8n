@@ -177,6 +177,16 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
   grupo de palabras de ese lado se desplaza hacia fuera hasta una zona oscura (p. ej. la
   madera) si cabe; si no, va en oscuro (negro / naranja). El amarillo nunca queda sobre beige.
 
+## 2e. Reel "POV" solo con B-rolls y una canción (`ejemplos/pov_*.py`, `detectar_tempo.py`)
+
+- Formato 9:16 (1080x1920) con el B-roll 16:9 centrado (1080x608, y=656) y franjas negras.
+  El texto POV va en la franja de arriba, en Bebas Neue blanca, centrado y pegado al vídeo, con las palabras clave en amarillo.
+- Tempo: `detectar_tempo.py cancion.wav` da BPM y fase. Busca el momento en que entra el beat
+  fuerte (subida de graves) y empieza 2–3 compases antes, para que el "drop" caiga hacia el segundo 6–7.
+- Cortes a compás exacto (1 compás por plano tras el drop, 1–2 antes), fotogramas calculados
+  de forma acumulada para que no haya deriva. Empuje lento alterno (1.00↔1.06) en cada plano.
+- Mismo tonemap HDR y grade. Fundido de entrada y de salida, `loudnorm=I=-14`.
+
 ## 3. Anuncios / resúmenes verticales (9:16) a partir de un vídeo largo
 
 Probado con el VSL de agencias de viajes → anuncio de 54 s (`ejemplos/anuncio_*.py`):
