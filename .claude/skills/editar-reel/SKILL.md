@@ -8,6 +8,21 @@ description: Edita un reel/vídeo corto con el estilo guardado del usuario (ganc
 Estilo extraído del reel de referencia (instagram.com/reel/Dd-J7SAhTC5, 57 s, 16:9).
 Contesta siempre en español.
 
+## 0. Base de datos de B-rolls (`brolls/brolls.json` + `brolls/brolls_db.py`)
+
+- Antes de elegir B-rolls ejecuta `python3 brolls/brolls_db.py sugerir 20 [tema]`. Te da los menos
+  usados y los que no salieron en los 2 últimos reels, junto con la orientación y notas (rotación errónea, partes inservibles…).
+- **Nunca repetir un clip dentro del mismo reel.** Entre reels, priorizar los menos usados.
+- Al entregar: `brolls_db.py registrar <nombre_reel> clip1 clip2 …` y después `brolls_db.py informe`
+  (regenera `brolls/USO_BROLLS.md`).
+- Si el usuario sube clips nuevos a la carpeta de Drive (`carpeta_drive` en el JSON), da de alta cada
+  uno con `brolls_db.py nuevo <nombre> <drive_id> <h|v> "<título>" tema1,tema2`.
+- Comprueba la rotación de cada clip nuevo con un fotograma. Algunos clips de iPhone traen rotación −90 pero son
+  horizontales (EEUU 1 y 2): se leen con `-noautorotate`.
+- B-roll vertical en un formato 16:9: se recorta una franja 16:9 centrada en el sujeto (`yc` en
+  `ejemplos/pov_broll_montaje.py`). En los reels POV el usuario pidió expresamente gimnasio, viajes, aeropuerto y familia, aunque son verticales.
+- En reels POV entregar también la versión **sin texto** (el usuario pone el texto en Instagram).
+
 ## 1. Cómo es el estilo
 
 **Subtítulos (lo más característico)**

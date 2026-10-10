@@ -1,0 +1,663 @@
+{
+ "carpeta_drive": "1yGottn-in3Bhakq9cCctRJYJYsAvtMZI",
+ "clips": {
+  "abriendo_compu": {
+   "drive_id": "1pZG5LWqHEqUjMGKi_qVMR-ft9BJYRDZA",
+   "titulo": "Abriendo la compu",
+   "orientacion": "h",
+   "temas": [
+    "trabajo",
+    "compu"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_estilo_de_vida",
+     "fecha": "2026-10-03"
+    },
+    {
+     "reel": "reel_mi_momento",
+     "fecha": "2026-10-07"
+    },
+    {
+     "reel": "reel_responder_rapido",
+     "fecha": "2026-10-08"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "angustiado_cafe": {
+   "drive_id": "1yIC1W0ImRdJRblTf3owZVv3CshVkZgJt",
+   "titulo": "Angustiado trabajando café",
+   "orientacion": "h",
+   "temas": [
+    "trabajo",
+    "estrés"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_estilo_de_vida",
+     "fecha": "2026-10-03"
+    },
+    {
+     "reel": "reel_agente_ventas_ia",
+     "fecha": "2026-10-06"
+    },
+    {
+     "reel": "reel_mi_momento",
+     "fecha": "2026-10-07"
+    },
+    {
+     "reel": "reel_responder_rapido",
+     "fecha": "2026-10-08"
+    }
+   ]
+  },
+  "cafe_cafeteria": {
+   "drive_id": "1B2cccyxJoGU8H9oUPSbATsWv2Co7-B2q",
+   "titulo": "Café en cafetería",
+   "orientacion": "h",
+   "temas": [
+    "estilo de vida",
+    "café"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    },
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "chat_muebleria": {
+   "drive_id": "133mgRDdJPo17NZ9sUG6-2ZzT5hE4Rj8T",
+   "titulo": "Chat Mueblería",
+   "orientacion": "h",
+   "temas": [
+    "sistema",
+    "pantalla",
+    "agente IA"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_agente_ventas_ia",
+     "fecha": "2026-10-06"
+    },
+    {
+     "reel": "reel_responder_rapido",
+     "fecha": "2026-10-08"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "chat_viajes": {
+   "drive_id": "14v_U3tp4eGdd7s6FEwp90MeOLS5-Rfmq",
+   "titulo": "Chat Viajes",
+   "orientacion": "h",
+   "temas": [
+    "sistema",
+    "pantalla",
+    "CRM",
+    "agente IA"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_estilo_de_vida",
+     "fecha": "2026-10-03"
+    },
+    {
+     "reel": "reel_agente_ventas_ia",
+     "fecha": "2026-10-06"
+    },
+    {
+     "reel": "reel_responder_rapido",
+     "fecha": "2026-10-08"
+    },
+    {
+     "reel": "reel_meta_pierdes_dinero",
+     "fecha": "2026-10-08"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "hablando_camara": {
+   "drive_id": "1R04fX4OAVu2k8fVLYzGMFm8PS9C9Nbx3",
+   "titulo": "Vídeo hablando a cámara",
+   "orientacion": "h",
+   "temas": [
+    "hablando",
+    "contenido"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_estilo_de_vida",
+     "fecha": "2026-10-03"
+    },
+    {
+     "reel": "reel_mi_momento",
+     "fecha": "2026-10-07"
+    }
+   ]
+  },
+  "llamada_santi": {
+   "drive_id": "1lNd3T-HGCny8E-2RBE68wtrHi0ZfX-xi",
+   "titulo": "En llamada con Santi",
+   "orientacion": "h",
+   "temas": [
+    "trabajo",
+    "videollamada",
+    "equipo"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    },
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "reunion": {
+   "drive_id": "1pTUWmDxbS-K4cKiGmaw4nHR7Q15yvaN7",
+   "titulo": "En reunion",
+   "orientacion": "h",
+   "temas": [
+    "reunión",
+    "clientes",
+    "equipo"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_reto_fisico",
+     "fecha": "2026-10-02"
+    },
+    {
+     "reel": "reel_estilo_de_vida",
+     "fecha": "2026-10-03"
+    },
+    {
+     "reel": "reel_agente_ventas_ia",
+     "fecha": "2026-10-06"
+    },
+    {
+     "reel": "reel_mi_momento",
+     "fecha": "2026-10-07"
+    },
+    {
+     "reel": "reel_responder_rapido",
+     "fecha": "2026-10-08"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "reunion2": {
+   "drive_id": "18ynsxo_0FEaPzTGLvrVdU-g4I7yzmyMS",
+   "titulo": "En reunion 2",
+   "orientacion": "h",
+   "temas": [
+    "reunión",
+    "clientes",
+    "equipo"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_reto_fisico",
+     "fecha": "2026-10-02"
+    },
+    {
+     "reel": "reel_agente_ventas_ia",
+     "fecha": "2026-10-06"
+    },
+    {
+     "reel": "reel_responder_rapido",
+     "fecha": "2026-10-08"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "reunion_vertical": {
+   "drive_id": "1fKkBe6xQl1kegThk8TlidrL1Kn-xc89x",
+   "titulo": "En reunion Vertical",
+   "orientacion": "v",
+   "temas": [
+    "reunión",
+    "clientes"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "starbucks": {
+   "drive_id": "1bLBqvsFeMrBalTCavuPnl575D__gFqyt",
+   "titulo": "Trabajando Starbuks",
+   "orientacion": "v",
+   "temas": [
+    "trabajo",
+    "café"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "starbucks2": {
+   "drive_id": "18InHyQismWe-LsHXjr5s8YcY0JRc6lK7",
+   "titulo": "Trabajando starbuks 2",
+   "orientacion": "h",
+   "temas": [
+    "trabajo",
+    "café"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_estilo_de_vida",
+     "fecha": "2026-10-03"
+    },
+    {
+     "reel": "reel_agente_ventas_ia",
+     "fecha": "2026-10-06"
+    },
+    {
+     "reel": "reel_mi_momento",
+     "fecha": "2026-10-07"
+    },
+    {
+     "reel": "reel_responder_rapido",
+     "fecha": "2026-10-08"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "starbucks3": {
+   "drive_id": "1tGGJYRz8f5beYiBuexyefBhUkC2T1eB2",
+   "titulo": "Trabajando starbuks 3",
+   "orientacion": "h",
+   "temas": [
+    "trabajo",
+    "café"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_estilo_de_vida",
+     "fecha": "2026-10-03"
+    },
+    {
+     "reel": "reel_mi_momento",
+     "fecha": "2026-10-07"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "terraza": {
+   "drive_id": "1iEfcVJw2NyfDGt4XHSuFqDNgAst5-JBs",
+   "titulo": "Trabajando terraza",
+   "orientacion": "h",
+   "temas": [
+    "trabajo"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_reto_fisico",
+     "fecha": "2026-10-02"
+    },
+    {
+     "reel": "reel_estilo_de_vida",
+     "fecha": "2026-10-03"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "trabajando_cafe": {
+   "drive_id": "10kWYUBzx19vgnOy0cmDn9DvD5a8UjZ2i",
+   "titulo": "Trabajando cafe",
+   "orientacion": "h",
+   "temas": [
+    "trabajo",
+    "café"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_mi_momento",
+     "fecha": "2026-10-07"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    },
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "trabajando_xime_vertical": {
+   "drive_id": "1C6_AFEw7XMazrAMvoKqb7nGi320ZYwmC",
+   "titulo": "Trabajando xime vertical",
+   "orientacion": "v",
+   "temas": [
+    "trabajo",
+    "pareja",
+    "estilo de vida"
+   ],
+   "nota": "al final, selfie abrazados",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "gym": {
+   "drive_id": "1A6SymyK7ij-WK1nLH6oRLeL3LdPA1tlY",
+   "titulo": "Tomas gym",
+   "orientacion": "h",
+   "temas": [
+    "gimnasio",
+    "disciplina"
+   ],
+   "nota": "rotación correcta (sale horizontal)",
+   "usos": [
+    {
+     "reel": "reel_reto_fisico",
+     "fecha": "2026-10-02"
+    },
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "gym2": {
+   "drive_id": "1BrYm94HPYW6nfKJLoXUImOE-ofdKtAut",
+   "titulo": "Tomas gym 2",
+   "orientacion": "h",
+   "temas": [
+    "gimnasio",
+    "disciplina"
+   ],
+   "nota": "rotación correcta (sale horizontal)",
+   "usos": [
+    {
+     "reel": "reel_reto_fisico",
+     "fecha": "2026-10-02"
+    },
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "piernas_gimnasio": {
+   "drive_id": "1VBCKOu75ll0qs1i5adav8SMKzfV6uurC",
+   "titulo": "Piernas gimnasio",
+   "orientacion": "v",
+   "temas": [
+    "gimnasio"
+   ],
+   "nota": "solo 1,2 s",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "familia": {
+   "drive_id": "1IK4FtkhHpZg1vO22ojK2mIyIVhR5m2gd",
+   "titulo": "Familia",
+   "orientacion": "v",
+   "temas": [
+    "familia",
+    "estilo de vida"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "paseando": {
+   "drive_id": "1erxkojSsmX8b_JZfStaKPPtcq-4RtXrb",
+   "titulo": "Paseando",
+   "orientacion": "v",
+   "temas": [
+    "estilo de vida",
+    "perro",
+    "naturaleza"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "volando": {
+   "drive_id": "10u1nPTcNPtGSRBkyzOE25ApbgeAzx4l8",
+   "titulo": "Volando",
+   "orientacion": "v",
+   "temas": [
+    "viaje",
+    "avión"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "viajando2": {
+   "drive_id": "1warewlVd0I3dyEeKF2TGPR3cXWAMgrhe",
+   "titulo": "Viajando 2",
+   "orientacion": "v",
+   "temas": [
+    "viaje",
+    "España"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "trabajando_aeropuerto": {
+   "drive_id": "12J9RidMBkcGL2JFdThvtXX5B8KaGk_gt",
+   "titulo": "Trabajando aeropuerto",
+   "orientacion": "v",
+   "temas": [
+    "viaje",
+    "trabajo",
+    "aeropuerto",
+    "pareja"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "tomando_cafe": {
+   "drive_id": "1PONgrUyFb4yQQqbzzfDXDmQRDJyxnRvb",
+   "titulo": "Tomando café",
+   "orientacion": "h",
+   "temas": [
+    "estilo de vida",
+    "café"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_agente_ventas_ia",
+     "fecha": "2026-10-06"
+    },
+    {
+     "reel": "reel_responder_rapido",
+     "fecha": "2026-10-08"
+    },
+    {
+     "reel": "reel_pov_negocio",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "eeuu1": {
+   "drive_id": "1jC8FFqTN3zUk_621P6tkvWYCebjm_MMm",
+   "titulo": "EEUU",
+   "orientacion": "h",
+   "temas": [
+    "viaje",
+    "EEUU",
+    "ciudad"
+   ],
+   "nota": "metadato de rotación erróneo: usar -noautorotate",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "eeuu2": {
+   "drive_id": "1F_7qA5RAWMtyJyVo1GTA2mI3tRAIVmF5",
+   "titulo": "EEUU 2",
+   "orientacion": "h",
+   "temas": [
+    "viaje",
+    "EEUU",
+    "ciudad"
+   ],
+   "nota": "-noautorotate; dedo delante al final (>4 s)",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "eeuu3": {
+   "drive_id": "1ucJyD__4kD6rznZAHftTkqRb5oEB2Asn",
+   "titulo": "EEUU 3",
+   "orientacion": "h",
+   "temas": [
+    "viaje",
+    "EEUU",
+    "helicóptero"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "eeuu4": {
+   "drive_id": "1QhGDt1LbIj_gsGN9pTGi8eX8dO8g-IR_",
+   "titulo": "EEUU 4",
+   "orientacion": "h",
+   "temas": [
+    "viaje",
+    "EEUU",
+    "hotel"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_pov_negocio_v2",
+     "fecha": "2026-10-10"
+    }
+   ]
+  },
+  "leads_ganados": {
+   "drive_id": "1zmHtvqInD7ERAwVZM873XKCatGX7nxSe",
+   "titulo": "Leads ganados",
+   "orientacion": "v",
+   "temas": [
+    "sistema",
+    "CRM",
+    "pantalla"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_meta_pierdes_dinero",
+     "fecha": "2026-10-08"
+    }
+   ]
+  },
+  "reporte_meta_ganados": {
+   "drive_id": "12KCozDP8U_3VtbowKYkc1NIEsasa5V6_",
+   "titulo": "Reporte meta ganados",
+   "orientacion": "v",
+   "temas": [
+    "sistema",
+    "Meta",
+    "pantalla"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_meta_pierdes_dinero",
+     "fecha": "2026-10-08"
+    }
+   ]
+  }
+ }
+}
