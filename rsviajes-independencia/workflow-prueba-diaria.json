@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "aa435907-6a3a-4b88-8eb7-aa963c6272c8",
-      "name": "Diario 8:05",
+      "name": "Diario 7:30",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -15,7 +15,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "5 8 * * *"
+              "expression": "30 7 * * *"
             }
           ]
         }
@@ -489,17 +489,6 @@
     }
   ],
   "connections": {
-    "Diario 8:05": {
-      "main": [
-        [
-          {
-            "node": "Agencias",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Agencias": {
       "main": [
         [
@@ -736,6 +725,17 @@
         [
           {
             "node": "Avisar por correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Diario 7:30": {
+      "main": [
+        [
+          {
+            "node": "Agencias",
             "type": "main",
             "index": 0
           }
