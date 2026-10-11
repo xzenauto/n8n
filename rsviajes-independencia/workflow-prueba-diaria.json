@@ -1,0 +1,752 @@
+{
+  "name": "Rs Viajes – Prueba diaria de agencias",
+  "nodes": [
+    {
+      "id": "aa435907-6a3a-4b88-8eb7-aa963c6272c8",
+      "name": "Diario 8:05",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 8 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2e533b34-1ae3-4a1d-b655-5c342fd2cf8e",
+      "name": "Agencias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Prueba diaria: en cada agencia un contacto de prueba (DND, sin teléfono: no se manda nada por WhatsApp)\n// escribe como si viniera de un anuncio y se comprueba que la IA lo lleve a \"Datos completos\". Después se borra todo.\nconst AG = {\n  independencia: { loc: '2O4BBoTVOs95TgWbel6e', webhook: 'rsindependencia', memoria: 'RS-Independencia', buffer: 'RSIndependencia_buffer', crm: '16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA', pestana: '4rto 2026', completo: '06ee9f24-864a-47de-9f04-51e6eddd3bc5' },\n  centro: { loc: 'oC2FNTV3Dc5yhLyrGvoy', webhook: 'Rscentro', memoria: 'RS-Centro', buffer: 'RSCentro_buffer', crm: '1KncjwB2O5Yn8X2V_7t74_QrqulNU6dUe5lVmBM36nFw', pestana: '4rto 2026', completo: '5c6973d5-a28f-44e1-8224-b143c5d0866b' },\n  periodismo: { loc: 'Jf5jBydZMO0fdMeo1d4O', webhook: 'rsperiodismov2', memoria: 'RS-Periodismo', buffer: 'RSPeriodismo_buffer', crm: '1-LlxUtAyCdgVPphw7vq8XOQmVgJ0-sSBZmOmuASt-OM', pestana: '4rto 2026', completo: 'bba4dea4-89ab-4354-9844-4b8a92cfb23e' },\n  matriz: { loc: 'UIJiu5Wa9iPVzMpbaZcx', webhook: 'rsmatriz', memoria: 'RsViajes_Matriz', buffer: 'RSMatriz_buffer', crm: '115Sb7xbszY-G7VnnemThDPLd7i8TwxhNStr1Dcdi2x4', pestana: '2026', completo: '0bdff55d-f090-421c-8ed2-731927c4ec7f' },\n  hijar: { loc: '4xUuPucjdj14sqVme6sO', webhook: 'Rshijar', memoria: 'RS-Hijar', buffer: 'RSHijar_buffer', crm: '1FIMJ_ic8I6-uHreO-zugSGJZllCMlqAT6q779qmZias', pestana: '4rto 2026', completo: '3c415459-1969-434b-b0f5-ba6d9658afe2' },\n};\nconst marca = $now.setZone('America/Mexico_City').toFormat('yyyyMMddHHmm');\nconst DND = Object.fromEntries(['Call', 'Email', 'SMS', 'WhatsApp', 'GMB', 'FB'].map(k => [k, { status: 'active' }]));\nreturn Object.entries(AG).map(([agencia, c]) => ({ json: {\n  agencia, method: 'POST', path: '/contacts/',\n  body: { locationId: c.loc, firstName: 'Prueba', lastName: `Diaria IA (${agencia})`, email: `prueba-diaria-${agencia}-${marca}@example.com`,\n          tags: ['prueba_ia'], dnd: true, dndSettings: DND, source: 'Prueba diaria n8n' },\n  ctx: { agencia, ...c },\n} }));"
+      }
+    },
+    {
+      "id": "c106983d-2412-4531-99ed-00a62184a910",
+      "name": "Crear contacto",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "t1lsQVxg72KgeJHO",
+          "mode": "id"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "e68d870c-2a25-4c88-97cc-d953d82f3d9e",
+      "name": "Preparar mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Mensaje de prueba con todos los datos, para una fecha dentro de unos 2 meses\nconst MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\nconst ida = $now.setZone('America/Mexico_City').plus({ days: 60 }), vuelta = ida.plus({ days: 4 });\nconst fechas = ida.month === vuelta.month\n  ? `del ${ida.day} al ${vuelta.day} de ${MESES[vuelta.month - 1]}`\n  : `del ${ida.day} de ${MESES[ida.month - 1]} al ${vuelta.day} de ${MESES[vuelta.month - 1]}`;\nconst texto = `Hola, quiero cotizar Cancún ${fechas}, somos 2 adultos sin niños`;\n// n8n se llama a sí mismo por la dirección interna (la pública no responde desde dentro)\nreturn $input.all().map(it => {\n  const ctx = { ...it.json.ctx, contact_id: it.json.res?.contact?.id || null, error_contacto: it.json.res?.contact?.id ? null : JSON.stringify(it.json.res).slice(0, 300), texto };\n  return { json: { ctx, url: ctx.contact_id ? `http://localhost:5678/webhook/${ctx.webhook}` : '',\n    body: { contact_id: ctx.contact_id || 'sin-contacto', first_name: 'Prueba', full_name: `Prueba Diaria IA (${ctx.agencia})`,\n            message: { type: 2, body: texto }, contact: { lastAttributionSource: { medium: 'whatsapp', adId: '999000000000888' } } } } };\n});"
+      }
+    },
+    {
+      "id": "2b5ed53f-f101-4b2c-9219-663e3bd087d6",
+      "name": "Mandar mensaje al flujo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "e855f1be-358f-4579-9e16-fe132007c204",
+      "name": "Esperar 2.5 min",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        300
+      ],
+      "webhookId": "8b99e786-e412-40b1-98c9-e81572f9b44a",
+      "executeOnce": true,
+      "parameters": {
+        "amount": 150
+      }
+    },
+    {
+      "id": "ae4e7b69-34ad-4b16-8521-2fc68e44ace7",
+      "name": "Pedir oportunidad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return $('Preparar mensaje').all().map(it => ({ json: { agencia: it.json.ctx.agencia, method: 'GET',\n  path: `/opportunities/search?location_id=${it.json.ctx.loc}&contact_id=${it.json.ctx.contact_id}`, ctx: it.json.ctx } }));"
+      }
+    },
+    {
+      "id": "1e8b48dd-ab9e-4dd1-844f-35d96a7f294f",
+      "name": "Buscar oportunidad",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "t1lsQVxg72KgeJHO",
+          "mode": "id"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "12d6c8e0-d790-4c89-aad9-0863b07f5c5f",
+      "name": "Memoria IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/{{ encodeURIComponent($json.ctx.memoria) }}?select=pregunta_anterior,destino,fecha_salida,fecha_regreso,Adultos&contact_id=eq.{{ $json.ctx.contact_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "40060bb2-2676-4a54-8705-72043a99fcf8",
+      "name": "Evaluar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ¿Contestó la IA y llegó la oportunidad a \"Datos completos\" con los datos del viaje?\nconst opps = $('Buscar oportunidad').all(), mem = $('Memoria IA').all();\nreturn $('Preparar mensaje').all().map((it, i) => {\n  const c = it.json.ctx;\n  const opp = (opps[i]?.json?.res?.opportunities || [])[0];\n  const m = (mem[i]?.json?.body || [])[0] || null;\n  let ok = false, paso = '', detalle = '';\n  if (!c.contact_id) { paso = 'Crear contacto en GHL'; detalle = c.error_contacto || ''; }\n  else if (!m || !m.pregunta_anterior) { paso = 'La IA no contestó'; detalle = 'No hay respuesta guardada en Supabase'; }\n  else if (!opp) { paso = 'Oportunidad'; detalle = 'No se creó la oportunidad en GHL'; }\n  else if (opp.pipelineStageId !== c.completo) { paso = 'Datos completos'; detalle = `La oportunidad quedó en otra etapa (${opp.pipelineStageId}) · destino=${m.destino} salida=${m.fecha_salida} adultos=${m.Adultos}`; }\n  else if (!m.destino || !m.fecha_salida || !m.Adultos) { paso = 'Datos del viaje'; detalle = `Faltan datos: destino=${m.destino} salida=${m.fecha_salida} adultos=${m.Adultos}`; }\n  else { ok = true; detalle = `destino=${m.destino} salida=${m.fecha_salida} regreso=${m.fecha_regreso} adultos=${m.Adultos}`; }\n  return { json: { ...c, opp_id: opp?.id || null, ok, paso, detalle, respuesta_ia: m?.pregunta_anterior || '' } };\n});"
+      }
+    },
+    {
+      "id": "d6e0fd6f-dd17-49e8-aa23-d1990018c04a",
+      "name": "Borrar en GHL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Borra la oportunidad y el contacto de prueba en GHL\nconst out = [];\nfor (const it of $('Evaluar').all()) {\n  const r = it.json;\n  if (r.opp_id) out.push({ json: { agencia: r.agencia, method: 'DELETE', path: `/opportunities/${r.opp_id}`, ctx: { agencia: r.agencia } } });\n  if (r.contact_id) out.push({ json: { agencia: r.agencia, method: 'DELETE', path: `/contacts/${r.contact_id}`, ctx: { agencia: r.agencia } } });\n}\nreturn out.length ? out : [{ json: { vacio: true } }];"
+      }
+    },
+    {
+      "id": "421eae59-3637-4c08-9cfe-6a58d9a9b9f5",
+      "name": "GHL borrar",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2200,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "t1lsQVxg72KgeJHO",
+          "mode": "id"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "d92fe418-b2d6-4a4f-95fe-c216ccc4461e",
+      "name": "Borrar en Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Borra los registros de la prueba en Supabase (memoria, buffer y ventana de 72 h)\nconst out = [];\nfor (const it of $('Evaluar').all()) {\n  const r = it.json;\n  if (!r.contact_id) continue;\n  for (const t of [r.memoria, r.buffer, 'RS_ventana_meta'])\n    out.push({ json: { url: `https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/${encodeURIComponent(t)}?contact_id=eq.${r.contact_id}` } });\n}\nreturn out.length ? out : [{ json: { url: '' } }];"
+      }
+    },
+    {
+      "id": "4c7359b8-3819-4c1e-b983-a629b6592303",
+      "name": "Supabase borrar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2600,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "bce445e8-35ea-45a6-a31b-d7f06189a306",
+      "name": "CRM pedir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return $('Evaluar').all().filter(i => i.json.contact_id).map(i => ({ json: { agencia: i.json.agencia, crm: i.json.crm, pestana: i.json.pestana, contact_id: i.json.contact_id } }));"
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "1bc27885-1f1c-4caa-9702-1ee0ec6ff013",
+      "name": "CRM hojas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.crm }}?fields=sheets.properties",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "9653f694-4cbd-4cf0-a146-c384ce613004",
+      "name": "CRM pasar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return $('CRM pedir').all();"
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "1445c03c-3043-4dab-942b-d14cb3eba53b",
+      "name": "CRM leer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3400,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.crm }}/values/{{ encodeURIComponent(\"'\" + $json.pestana + \"'!A1:AZ\") }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "75e02c36-ee65-440b-9b9a-0299229ebe99",
+      "name": "CRM filas de la prueba",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3600,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Busca en el CRM las filas de la prueba (columna \"Lead\" = contact_id) y arma el borrado, de abajo hacia arriba\nconst pedidos = $('CRM pedir').all(), hojas = $('CRM hojas').all(), valores = $('CRM leer').all();\nreturn pedidos.map((p, i) => {\n  const sheet = (hojas[i]?.json?.sheets || []).find(s => s.properties.title === p.json.pestana);\n  const filas = valores[i]?.json?.values || [];\n  const col = (filas[0] || []).findIndex(h => String(h).trim() === 'Lead');\n  const borrar = [];\n  if (sheet && col >= 0) filas.forEach((f, idx) => { if (idx > 0 && f[col] === p.json.contact_id) borrar.push(idx); });\n  const requests = borrar.sort((a, b) => b - a).map(idx => ({ deleteDimension: { range: { sheetId: sheet.properties.sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 } } }));\n  return { json: { crm: p.json.crm, agencia: p.json.agencia, filas: borrar.length, requests } };\n}).filter(x => x.json.requests.length);"
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "5f3c8e69-f044-4c03-81bb-233a1859a6ae",
+      "name": "CRM borrar filas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3800,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.crm }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "631fbcfb-86ac-42dc-bff5-f4bdf81b81b9",
+      "name": "Resultados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { filas: $('Evaluar').all().map(i => ({ agencia: i.json.agencia, ok: i.json.ok, paso: i.json.paso || null, detalle: i.json.detalle || null, respuesta_ia: i.json.respuesta_ia || null })) } }];"
+      }
+    },
+    {
+      "id": "2ccaf7b5-009d-48da-8c8a-2f2e23e5341e",
+      "name": "Guardar resultado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4200,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/RS_pruebas_diarias",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.filas) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "QIVohgUOAGTuwYd1",
+          "name": "XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "0c7125e0-9acf-401a-86b3-e414c7f90bd2",
+      "name": "¿Falló alguna?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4400,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Solo si alguna agencia falló: un correo con el detalle\nconst r = $('Evaluar').all().map(i => i.json);\nconst malas = r.filter(x => !x.ok);\nif (!malas.length) return [];\nconst N = { independencia: 'Independencia', centro: 'Centro', periodismo: 'Periodismo', matriz: 'Matriz', hijar: 'Hijar' };\nconst cuerpo = `La prueba diaria del sistema falló en ${malas.length} de ${r.length} agencias.\\n\\n` +\n  malas.map(x => `❌ ${N[x.agencia]}\\n   Paso: ${x.paso}\\n   Detalle: ${x.detalle}\\n   Mensaje de prueba: \"${x.texto}\"\\n   Respuesta de la IA: ${x.respuesta_ia || '(ninguna)'}`).join('\\n\\n') +\n  `\\n\\nBien: ${r.filter(x => x.ok).map(x => N[x.agencia]).join(', ') || 'ninguna'}.\\n\\nLos contactos de prueba ya se borraron. Revisa las ejecuciones en n8n de la agencia que falló.`;\nreturn [{ json: { asunto: `⚠️ Prueba diaria Rs Viajes: falla en ${malas.map(x => N[x.agencia]).join(', ')}`, cuerpo } }];"
+      }
+    },
+    {
+      "id": "e78d8995-58c6-4476-9901-7a33dbacd2cd",
+      "name": "Avisar por correo",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        4600,
+        300
+      ],
+      "parameters": {
+        "sendTo": "xzenauto@gmail.com",
+        "subject": "={{ $json.asunto }}",
+        "emailType": "text",
+        "message": "={{ $json.cuerpo }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "giX4xhnEUL2ltIcE",
+          "name": "Gmail Xzen"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Diario 8:05": {
+      "main": [
+        [
+          {
+            "node": "Agencias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agencias": {
+      "main": [
+        [
+          {
+            "node": "Crear contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear contacto": {
+      "main": [
+        [
+          {
+            "node": "Preparar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Mandar mensaje al flujo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mandar mensaje al flujo": {
+      "main": [
+        [
+          {
+            "node": "Esperar 2.5 min",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 2.5 min": {
+      "main": [
+        [
+          {
+            "node": "Pedir oportunidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir oportunidad": {
+      "main": [
+        [
+          {
+            "node": "Buscar oportunidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar oportunidad": {
+      "main": [
+        [
+          {
+            "node": "Memoria IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria IA": {
+      "main": [
+        [
+          {
+            "node": "Evaluar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar": {
+      "main": [
+        [
+          {
+            "node": "Borrar en GHL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar en GHL": {
+      "main": [
+        [
+          {
+            "node": "GHL borrar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL borrar": {
+      "main": [
+        [
+          {
+            "node": "Borrar en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar en Supabase": {
+      "main": [
+        [
+          {
+            "node": "Supabase borrar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase borrar": {
+      "main": [
+        [
+          {
+            "node": "CRM pedir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM pedir": {
+      "main": [
+        [
+          {
+            "node": "CRM hojas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM hojas": {
+      "main": [
+        [
+          {
+            "node": "CRM pasar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM pasar": {
+      "main": [
+        [
+          {
+            "node": "CRM leer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM leer": {
+      "main": [
+        [
+          {
+            "node": "CRM filas de la prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM filas de la prueba": {
+      "main": [
+        [
+          {
+            "node": "CRM borrar filas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM borrar filas": {
+      "main": [
+        [
+          {
+            "node": "Resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultados": {
+      "main": [
+        [
+          {
+            "node": "Guardar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar resultado": {
+      "main": [
+        [
+          {
+            "node": "¿Falló alguna?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Falló alguna?": {
+      "main": [
+        [
+          {
+            "node": "Avisar por correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
+}
