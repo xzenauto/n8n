@@ -202,6 +202,20 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
   de forma acumulada para que no haya deriva. Empuje lento alterno (1.00↔1.06) en cada plano.
 - Mismo tonemap HDR y grade. Fundido de entrada y de salida, `loudnorm=I=-14`.
 
+## 2f. Subtítulos centrados fijos, títulos grandes y fotos como B-roll (reel "oferta 90 días")
+
+- **Centrados y estables** (petición del usuario): `--center 0.80`. El bloque va en una línea, centrado
+  y a altura fija (sobre el pecho, nunca sobre la cara). En los momentos importantes
+  (`--move ini-fin,...`) los subtítulos pasan junto a la cara, con el estilo de siempre.
+- **Título de algo importante** (p. ej. el nombre de la oferta): `--title ini-fin`. La frase sale
+  completa, centrada y a tamaño de gancho, con "90 días" en amarillo. En el montaje, ese tramo del plano se
+  desenfoca y oscurece (`gblur=18`, `eq=brightness=-0.12`, fundidos de 0,15 s) para que se lea como un rótulo.
+- **Material 4:3** (2880x2160): recortar a 16:9 (2880x1620) con los ojos al ~38 % del alto
+  y aplicar el zoom en una sola remuestra (`aroll.py` del reel 11 = `aroll_zoom_enfasis.py` + recorte).
+- **Foto vertical como B-roll** (HEIC del iPhone → `pillow-heif`): a la izquierda sobre una copia
+  desenfocada y oscurecida, con zoom lento (1,00 → 1,05). Los subtítulos de ese tramo van con `--panel`.
+- **Si el vídeo ya trae música, no se añade otra**: solo `loudnorm=I=-14`.
+
 ## 3. Anuncios / resúmenes verticales (9:16) a partir de un vídeo largo
 
 Probado con el VSL de agencias de viajes → anuncio de 54 s (`ejemplos/anuncio_*.py`):

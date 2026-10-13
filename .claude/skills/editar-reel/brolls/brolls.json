@@ -658,6 +658,58 @@
      "fecha": "2026-10-08"
     }
    ]
+  },
+  "concierto_trabajando": {
+   "drive_id": "1yGI-DPTgEEWLvKhyOTq0gZ5ybOTNNf6n",
+   "titulo": "Concierto y trabajando",
+   "orientacion": "v",
+   "temas": [
+    "foto",
+    "concierto",
+    "trabajo",
+    "workaholic"
+   ],
+   "nota": "foto HEIC vertical (abrir con pillow-heif)",
+   "usos": [
+    {
+     "reel": "reel_oferta_90_dias",
+     "fecha": "2026-10-13"
+    }
+   ]
+  },
+  "grabando_cafeteria": {
+   "drive_id": "14Me62dHjiiqAmy1KXDsk0Q-IspIbfFG5",
+   "titulo": "Grabando en cafetería",
+   "orientacion": "h",
+   "temas": [
+    "trabajo",
+    "café",
+    "hablando"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "reel_oferta_90_dias",
+     "fecha": "2026-10-13"
+    }
+   ]
+  },
+  "hablando_trabajo": {
+   "drive_id": "12bVyXl_DijNhm2bOMO4aitrgCVZ7Apn6",
+   "titulo": "Hablando de trabajo",
+   "orientacion": "h",
+   "temas": [
+    "reunión",
+    "trabajo",
+    "equipo"
+   ],
+   "nota": "luz rosa los primeros 3 s: usar desde 3,5 s",
+   "usos": [
+    {
+     "reel": "reel_oferta_90_dias",
+     "fecha": "2026-10-13"
+    }
+   ]
   }
  }
 }

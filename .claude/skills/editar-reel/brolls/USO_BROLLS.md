@@ -20,11 +20,14 @@ Se actualiza con `brolls_db.py informe`. Más usados arriba.
 | gym2 | Tomas gym 2 | horizontal | 2 | reel_pov_negocio_v2 |
 | hablando_camara | Vídeo hablando a cámara | horizontal | 2 | reel_mi_momento |
 | llamada_santi | En llamada con Santi | horizontal | 2 | reel_pov_negocio_v2 |
+| concierto_trabajando | Concierto y trabajando | vertical | 1 | reel_oferta_90_dias |
 | eeuu1 | EEUU | horizontal | 1 | reel_pov_negocio_v2 |
 | eeuu2 | EEUU 2 | horizontal | 1 | reel_pov_negocio_v2 |
 | eeuu3 | EEUU 3 | horizontal | 1 | reel_pov_negocio_v2 |
 | eeuu4 | EEUU 4 | horizontal | 1 | reel_pov_negocio_v2 |
 | familia | Familia | vertical | 1 | reel_pov_negocio_v2 |
+| grabando_cafeteria | Grabando en cafetería | horizontal | 1 | reel_oferta_90_dias |
+| hablando_trabajo | Hablando de trabajo | horizontal | 1 | reel_oferta_90_dias |
 | leads_ganados | Leads ganados | vertical | 1 | reel_meta_pierdes_dinero |
 | paseando | Paseando | vertical | 1 | reel_pov_negocio_v2 |
 | piernas_gimnasio | Piernas gimnasio | vertical | 1 | reel_pov_negocio_v2 |

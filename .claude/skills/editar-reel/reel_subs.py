@@ -29,7 +29,7 @@ FONT = os.path.join(HERE, "fonts", "BebasNeue-Regular.ttf")   # elegida por el u
 # ---------------------------------------------------------------- estilo
 SIZE_H = 0.05         # tamaño de letra relativo a la altura del frame (feedback: más legible)
 HOOK_H = 0.16         # tamaño del gancho (primera frase): grande y llamativo
-HOOK_MAX_WORDS = 8    # el gancho se muestra como una frase completa
+HOOK_MAX_WORDS = 10    # el gancho se muestra como una frase completa
 BROLL_SCALE = 1.25    # palabra única en B-roll, algo más grande
 WEIGHT = 400          # solo afecta a fuentes variables (Bebas Neue es estática)
 WORD_GAP = 0.55       # espacio extra entre palabras (en em)
@@ -42,6 +42,7 @@ SIZE_V = 0.045        # tamaño de letra en vertical (relativo al alto)
 HOOK_V = 0.075        # tamaño del gancho en vertical
 SUB_Y_V = 0.70        # altura de los subtítulos en vertical
 SHADOW = False        # sin sombra (preferencia del usuario)
+CENTER_Y = 0.0             # --center: altura fija de los subtítulos centrados (0 = junto a la cara)
 HL_COLOR = (255, 210, 60)   # amarillo para palabras clave ("hl": true en words.json)
 DARK_TEXT, DARK_HL = (22, 22, 22), (214, 110, 0)   # sobre fondo muy claro (pantallas): texto oscuro
 BRIGHT_BG = 140       # luminancia media a partir de la cual el fondo se considera "blanco"
@@ -66,16 +67,20 @@ def transcribe(path, model):
     return [{"w": w["word"].strip(), "s": w["start"], "e": w["end"]} for s in r["segments"] for w in s["words"]]
 
 
-def chunks(words, cuts=(), hook_end=0.0):
-    """Bloques de palabras. Antes de `hook_end` (gancho) los bloques son frases completas."""
+def chunks(words, cuts=(), hook_end=0.0, titles=()):
+    """Bloques de palabras. Antes de `hook_end` (gancho) y dentro de `titles` (tramos de título
+    grande) los bloques son frases completas."""
     out, cur = [], []
+    cuts = sorted(set(cuts) | {t for r in titles for t in r})
     for w in words:
-        crosses = cur and any(cur[0]["s"] - 0.05 < c <= w["s"] + 0.05 for c in cuts)
-        in_hook = cur and cur[0]["s"] < hook_end
+        crosses = cur and any(cur[0]["s"] + 0.05 < c <= w["s"] + 0.05 for c in cuts)
+        tit = [r for r in titles if r[0] - 0.05 <= cur[0]["s"] < r[1]] if cur else []
+        in_hook = cur and (cur[0]["s"] < hook_end or tit)
+        h_end = tit[0][1] if tit else hook_end
         if not cur:
             brk = False
         elif in_hook:
-            brk = len(cur) >= HOOK_MAX_WORDS or cur[-1]["w"][-1:] in ".?!" or crosses or w["s"] >= hook_end
+            brk = len(cur) >= HOOK_MAX_WORDS or cur[-1]["w"][-1:] in ".?!" or crosses or w["s"] >= h_end
         else:
             brk = (len(cur) >= MAX_WORDS or w["s"] - cur[-1]["e"] > MAX_GAP
                    or cur[-1]["w"][-1:] in ".?!,;:" or crosses)
@@ -195,6 +200,12 @@ class Renderer:
         if face is None or face == "low" or isinstance(face, float):   # B-roll → una palabra centrada
             yf = 0.78 if face == "low" else (face % 10 if isinstance(face, float) else 0.5)
             return [(s.W / 2 - wd / 2, s.H * yf) for wd in widths]
+        if face == "center":  # modo centrado: bloque en una línea, centrado y fijo
+            total = sum(widths) + gap * (len(widths) - 1)
+            x, pos = s.W / 2 - total / 2, []
+            for wd in widths:
+                pos.append((x, s.H * CENTER_Y)); x += wd + gap
+            return pos
         if face == "top":  # plano principal sin cara detectada → arriba, centrado
             total = sum(widths) + gap * (len(widths) - 1)
             x, pos = s.W / 2 - total / 2, []
@@ -267,8 +278,8 @@ class Renderer:
         gap, lh = f.size * 0.28, f.size * 1.02
         widths = [im.width - 2 * pad for im, pad, _ in imgs]
         margin = s.W * 0.05
-        if face is None or face == "top":
-            x0, x1, align, yc = margin, s.W - margin, "center", s.H * (0.5 if face is None else 0.3)
+        if face is None or face in ("top", "title"):
+            x0, x1, align, yc = margin, s.W - margin, "center", s.H * (0.3 if face == "top" else 0.5)
         else:
             if len(face) == 4:     # recorrido de la cara durante toda la frase
                 lb, rb, ey, _ = face
@@ -355,6 +366,10 @@ def main():
     ap.add_argument("--no-shadow", action="store_true", help="sin sombra")
     ap.add_argument("--vertical", action="store_true", help="formato 9:16: subtítulos centrados bajo la cara")
     ap.add_argument("--panel", default="", help="tramos con apoyo visual a la izquierda: palabra a la derecha")
+    ap.add_argument("--center", type=float, default=0.0,
+                    help="subtítulos fijos centrados a esta altura (p. ej. 0.82); junto a la cara solo en --move")
+    ap.add_argument("--move", default="", help="con --center: tramos 'ini-fin' importantes → subtítulos junto a la cara")
+    ap.add_argument("--title", default="", help="tramos 'ini-fin' que salen como título grande (igual que el gancho)")
     ap.add_argument("--cuts", default="", help="cortes extra del A-roll 't1,t2' (s): nueva posición fija")
     a = ap.parse_args()
     global FONT, WEIGHT, SIZE_H, SHADOW, VERTICAL, MAX_WORDS
@@ -375,8 +390,12 @@ def main():
     panel = [tuple(map(float, r.split("-"))) for r in a.panel.split(",") if r]
     broll += panel
     cuts = sorted({t for r in broll for t in r} | {float(c) for c in a.cuts.split(",") if c})
-    cks = chunks(words, cuts, a.hook)
-    hook_ids = {i for i, c in enumerate(cks) if c[0]["s"] < a.hook}
+    titles = [tuple(map(float, r.split("-"))) for r in a.title.split(",") if r]
+    moves = [tuple(map(float, r.split("-"))) for r in a.move.split(",") if r]
+    global CENTER_Y
+    CENTER_Y = a.center
+    cks = chunks(words, cuts, a.hook, titles)
+    hook_ids = {i for i, c in enumerate(cks) if c[0]["s"] < a.hook or any(t0 - 0.05 <= c[0]["s"] < t1 for t0, t1 in titles)}
     R = Renderer(W, H)
 
     # Cada plano (tramo entre cortes) recibe UNA posición de cara fija: la mediana de todas
@@ -435,6 +454,8 @@ def main():
         shot = shot_face[k]
         if not det:
             anchors.append(shot if shot else "top"); continue    # sin cara → arriba, nunca encima
+        if any(t0 - 0.05 <= ws < t1 for t0, t1 in titles):
+            anchors.append("title"); continue                    # título: centrado y a pantalla completa
         if i in hook_ids:   # gancho: zona que la cara ocupa en algún momento de la frase
             g = 0.5 + FACE_GAP
             anchors.append((min(r[1] - r[3] * g for r in det), max(r[1] + r[3] * g for r in det),
@@ -443,6 +464,8 @@ def main():
         cf = (float(np.median([r[1] for r in det])), float(np.median([r[2] for r in det])), float(max(r[3] for r in det)))
         if shot and math.hypot(cf[0] - shot[0], cf[1] - shot[1]) < 0.4 * shot[2]:
             cf = shot                                            # plano quieto → misma posición siempre
+        if CENTER_Y and not any(m0 - 0.05 <= ws < m1 for m0, m1 in moves):
+            cf = "center"                                        # modo centrado: fijo salvo momentos importantes
         anchors.append(cf)
 
     # Plano principal: fondo detrás de cada lado del bloque (izq./dcha. de la cara). Si cae sobre
