@@ -7,7 +7,15 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 9,12,15,18,21 * * *"
+              "expression": "*/30 10-19 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 0,4,8 * * *"
             }
           ]
         }
@@ -19,7 +27,7 @@
         0
       ],
       "id": "d69b71db-8c9d-4d93-a309-9427b508f592",
-      "name": "9, 12, 15, 18 y 21 h"
+      "name": "Cada 30 min (10–20 h) y cada 4 h de noche"
     },
     {
       "parameters": {
@@ -238,17 +246,6 @@
     }
   ],
   "connections": {
-    "9, 12, 15, 18 y 21 h": {
-      "main": [
-        [
-          {
-            "node": "Conversaciones sin respuesta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Conversaciones sin respuesta": {
       "main": [
         [
@@ -327,6 +324,17 @@
         [
           {
             "node": "¿Rescatar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cada 30 min (10–20 h) y cada 4 h de noche": {
+      "main": [
+        [
+          {
+            "node": "Conversaciones sin respuesta",
             "type": "main",
             "index": 0
           }
