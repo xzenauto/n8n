@@ -1,0 +1,206 @@
+{
+  "name": "n8n – Gestor Claude",
+  "nodes": [
+    {
+      "id": "57c758cb-5b01-4ee8-bdc4-a6d600c6b6aa",
+      "name": "Webhook Claude",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "34f1e1e0-092f-473d-89cc-e3db169935d1",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "claude-n8n-gestor",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RFlBnEfhjkO2ZPGA",
+          "name": "Claude – Pasarela GHL (webhook)"
+        }
+      }
+    },
+    {
+      "id": "2c9bff48-699a-4925-a5b8-86dde40b603a",
+      "name": "Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Valida la petición que manda Claude y arma la URL de la API de n8n\nconst BASE = 'https://n8n.srv964593.hstgr.cloud/api/v1';\nconst RECURSOS = ['workflows', 'executions', 'tags', 'credentials', 'variables', 'projects', 'users', 'audit', 'source-control'];\nconst b = $json.body || {};\nconst method = String(b.method || 'GET').toUpperCase();\nif (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {\n  return [{ json: { ok: false, error: 'método no permitido', method } }];\n}\nlet path = String(b.path || '');\nif (!path.startsWith('/')) path = '/' + path;\nif (path.includes('://') || path.includes('..')) {\n  return [{ json: { ok: false, error: 'path inválido', path } }];\n}\nconst recurso = path.split('/')[1].split('?')[0];\nif (!RECURSOS.includes(recurso)) {\n  return [{ json: { ok: false, error: 'recurso no permitido', recurso, permitidos: RECURSOS } }];\n}\n// Protección: este flujo no puede borrarse, desactivarse ni sobrescribirse a sí mismo\nconst propio = '/workflows/' + $workflow.id;\nif (method !== 'GET' && (path === propio || path.startsWith(propio + '/'))) {\n  return [{ json: { ok: false, error: 'no se permite modificar el propio gestor' } }];\n}\nconst qs = Object.entries(b.query || {})\n  .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');\nreturn [{ json: {\n  ok: true,\n  method,\n  path,\n  url: BASE + path + (qs ? (path.includes('?') ? '&' : '?') + qs : ''),\n  body: b.body ?? null,\n} }];"
+      }
+    },
+    {
+      "id": "537490bf-75bf-4a40-b23c-c832c95f8843",
+      "name": "¿Válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b0993a4d-4cae-4059-b33d-ce8735d6ffd0",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "4e107d46-2438-428d-85bf-88006eff4b37",
+      "name": "API n8n",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        -100
+      ],
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": "={{ $json.body !== null && !['GET','DELETE'].includes($json.method) }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body || {}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IyXOY3GLpgeG1pBx",
+          "name": "n8n API interna (reportes)"
+        }
+      }
+    },
+    {
+      "id": "ac13daf1-a486-4545-8e45-7ad22d7924eb",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        -100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ method: $('Validar').first().json.method, path: $('Validar').first().json.path, status: $json.statusCode, data: $json.body }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "25ec1d8d-6eb3-4c0d-b8ba-a39f8db58130",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Claude": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "¿Válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Válida?": {
+      "main": [
+        [
+          {
+            "node": "API n8n",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API n8n": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
