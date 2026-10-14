@@ -1,0 +1,88 @@
+{
+  "name": "Xzen Auto – Aviso de compra (correo)",
+  "nodes": [
+    {
+      "id": "e7eaace3-d500-4904-a2cb-99ebd8b0e6fa",
+      "name": "Compra en GHL (Xzen Auto)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "b61540fe-7088-4285-9c74-72e777eed18b",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "xzen-compra-84a8611cbfa5",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "85e01271-e25f-4a3a-9feb-75a3db964d34",
+      "name": "Armar correo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Normaliza lo que manda GHL (Order Submitted / Payment Received / webhook de prueba) y arma el correo\nconst b = $json.body || {};\nconst cd = b.customData || {};\nconst pick = (...v) => v.find(x => x !== undefined && x !== null && String(x).trim() !== '');\nconst order = b.order || b.payment || {};\nconst items = order.line_items || order.lineItems || b.line_items || b.products || [];\nconst productos = (Array.isArray(items) ? items : [])\n  .map(i => `${i.qty || i.quantity || 1} × ${i.title || i.name || i.product_name || 'Producto'}${i.price ? ' — $' + i.price : ''}`);\nconst producto = pick(cd.producto, b.product_name, b.productName, productos.join('\\n'), 'Sin detalle de producto');\nconst monto = pick(cd.monto, order.total_price, order.amount, order.total, b.amount, b.total, '');\nconst moneda = pick(cd.moneda, order.currency, b.currency, 'MXN');\nconst nombre = pick(cd.nombre, b.full_name, [b.first_name, b.last_name].filter(Boolean).join(' '), b.contact_name, 'Cliente sin nombre');\nconst correo = pick(cd.correo, b.email, '—');\nconst telefono = pick(cd.telefono, b.phone, '—');\nconst contactoId = pick(b.contact_id, b.contactId, '');\nconst esPrueba = !!(b.prueba || cd.prueba);\nconst fecha = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });\nconst esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst link = contactoId ? `https://app.gohighlevel.com/v2/location/8SiKgyVuy9KVUIx1Y1RT/contacts/detail/${contactoId}` : '';\nconst asunto = `${esPrueba ? '[PRUEBA] ' : ''}🛒 Nueva compra en Xzen Auto — ${nombre}${monto !== '' ? ' ($' + monto + ' ' + moneda + ')' : ''}`;\nconst html = `<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222\">\n<h2 style=\"margin:0 0 12px\">${esPrueba ? '[PRUEBA] ' : ''}Nueva compra en Xzen Auto</h2>\n<table cellpadding=\"6\" style=\"border-collapse:collapse\">\n<tr><td><b>Cliente</b></td><td>${esc(nombre)}</td></tr>\n<tr><td><b>Correo</b></td><td>${esc(correo)}</td></tr>\n<tr><td><b>Teléfono</b></td><td>${esc(telefono)}</td></tr>\n<tr><td valign=\"top\"><b>Producto</b></td><td>${esc(producto).replace(/\\n/g, '<br>')}</td></tr>\n<tr><td><b>Monto</b></td><td>${monto !== '' ? '$' + esc(monto) + ' ' + esc(moneda) : '—'}</td></tr>\n<tr><td><b>Fecha</b></td><td>${fecha}</td></tr>\n</table>\n${link ? `<p><a href=\"${link}\">Ver contacto en GHL</a></p>` : ''}\n</div>`;\nreturn [{ json: { asunto, html } }];\n"
+      }
+    },
+    {
+      "id": "30c43304-ed44-45df-aaa3-71f3b758925e",
+      "name": "Enviar correo",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        0
+      ],
+      "webhookId": "89a86872-2238-45e4-8c99-6198b901108c",
+      "parameters": {
+        "sendTo": "xzenauto@gmail.com",
+        "subject": "={{ $json.asunto }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "giX4xhnEUL2ltIcE",
+          "name": "Gmail Xzen"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Compra en GHL (Xzen Auto)": {
+      "main": [
+        [
+          {
+            "node": "Armar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar correo": {
+      "main": [
+        [
+          {
+            "node": "Enviar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
