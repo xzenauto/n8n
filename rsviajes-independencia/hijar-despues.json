@@ -92,8 +92,8 @@
           "mappingMode": "defineBelow",
           "value": {
             "Status": "RECOP. DATOS",
-            "Atiende": "LUCIA",
-            "Estado": "LUCIA",
+            "Atiende": "MARIEL",
+            "Estado": "MARIEL",
             "Lead": "={{ $json.contact_id }}",
             "Destino": "={{ $json.destino }}",
             "Fechas": "={{ $json.fecha_salida ? $json.fecha_salida + ' / ' + ($json.fecha_regreso || '') : ($json.fechas_texto || '') }}",
@@ -1691,8 +1691,8 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Atiende": "LUCIA",
-            "Estado": "LUCIA",
+            "Atiende": "MARIEL",
+            "Estado": "MARIEL",
             "Status": "RECOP. DATOS",
             "FechaContacto": "={{ $now.setZone('America/Mexico_City').toFormat(\"yyyy-MM-dd HH:mm:ss\") }}",
             "Lead": "={{ $('Create a row').item.json.contact_id }}",
