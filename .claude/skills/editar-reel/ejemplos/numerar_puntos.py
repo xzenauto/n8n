@@ -3,8 +3,8 @@ p = sys.argv[1]; w = json.load(open(p))
 out = []; i = 0
 while i < len(w):
     x = w[i]
-    if x["w"].lower() == "número" and i + 1 < len(w) and w[i+1]["w"].rstrip(",") in "123":
-        n = w[i+1]["w"].rstrip(",")
+    if x["w"].lower() == "número" and i + 1 < len(w) and w[i+1]["w"].rstrip(",.") in ("1", "2", "3"):
+        n = w[i+1]["w"].rstrip(",.")
         out.append({"w": f"[#{n}]", "s": x["s"], "e": w[i+1]["e"], "hl": True, "scale": 1.5}); i += 2; continue
     if x["w"] == "72" and w[i+1]["w"] == "%":
         out.append({"w": "72%", "s": x["s"], "e": w[i+1]["e"]}); i += 2; continue

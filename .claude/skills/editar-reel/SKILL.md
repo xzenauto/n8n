@@ -214,6 +214,12 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
   y aplicar el zoom en una sola remuestra (`aroll.py` del reel 11 = `aroll_zoom_enfasis.py` + recorte).
 - **Foto vertical como B-roll** (HEIC del iPhone → `pillow-heif`): a la izquierda sobre una copia
   desenfocada y oscurecida, con zoom lento (1,00 → 1,05). Los subtítulos de ese tramo van con `--panel`.
+- **Ropa clara bajo los subtítulos centrados** (camiseta blanca): degradado negro en la parte baja
+  del plano (transparente al 62 % del alto → 62 % de opacidad al 76 %), superpuesto antes de
+  `reel_subs.py`. Con él, el blanco y el amarillo se leen siempre.
+- **Lista "Número 1/2/3" en el estilo centrado**: `numerar_puntos.py` (acepta "1." con punto) +
+  `--title` en cada punto ("[#1] Automatiza la atención al cliente") con fondo desenfocado y
+  un whoosh discreto al entrar. Si el usuario pide música en ese estilo: `musica_motivacional.py`.
 - **Si el vídeo ya trae música, no se añade otra**: solo `loudnorm=I=-14`.
 
 ## 3. Anuncios / resúmenes verticales (9:16) a partir de un vídeo largo
