@@ -202,6 +202,12 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
   de forma acumulada para que no haya deriva. Empuje lento alterno (1.00↔1.06) en cada plano.
 - Mismo tonemap HDR y grade. Fundido de entrada y de salida, `loudnorm=I=-14`.
 
+- **Variante "frase en el centro"** (reel "la disciplina gana al talento"): la frase va centrada en
+  la pantalla, encima del vídeo, en Bebas 150 px con sombra difuminada (`ejemplos/pov_frase_centrada.py`).
+  La línea 1 está desde el inicio y la línea 2 entra con el beat. El vídeo se oscurece un poco (`eq=brightness=-0.06`).
+  Sin canción del usuario: `musica_motivacional.py` (100 BPM, compás de 2,4 s, el beat entra en el
+  compás 2 = 4,8 s). Intro con 2 planos de 2 medios compases de intro y luego 1 por plano.
+
 ## 2f. Subtítulos centrados fijos, títulos grandes y fotos como B-roll (reel "oferta 90 días")
 
 - **Centrados y estables** (petición del usuario): `--center 0.80`. El bloque va en una línea, centrado
