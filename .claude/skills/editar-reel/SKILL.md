@@ -208,6 +208,11 @@ efectos de sonido llamativos ni transiciones elaboradas (cortes secos).
   Sin canción del usuario: `musica_motivacional.py` (100 BPM, compás de 2,4 s, el beat entra en el
   compás 2 = 4,8 s). Intro con 2 planos de 2 medios compases de intro y luego 1 por plano.
 
+- **Montaje rápido "solo B-roll", sin texto ni música** (versión final del reel de disciplina): el usuario
+  pidió cambiar de plano cada 1–2 s (1,2–1,8 s variando) y usar solo clips en los que sale grabando,
+  trabajando o entrenando; **nada de viajes**. `montaje.py` con `half = 1.0` y la duración de cada plano en segundos.
+  Se exporta sin pista de audio (la música la pone él en la app).
+
 ## 2f. Subtítulos centrados fijos, títulos grandes y fotos como B-roll (reel "oferta 90 días")
 
 - **Centrados y estables** (petición del usuario): `--center 0.80`. El bloque va en una línea, centrado
