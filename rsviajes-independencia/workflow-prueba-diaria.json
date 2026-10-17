@@ -161,7 +161,6 @@
         "options": {
           "response": {
             "response": {
-              "neverError": true,
               "fullResponse": true
             }
           }
@@ -172,7 +171,10 @@
           "id": "QIVohgUOAGTuwYd1",
           "name": "XzenAuto"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "id": "40060bb2-2676-4a54-8705-72043a99fcf8",
@@ -184,7 +186,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "// ¿Contestó la IA y llegó la oportunidad a \"Datos completos\" con los datos del viaje?\nconst opps = $('Buscar oportunidad').all(), mem = $('Memoria IA').all();\nreturn $('Preparar mensaje').all().map((it, i) => {\n  const c = it.json.ctx;\n  const opp = (opps[i]?.json?.res?.opportunities || [])[0];\n  const m = (mem[i]?.json?.body || [])[0] || null;\n  let ok = false, paso = '', detalle = '';\n  if (!c.contact_id) { paso = 'Crear contacto en GHL'; detalle = c.error_contacto || ''; }\n  else if (!m || !m.pregunta_anterior) { paso = 'La IA no contestó'; detalle = 'No hay respuesta guardada en Supabase'; }\n  else if (!opp) { paso = 'Oportunidad'; detalle = 'No se creó la oportunidad en GHL'; }\n  else if (opp.pipelineStageId !== c.completo) { paso = 'Datos completos'; detalle = `La oportunidad quedó en otra etapa (${opp.pipelineStageId}) · destino=${m.destino} salida=${m.fecha_salida} adultos=${m.Adultos}`; }\n  else if (!m.destino || !m.fecha_salida || !m.Adultos) { paso = 'Datos del viaje'; detalle = `Faltan datos: destino=${m.destino} salida=${m.fecha_salida} adultos=${m.Adultos}`; }\n  else { ok = true; detalle = `destino=${m.destino} salida=${m.fecha_salida} regreso=${m.fecha_regreso} adultos=${m.Adultos}`; }\n  return { json: { ...c, opp_id: opp?.id || null, ok, paso, detalle, respuesta_ia: m?.pregunta_anterior || '' } };\n});"
+        "jsCode": "// ¿Contestó la IA y llegó la oportunidad a \"Datos completos\" con los datos del viaje?\nconst opps = $('Buscar oportunidad').all(), mem = $('Memoria IA').all();\nreturn $('Preparar mensaje').all().map((it, i) => {\n  const c = it.json.ctx;\n  const opp = (opps[i]?.json?.res?.opportunities || [])[0];\n  const m = (mem[i]?.json?.body || [])[0] || null;\n  let ok = false, paso = '', detalle = '';\n  if (!c.contact_id) { paso = 'Crear contacto en GHL'; detalle = c.error_contacto || ''; }\n  else if ((!m || !m.pregunta_anterior) && opp && opp.pipelineStageId === c.completo) { ok = true; detalle = 'La oportunidad llegó a Datos completos (no se pudo leer la respuesta en Supabase)'; }\n  else if (!m || !m.pregunta_anterior) { paso = 'La IA no contestó'; detalle = 'No hay respuesta guardada en Supabase' + (mem[i]?.json?.error ? ` (error al leer Supabase: ${String(mem[i].json.error.message || mem[i].json.error).slice(0, 120)})` : ''); }\n  else if (!opp) { paso = 'Oportunidad'; detalle = 'No se creó la oportunidad en GHL'; }\n  else if (opp.pipelineStageId !== c.completo) { paso = 'Datos completos'; detalle = `La oportunidad quedó en otra etapa (${opp.pipelineStageId}) · destino=${m.destino} salida=${m.fecha_salida} adultos=${m.Adultos}`; }\n  else if (!m.destino || !m.fecha_salida || !m.Adultos) { paso = 'Datos del viaje'; detalle = `Faltan datos: destino=${m.destino} salida=${m.fecha_salida} adultos=${m.Adultos}`; }\n  else { ok = true; detalle = `destino=${m.destino} salida=${m.fecha_salida} regreso=${m.fecha_regreso} adultos=${m.Adultos}`; }\n  return { json: { ...c, opp_id: opp?.id || null, ok, paso, detalle, respuesta_ia: m?.pregunta_anterior || '' } };\n});"
       }
     },
     {
