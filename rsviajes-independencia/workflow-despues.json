@@ -1679,185 +1679,17 @@
     },
     {
       "parameters": {
-        "operation": "append",
-        "documentId": {
-          "__rl": true,
-          "value": "16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA",
-          "mode": "list",
-          "cachedResultName": "CRM RS Independencia",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": 693004850,
-          "mode": "list",
-          "cachedResultName": "4rto 2026",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA/edit#gid=693004850"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "Atiende": "MIRANDA",
-            "Status": "RECOP. DATOS",
-            "Estado": "MIRANDA",
-            "FechaContacto": "={{ $now.setZone('America/Mexico_City').toFormat(\"yyyy-MM-dd HH:mm:ss\") }}",
-            "Lead": "={{ $('Datos1').last().json.contact_id }}",
-            "Usuario": "={{ $('Datos1').last().json.Nombre_completo }}",
-            "Plataforma": "={{ $('Datos1').last().json.Plataforma }}",
-            "Nombre": "={{ $('Datos1').last().json.Nombre }}",
-            "Telefono": "={{ $('Webhook').last().json.body.phone }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "Atiende",
-              "displayName": "Atiende",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Estado",
-              "displayName": "Estado",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Status",
-              "displayName": "Status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "FechaContacto",
-              "displayName": "FechaContacto",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Lead",
-              "displayName": "Lead",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Usuario",
-              "displayName": "Usuario",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Plataforma",
-              "displayName": "Plataforma",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Nombre",
-              "displayName": "Nombre",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Telefono",
-              "displayName": "Telefono",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Destino",
-              "displayName": "Destino",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "Fechas",
-              "displayName": "Fechas",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "Adultos",
-              "displayName": "Adultos",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "Menores",
-              "displayName": "Menores",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "Edad Menores",
-              "displayName": "Edad Menores",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "Observaciones",
-              "displayName": "Observaciones",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: [{ insertDimension: { range: { sheetId: 693004850, dimension: 'ROWS', startIndex: 1, endIndex: 2 }, inheritFromBefore: false } }, { pasteData: { coordinate: { sheetId: 693004850, rowIndex: 1, columnIndex: 0 }, type: 'PASTE_VALUES', delimiter: '\\t', data: [\"MIRANDA\", \"MIRANDA\", \"RECOP. DATOS\", ($now.setZone('America/Mexico_City').toFormat(\"yyyy-MM-dd HH:mm:ss\")), ($('Datos1').last().json.contact_id), ($('Datos1').last().json.Nombre_completo), ($('Datos1').last().json.Plataforma), ($('Datos1').last().json.Nombre), ($('Webhook').last().json.body.phone)].map(v => String(v ?? '').replace(/[\\t\\r\\n]+/g, ' ')).join('\\t') } }] }) }}",
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         2224,
         400
@@ -3437,11 +3269,98 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        320,
-        -200
+        760,
+        -300
       ],
       "id": "de84d7d3-2c76-4ce3-891e-e7be20918ebe",
       "name": "CRM Sin IA",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA/values/%274rto%202026%27%21E%3AE",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        -200
+      ],
+      "id": "dcf830ca-6391-42cd-8553-8c4e569db06b",
+      "name": "CRM Sin IA: ¿ya existe?",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "139112da-373c-4ff7-aa97-63c903fd8cea",
+              "leftValue": "={{ ($json.values || []).flat().includes(($('Origen del mensaje').first().json.contact_id)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        540,
+        -200
+      ],
+      "id": "0c212b59-c48c-4519-892a-32241214499b",
+      "name": "¿Ya está en el CRM?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/16PKHFb_SovGwvWNcLknX8rK68UydPchs46irNxcqgDA:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: [{ insertDimension: { range: { sheetId: 693004850, dimension: 'ROWS', startIndex: 1, endIndex: 2 }, inheritFromBefore: false } }, { pasteData: { coordinate: { sheetId: 693004850, rowIndex: 1, columnIndex: 0 }, type: 'PASTE_VALUES', delimiter: '\\t', data: [\"PENDIENTE\", \"SIN IA\", \"SIN IA\", ($now.setZone('America/Mexico_City').toFormat(\"yyyy-MM-dd HH:mm:ss\")), ($('Origen del mensaje').first().json.contact_id), ($('Webhook').first().json.body.full_name || $('Origen del mensaje').first().json.nombre), \"whatsapp\", ($('Webhook').first().json.body.first_name || $('Origen del mensaje').first().json.nombre), (String(($('GHL contacto (origen)').first().json.contact || {}).phone || $('Webhook').first().json.body.phone || '').replace('+', ''))].map(v => String(v ?? '').replace(/[\\t\\r\\n]+/g, ' ')).join('\\t') } }] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        -100
+      ],
+      "id": "253b77ab-26e9-4268-8af6-6ce49864e385",
+      "name": "CRM Sin IA (fila arriba)",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "5tVcEyMfkgXjzc9v",
@@ -4327,7 +4246,36 @@
       "main": [
         [
           {
+            "node": "CRM Sin IA: ¿ya existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM Sin IA: ¿ya existe?": {
+      "main": [
+        [
+          {
+            "node": "¿Ya está en el CRM?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Ya está en el CRM?": {
+      "main": [
+        [
+          {
             "node": "CRM Sin IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CRM Sin IA (fila arriba)",
             "type": "main",
             "index": 0
           }
