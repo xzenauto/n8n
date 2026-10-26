@@ -35,7 +35,8 @@ pruebas; la tiene el contacto de pruebas Carlos +34 638 76 07 11): la coexistenc
    - Etiquetas: `video-enviado`, `cita-agendada`, `atencion-personalizada`.
    Al enviar el video le pide que lo vea y nos cuente qué le pareció; si en **1 hora** no responde,
    le escribe una sola vez: «¿Pudo ver el video? Nos encantaría saber qué le pareció» (etiqueta `video-recordatorio`).
-6. Cita agendada (herramientas `consultar_disponibilidad` / `agendar_cita`) → oportunidad a **Agendado**.
+6. Cita agendada (herramientas `consultar_disponibilidad` / `agendar_cita`, verificada con la respuesta real
+   del calendario) → oportunidad a **Agendado** y correo a xzenauto@gmail.com con fecha y hora y los datos del lead.
 7. Atención personalizada → oportunidad a la columna **Atención personalizada**, nota en el contacto
    y correo a xzenauto@gmail.com (Gmail Xzen). Desde ahí el bot deja de responder a ese contacto.
 8. Si OpenAI falla → mensaje cortés al cliente y pasa a atención personalizada.

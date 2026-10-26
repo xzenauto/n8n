@@ -257,7 +257,7 @@ Si el cliente pide hablar con una persona, está molesto, o pregunta algo que no
 - mensajes: 1 a 3 mensajes de WhatsApp para el cliente, en orden.
 - datos: lo que el cliente haya dicho en la conversación (cadena vacía si no lo sabe):
   ubicacion, invierte_anuncios (p. ej. "Sí, unos $5,000 al mes" o "No"), leads_semana (p. ej. "150"),
-  nombre_completo, negocio, email.
+  nombre_completo, negocio (el nombre propio, p. ej. "Viajes Horizonte"; nunca el giro como "agencia de viajes"), email.
 - video_enviado: true si en esta respuesta incluye el link del video.
 - cita_agendada: true solo si agendar_cita respondió correctamente en este turno.
 - atencion_personalizada / motivo_atencion: ver arriba.
@@ -301,7 +301,19 @@ const c = $('Analizar').first().json;
 let mensajes = (Array.isArray(out.mensajes) ? out.mensajes : [out.mensajes])
   .map((m) => String(m ?? '').trim()).filter(Boolean).slice(0, 3);
 if (!mensajes.length) mensajes = ['Permítame un momento y le confirmo 🙏'];
-return [{ json: { mensajes, out, contactId: c.contactId, simulacion: c.simulacion } }];
+
+// Cita: se toma de la respuesta real de agendar_cita, no de lo que diga el modelo.
+let cita = null;
+for (const paso of $input.first().json.intermediateSteps ?? []) {
+  if (paso.action?.tool !== 'agendar_cita') continue;
+  let obs = paso.observation;
+  try { obs = typeof obs === 'string' ? JSON.parse(obs) : obs; } catch (e) {}
+  const txt = typeof obs === 'string' ? obs : JSON.stringify(obs ?? {});
+  const id = obs?.id ?? txt.match(/"id"\s*:\s*"([^"]+)"/)?.[1];
+  const inicio = obs?.startTime ?? txt.match(/"startTime"\s*:\s*"([^"]+)"/)?.[1];
+  if (id && inicio && !/error|statusCode"?\s*:\s*4/i.test(txt)) cita = { id, inicio, fin: obs?.endTime ?? null };
+}
+return [{ json: { mensajes, out, cita, contactId: c.contactId, simulacion: c.simulacion } }];
 """
 
 ITEMS = r"""const s = $input.first().json;
@@ -310,8 +322,10 @@ return s.mensajes.map((mensaje) => ({ json: { mensaje, contactId: s.contactId } 
 
 PLAN_CRM = CFG_JS + r"""
 const c = $('Analizar').first().json;
-const out = $('Preparar salida').first().json.out;
+const salida = $('Preparar salida').first().json;
+const out = salida.out;
 const d = out.datos ?? {};
+const citaOk = !!salida.cita;
 const limpio = (s) => String(s ?? '').trim();
 
 const customFields = [];
@@ -333,7 +347,7 @@ if (partes.length > 1) { contacto.firstName = partes[0]; contacto.lastName = par
 
 const tags = ['maripino', c.tagVertical];
 if (out.video_enviado) tags.push('video-enviado');
-if (out.cita_agendada) tags.push('cita-agendada');
+if (citaOk) tags.push('cita-agendada');
 if (out.atencion_personalizada) tags.push('atencion-personalizada');
 
 return [{ json: {
@@ -343,7 +357,8 @@ return [{ json: {
   tags,
   oportunidadId: c.oportunidadId ?? oportunidadNueva,
   etapaActual: c.etapaActual,
-  citaAgendada: !!out.cita_agendada,
+  citaAgendada: citaOk,
+  cita: salida.cita,
   atencion: !!out.atencion_personalizada,
   motivo: limpio(out.motivo_atencion),
   resumen: limpio(out.resumen),
@@ -407,6 +422,40 @@ return [{ json: {
 } }];
 """
 
+CORREO_CITA = r"""const p = $('Etapa destino').first().json;
+const c = $('Analizar').first().json;
+const d = $('Preparar salida').first().json.out.datos ?? {};
+const contacto = $('GHL contacto').first().json.contact ?? {};
+const f = (iso) => new Date(iso).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' });
+const cuando = p.cita?.inicio ? f(p.cita.inicio) + ' (hora de Ciudad de México)' : 'ver calendario';
+const v = (a, b) => (String(a ?? '').trim() || String(b ?? '').trim() || '-');
+const nombre = v(d.nombre_completo, [contacto.firstName, contacto.lastName].filter(Boolean).join(' '));
+const negocio = v(d.negocio, contacto.companyName);
+return [{ json: {
+  asunto: `📅 Nueva llamada agendada: ${nombre} (${negocio}) · ${cuando}`,
+  cuerpo: [
+    'Maripino agendó una llamada.',
+    '',
+    `Cuándo: ${cuando}`,
+    `Calendario: Agencia 24/7 Rs Viajes`,
+    '',
+    'Datos del lead',
+    `- Nombre: ${nombre}`,
+    `- Negocio: ${negocio}`,
+    `- Teléfono: ${v(contacto.phone)}`,
+    `- Correo: ${v(d.email, contacto.email)}`,
+    `- Anuncio de origen: ${c.anuncioTexto}`,
+    `- Desde dónde nos contacta: ${v(d.ubicacion, c.valores.ubicacion)}`,
+    `- Invierte en anuncios de Facebook: ${v(d.invierte_anuncios, c.valores.inversion)}`,
+    `- Leads estimados por semana: ${v(d.leads_semana, c.valores.leads)}`,
+    '',
+    `Resumen: ${p.resumen || '-'}`,
+    '',
+    `Contacto en GHL: https://app.gohighlevel.com/v2/location/8SiKgyVuy9KVUIx1Y1RT/contacts/detail/${p.contactId}`,
+  ].join('\n'),
+} }];
+"""
+
 
 def si(nombre, pos, expresion):
     return nodo(nombre, "n8n-nodes-base.if", 2.2, pos, {
@@ -455,7 +504,7 @@ nodos = [
         "promptType": "define",
         "text": "={{ " + A + ".prompt }}",
         "hasOutputParser": True,
-        "options": {"systemMessage": SYSTEM, "maxIterations": 8},
+        "options": {"systemMessage": SYSTEM, "maxIterations": 8, "returnIntermediateSteps": True},
     }, retryOnFail=True, onError="continueErrorOutput"),
     nodo("OpenAI", "@n8n/n8n-nodes-langchain.lmChatOpenAi", 1.2, [2060, 560], {
         "model": {"__rl": True, "mode": "list", "value": "gpt-4.1"},
@@ -504,6 +553,13 @@ nodos = [
     nodo("Correo a xzenauto@gmail.com", "n8n-nodes-base.gmail", 2.2, [5700, 200], {
         "sendTo": CFG["correoAviso"], "subject": "={{ $('Armar aviso').first().json.asunto }}", "emailType": "text",
         "message": "={{ $('Armar aviso').first().json.cuerpo }}", "options": {"appendAttribution": False},
+    }, CRED_GMAIL, onError="continueRegularOutput"),
+    # Cita agendada: aviso por correo con la cita y los datos del lead.
+    si("¿Cita agendada?", [5300, 700], "={{ $('Etapa destino').first().json.citaAgendada }}"),
+    nodo("Armar correo cita", "n8n-nodes-base.code", 2, [5500, 700], {"jsCode": CORREO_CITA}),
+    nodo("Correo cita a xzenauto@gmail.com", "n8n-nodes-base.gmail", 2.2, [5700, 700], {
+        "sendTo": CFG["correoAviso"], "subject": "={{ $json.asunto }}", "emailType": "text",
+        "message": "={{ $json.cuerpo }}", "options": {"appendAttribution": False},
     }, CRED_GMAIL, onError="continueRegularOutput"),
     # Recordatorio: 1 hora después de enviar el video, si no ha respondido.
     si("¿Envió el video?", [5300, 460], "={{ $('Preparar salida').first().json.out.video_enviado === true }}"),
@@ -559,7 +615,11 @@ une("¿Datos nuevos?", "GHL etiquetas", salida=1)
 une("¿Mover oportunidad?", "GHL mover oportunidad", salida=0)
 une("¿Mover oportunidad?", "¿Atención personalizada?", salida=1)
 une("¿Atención personalizada?", "Armar aviso", salida=0)
-une("¿Atención personalizada?", "¿Envió el video?", salida=1)
+une("¿Atención personalizada?", "¿Cita agendada?", salida=1)
+une("¿Cita agendada?", "Armar correo cita", salida=0)
+une("Armar correo cita", "Correo cita a xzenauto@gmail.com")
+une("Correo cita a xzenauto@gmail.com", "¿Envió el video?")
+une("¿Cita agendada?", "¿Envió el video?", salida=1)
 une("¿Envió el video?", "Esperar 1 hora", salida=0)
 for a, b in [("Esperar 1 hora", "Recordatorio · contacto"), ("Recordatorio · contacto", "Recordatorio · conversación"),
              ("Recordatorio · conversación", "Recordatorio · mensajes"),
