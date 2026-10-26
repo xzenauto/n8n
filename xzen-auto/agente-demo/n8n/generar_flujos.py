@@ -106,7 +106,7 @@ return [{ json: {
   recibidoEn: new Date().toISOString(),
   // Pruebas: {"simulacion": true, "historial": [{"rol": "cliente"|"maripino", "texto": "..."}]}
   simulacion: b.simulacion === true,
-  historialSimulado: Array.isArray(b.historial) ? b.historial : [],
+  historialSimulado: Array.isArray(b.historial) ? b.historial : null,
 } }];
 """
 
@@ -147,8 +147,9 @@ const anuncioTexto = anuncio ? `${anuncio.nombre} (${anuncioId})` : (valores.anu
 // 4. Conversación de WhatsApp y agrupado de ráfagas.
 let historial = [];
 let nuevos = [];
-if (ent.simulacion) {
-  historial = ent.historialSimulado.map((m) => ({ rol: m.rol === 'cliente' ? 'Cliente' : 'Maripino', texto: limpio(m.texto) }));
+// Pruebas: en contactos test-maripino se puede inyectar el historial (también en modo real).
+if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
+  historial = (ent.historialSimulado ?? []).map((m) => ({ rol: m.rol === 'cliente' ? 'Cliente' : 'Maripino', texto: limpio(m.texto) }));
   nuevos = [ent.texto];
 } else {
   let msgs = [];
@@ -323,11 +324,12 @@ for (const paso of $input.first().json.intermediateSteps ?? []) {
   let obs = paso.observation;
   try { obs = typeof obs === 'string' ? JSON.parse(obs) : obs; } catch (e) {}
   if (Array.isArray(obs)) obs = obs[0];
-  // La respuesta de GHL no trae la hora: se toma de lo que Maripino mandó al calendario.
-  const inicio = obs?.startTime ?? paso.action?.toolInput?.inicio;
-  if (obs?.id && inicio && !obs.error && !obs.statusCode) cita = { id: obs.id, inicio, fin: obs.endTime ?? null };
+  // La respuesta de GHL no trae la hora; el correo la consulta después con el id de la cita.
+  if (obs?.id && !obs.error && !obs.statusCode) cita = { id: obs.id, inicio: obs.startTime ?? null };
 }
-return [{ json: { mensajes, out, cita, contactId: c.contactId, simulacion: c.simulacion } }];
+// Video enviado: solo si algún mensaje lleva de verdad el link de YouTube.
+const videoEnviado = mensajes.some((m) => /youtu\.?be/i.test(m));
+return [{ json: { mensajes, out, cita, videoEnviado, contactId: c.contactId, simulacion: c.simulacion } }];
 """
 
 ITEMS = r"""const s = $input.first().json;
@@ -361,7 +363,7 @@ const partes = limpio(d.nombre_completo).split(/\s+/).filter(Boolean);
 if (partes.length > 1) { contacto.firstName = partes[0]; contacto.lastName = partes.slice(1).join(' '); }
 
 const tags = ['maripino', c.tagVertical];
-if (out.video_enviado) tags.push('video-enviado');
+if (salida.videoEnviado) tags.push('video-enviado');
 if (citaOk) tags.push('cita-agendada');
 if (out.atencion_personalizada) tags.push('atencion-personalizada');
 
@@ -443,7 +445,9 @@ const c = $('Analizar').first().json;
 const d = $('Preparar salida').first().json.out.datos ?? {};
 const contacto = $('GHL contacto').first().json.contact ?? {};
 const f = (iso) => new Date(iso).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' });
-const cuando = p.cita?.inicio ? f(p.cita.inicio) + ' (hora de Ciudad de México)' : 'ver calendario';
+const apt = $('GHL datos cita').first().json;
+const inicio = apt.appointment?.startTime ?? apt.event?.startTime ?? apt.startTime ?? p.cita?.inicio;
+const cuando = inicio ? f(inicio) + ' (hora de Ciudad de México)' : 'ver calendario';
 const v = (a, b) => (String(a ?? '').trim() || String(b ?? '').trim() || '-');
 const nombre = v(d.nombre_completo, [contacto.firstName, contacto.lastName].filter(Boolean).join(' '));
 const negocio = v(d.negocio, contacto.companyName);
@@ -577,13 +581,15 @@ nodos = [
     }, CRED_GMAIL, onError="continueRegularOutput"),
     # Cita agendada: aviso por correo con la cita y los datos del lead.
     si("¿Cita agendada?", [5300, 700], "={{ $('Etapa destino').first().json.citaAgendada }}"),
-    nodo("Armar correo cita", "n8n-nodes-base.code", 2, [5500, 700], {"jsCode": CORREO_CITA}),
+    ghl("GHL datos cita", [5400, 700], "GET", "=" + GHL + "/calendars/events/appointments/{{ $('Etapa destino').first().json.cita.id }}",
+        version_api="2021-04-15", onError="continueRegularOutput", alwaysOutputData=True),
+    nodo("Armar correo cita", "n8n-nodes-base.code", 2, [5600, 700], {"jsCode": CORREO_CITA}),
     nodo("Correo cita a xzenauto@gmail.com", "n8n-nodes-base.gmail", 2.2, [5700, 700], {
         "sendTo": CFG["correoAviso"], "subject": "={{ $json.asunto }}", "emailType": "text",
         "message": "={{ $json.cuerpo }}", "options": {"appendAttribution": False},
     }, CRED_GMAIL, onError="continueRegularOutput"),
     # Recordatorio: 1 hora después de enviar el video, si no ha respondido.
-    si("¿Envió el video?", [5300, 460], "={{ $('Preparar salida').first().json.out.video_enviado === true }}"),
+    si("¿Envió el video?", [5300, 460], "={{ $('Preparar salida').first().json.videoEnviado === true }}"),
     # 1 hora; en contactos de prueba (etiqueta test-maripino) 1 minuto para poder probarlo.
     nodo("Esperar 1 hora", "n8n-nodes-base.wait", 1.1, [5500, 460],
          {"amount": "={{ $('Analizar').first().json.tags.includes('test-maripino') ? 1 : 60 }}", "unit": "minutes"},
@@ -642,7 +648,8 @@ une("¿Mover oportunidad?", "GHL mover oportunidad", salida=0)
 une("¿Mover oportunidad?", "¿Atención personalizada?", salida=1)
 une("¿Atención personalizada?", "Armar aviso", salida=0)
 une("¿Atención personalizada?", "¿Cita agendada?", salida=1)
-une("¿Cita agendada?", "Armar correo cita", salida=0)
+une("¿Cita agendada?", "GHL datos cita", salida=0)
+une("GHL datos cita", "Armar correo cita")
 une("Armar correo cita", "Correo cita a xzenauto@gmail.com")
 une("Correo cita a xzenauto@gmail.com", "¿Envió el video?")
 une("¿Cita agendada?", "¿Envió el video?", salida=1)
