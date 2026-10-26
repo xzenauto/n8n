@@ -255,9 +255,13 @@ Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su 
 
 # Cómo agendar
 1. Use consultar_disponibilidad y ofrezca 2 o 3 horarios concretos en hora de Ciudad de México (si el cliente está en otra zona horaria, aclárelo). Nunca invente horarios.
-2. Antes de agendar necesita su nombre completo, el nombre de su negocio y su correo; pídalos si faltan.
+2. Cuando elija horario, pida en un solo mensaje lo que falte: nombre completo, nombre de su negocio y correo.
+   NO llame a agendar_cita hasta tener los tres datos dichos por el cliente.
 3. Agende con agendar_cita usando EXACTAMENTE el inicio de un horario devuelto por consultar_disponibilidad.
-4. Solo si agendar_cita respondió correctamente, confirme día y hora y dígale que le llegará la confirmación.
+4. Solo si agendar_cita respondió correctamente (devuelve un id), confirme día y hora y dígale que le llegará la confirmación.
+   Si respondió con error, discúlpese, consulte de nuevo la disponibilidad y ofrezca otros horarios.
+5. Si en el CRM dice "Cita ya agendada: sí", NO vuelva a agendar: confirme la cita existente y resuelva dudas.
+   Si quiere cambiarla o cancelarla, márquelo para atención personalizada.
 Si todavía no quiere agendar, pregúntele si le puede escribir en un par de días.
 
 # Atención personalizada
@@ -318,10 +322,10 @@ for (const paso of $input.first().json.intermediateSteps ?? []) {
   if (paso.action?.tool !== 'agendar_cita') continue;
   let obs = paso.observation;
   try { obs = typeof obs === 'string' ? JSON.parse(obs) : obs; } catch (e) {}
-  const txt = typeof obs === 'string' ? obs : JSON.stringify(obs ?? {});
-  const id = obs?.id ?? txt.match(/"id"\s*:\s*"([^"]+)"/)?.[1];
-  const inicio = obs?.startTime ?? txt.match(/"startTime"\s*:\s*"([^"]+)"/)?.[1];
-  if (id && inicio && !/error|statusCode"?\s*:\s*4/i.test(txt)) cita = { id, inicio, fin: obs?.endTime ?? null };
+  if (Array.isArray(obs)) obs = obs[0];
+  // La respuesta de GHL no trae la hora: se toma de lo que Maripino mandó al calendario.
+  const inicio = obs?.startTime ?? paso.action?.toolInput?.inicio;
+  if (obs?.id && inicio && !obs.error && !obs.statusCode) cita = { id: obs.id, inicio, fin: obs.endTime ?? null };
 }
 return [{ json: { mensajes, out, cita, contactId: c.contactId, simulacion: c.simulacion } }];
 """
@@ -350,7 +354,8 @@ try { oportunidadNueva = $('GHL crear oportunidad').first().json.opportunity?.id
 
 const contacto = {};
 if (customFields.length) contacto.customFields = customFields;
-if (limpio(d.email).includes('@') && !c.email) contacto.email = limpio(d.email);
+// El correo va en una petición aparte: si ya existe en otro contacto, GHL rechaza la petición entera.
+const email = limpio(d.email).includes('@') && !c.email ? limpio(d.email) : null;
 if (limpio(d.negocio) && !c.negocio) contacto.companyName = limpio(d.negocio);
 const partes = limpio(d.nombre_completo).split(/\s+/).filter(Boolean);
 if (partes.length > 1) { contacto.firstName = partes[0]; contacto.lastName = partes.slice(1).join(' '); }
@@ -364,6 +369,7 @@ return [{ json: {
   contactId: c.contactId,
   contacto,
   hayCambiosContacto: Object.keys(contacto).length > 0,
+  email,
   tags,
   oportunidadId: c.oportunidadId ?? oportunidadNueva,
   etapaActual: c.etapaActual,
@@ -527,14 +533,16 @@ nodos = [
         query={"startDate": "={{ $now.toMillis() }}", "endDate": "={{ $now.plus({ days: 10 }).toMillis() }}",
                "timezone": "America/Mexico_City"},
         version_api="2021-04-15",
-        herramienta="Consulta los horarios libres para la llamada con xzen Auto en los próximos 10 días. Devuelve, por fecha, los inicios de cada horario en hora de Ciudad de México."),
+        herramienta="Consulta los horarios libres para la llamada con xzen Auto en los próximos 10 días. Devuelve, por fecha, los inicios de cada horario en hora de Ciudad de México.",
+        onError="continueRegularOutput"),
     ghl("agendar_cita", [2540, 560], "POST", GHL + "/calendars/events/appointments",
         cuerpo="={{ JSON.stringify({ calendarId: '" + CALENDAR_ID + "', locationId: '" + LOCATION_ID + "',"
                " contactId: " + A + ".contactId, appointmentStatus: 'confirmed', toNotify: true,"
-               " title: 'Llamada xzen Auto · ' + $fromAI('nombre_negocio', 'Nombre del negocio del cliente', 'string'),"
+               " title: 'Llamada xzen Auto · ' + $fromAI('nombre_completo', 'Nombre completo del cliente (nombre y apellido)', 'string') + ' (' + $fromAI('negocio', 'Nombre propio del negocio del cliente', 'string') + ') · ' + $fromAI('email', 'Correo electrónico del cliente', 'string'),"
                " startTime: $fromAI('inicio', 'Inicio exacto de un horario devuelto por consultar_disponibilidad, ISO 8601 con zona, p. ej. 2026-10-28T16:30:00-06:00', 'string') }) }}",
         version_api="2021-04-15",
-        herramienta="Agenda la llamada con xzen Auto en el horario elegido por el cliente. Solo con horarios devueltos por consultar_disponibilidad y cuando ya tenga nombre, negocio y correo del cliente."),
+        herramienta="Agenda la llamada con xzen Auto en el horario elegido por el cliente. Requiere nombre completo, negocio y correo REALES dados por el cliente (nunca los invente ni los deje vacíos) y un horario devuelto por consultar_disponibilidad. Úsela una sola vez por cliente.",
+        onError="continueRegularOutput"),
     nodo("Respuesta de respaldo", "n8n-nodes-base.code", 2, [2500, 460], {"jsCode": FALLBACK}),
     nodo("Preparar salida", "n8n-nodes-base.code", 2, [2700, 300], {"jsCode": PREPARAR}),
     si("¿Es real? (no simulación)", [2900, 300], "={{ !$json.simulacion }}"),
@@ -546,6 +554,9 @@ nodos = [
     si("¿Datos nuevos?", [3700, 300], "={{ $json.hayCambiosContacto }}"),
     ghl("GHL actualizar contacto", [3900, 200], "PUT", "=" + GHL + "/contacts/{{ $json.contactId }}",
         cuerpo="={{ JSON.stringify($json.contacto) }}", onError="continueRegularOutput"),
+    si("¿Hay correo nuevo?", [3900, 420], "={{ !!$('Plan CRM').first().json.email }}"),
+    ghl("GHL guardar correo", [4000, 420], "PUT", "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}",
+        cuerpo="={{ JSON.stringify({ email: $('Plan CRM').first().json.email }) }}", onError="continueRegularOutput"),
     ghl("GHL etiquetas", [4100, 300], "POST", "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}/tags",
         cuerpo="={{ JSON.stringify({ tags: $('Plan CRM').first().json.tags }) }}", onError="continueRegularOutput",
         executeOnce=True),
@@ -617,13 +628,16 @@ une("Respuesta de respaldo", "Preparar salida")
 une("Preparar salida", "¿Es real? (no simulación)")
 une("¿Es real? (no simulación)", "Separar mensajes", salida=0)
 for a, b in [("Separar mensajes", "GHL enviar WhatsApp"), ("GHL enviar WhatsApp", "Plan CRM"),
-             ("Plan CRM", "¿Datos nuevos?"), ("GHL actualizar contacto", "GHL etiquetas"),
+             ("Plan CRM", "¿Datos nuevos?"), ("GHL actualizar contacto", "¿Hay correo nuevo?"),
+             ("GHL guardar correo", "GHL etiquetas"),
              ("GHL etiquetas", "GHL pipelines"), ("GHL pipelines", "Etapa destino"),
              ("Etapa destino", "¿Mover oportunidad?"), ("GHL mover oportunidad", "¿Atención personalizada?"),
              ("Armar aviso", "GHL nota"), ("GHL nota", "Correo a xzenauto@gmail.com")]:
     une(a, b)
 une("¿Datos nuevos?", "GHL actualizar contacto", salida=0)
-une("¿Datos nuevos?", "GHL etiquetas", salida=1)
+une("¿Datos nuevos?", "¿Hay correo nuevo?", salida=1)
+une("¿Hay correo nuevo?", "GHL guardar correo", salida=0)
+une("¿Hay correo nuevo?", "GHL etiquetas", salida=1)
 une("¿Mover oportunidad?", "GHL mover oportunidad", salida=0)
 une("¿Mover oportunidad?", "¿Atención personalizada?", salida=1)
 une("¿Atención personalizada?", "Armar aviso", salida=0)
