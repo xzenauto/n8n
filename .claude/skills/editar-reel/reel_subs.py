@@ -453,6 +453,8 @@ def main():
         det = [r for r in fc if t0 - 0.1 <= r[0] <= t1 + 0.1 and r[1] is not None]
         shot = shot_face[k]
         if not det:
+            if CENTER_Y and not any(m0 - 0.05 <= ws < m1 for m0, m1 in moves):
+                anchors.append("center"); continue               # modo centrado: también sobre B-roll
             anchors.append(shot if shot else "top"); continue    # sin cara → arriba, nunca encima
         if any(t0 - 0.05 <= ws < t1 for t0, t1 in titles):
             anchors.append("title"); continue                    # título: centrado y a pantalla completa

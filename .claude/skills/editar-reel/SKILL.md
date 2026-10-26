@@ -249,6 +249,25 @@ Probado con el VSL de agencias de viajes → anuncio de 54 s (`ejemplos/anuncio_
    al 70 % del alto (anuncios se ven sin sonido: subtítulos completos), gancho arriba.
 5. Audio final AAC normalizado: `loudnorm=I=-14:TP=-1.0:LRA=11`.
 
+## 3b. Anuncios de Meta en 4:3 con recursos gráficos (`recursos.py`, `ejemplos/aroll43.py`, `broll43.py`)
+
+Hecho para los 4 anuncios (agencia de viajes y mueblería, corto y largo). El material llega en 4:3 (2880x2160) y se entrega igual (1440x1080).
+1. `aroll43.py src faces.json plan.json aroll.mkv`: una sola remuestra con plano normal/cerrado (+10 %) en
+   cada corte, zoom lento y zoom-ins de énfasis (`plan.json` = cuts + emphasis).
+2. `broll43.py aroll.mkv inserts.json mont.mkv`: B-roll horizontal a pantalla completa (recorte 4:3) o
+   vertical centrado sobre una copia desenfocada. Banco: chat_viajes / chat_muebleria cuando entra "el agente de IA",
+   reporte_meta_ganados / leads_ganados cuando habla de medir anuncios y vendedores.
+3. `recursos.py mont.mkv timeline.json rec.mkv`: **recursos que ilustran lo que dice** (tarjetas oscuras
+   redondeadas, Inter + Bebas, a la izquierda sobre el portátil con `col_x 0.215`, `scale 1.22`, más un degradado
+   inferior para los subtítulos). Tipos: chat (mensajes a todas horas), comments (piden precio), timer (sin responder),
+   alert (cliente perdido), badge (24/7, TIEMPO PERDIDO, MÁS VENTAS), checklist (lo que pregunta el agente / catálogo),
+   flow (cómo funciona), bars (ventas por anuncio o vendedor, etiqueta EJEMPLO), cta (palabra clave + WhatsApp).
+   Las líneas de tiempo de ejemplo están en `ejemplos/anuncios_4x3/tl_*.json`.
+4. Subtítulos: `reel_subs.py rec.mkv subs.mp4 --grade --hook <fin> --center 0.85 --cuts ...`: bloque centrado abajo
+   (los anuncios se ven sin sonido), gancho grande junto a la cara y palabras clave en amarillo.
+5. Audio: voz, `musica_motivacional.py` a volume 0.065 con ducking, `sfx_pop.py` (0.10) en cada recurso y
+   `sfx_whoosh.py` (0.09) en cada B-roll, `loudnorm=I=-14`.
+
 ## 4. Ajustes rápidos (constantes al principio de `reel_subs.py`)
 
 | Constante | Valor | Qué controla |

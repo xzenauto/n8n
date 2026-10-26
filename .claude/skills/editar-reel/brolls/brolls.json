@@ -107,6 +107,10 @@
     {
      "reel": "reel_pov_negocio",
      "fecha": "2026-10-10"
+    },
+    {
+     "reel": "anuncios_meta_muebles",
+     "fecha": "2026-10-26"
     }
    ]
   },
@@ -141,6 +145,10 @@
     {
      "reel": "reel_pov_negocio",
      "fecha": "2026-10-10"
+    },
+    {
+     "reel": "anuncios_meta_viajes",
+     "fecha": "2026-10-26"
     }
    ]
   },
@@ -703,6 +711,14 @@
     {
      "reel": "reel_meta_pierdes_dinero",
      "fecha": "2026-10-08"
+    },
+    {
+     "reel": "anuncios_meta_viajes",
+     "fecha": "2026-10-26"
+    },
+    {
+     "reel": "anuncios_meta_muebles",
+     "fecha": "2026-10-26"
     }
    ]
   },
@@ -720,6 +736,14 @@
     {
      "reel": "reel_meta_pierdes_dinero",
      "fecha": "2026-10-08"
+    },
+    {
+     "reel": "anuncios_meta_viajes",
+     "fecha": "2026-10-26"
+    },
+    {
+     "reel": "anuncios_meta_muebles",
+     "fecha": "2026-10-26"
     }
    ]
   },
