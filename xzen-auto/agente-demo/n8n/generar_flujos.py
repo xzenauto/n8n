@@ -1,0 +1,560 @@
+#!/usr/bin/env python3
+"""Genera los flujos de n8n del agente Maripino (xzen Auto).
+
+Uso: python3 generar_flujos.py  -> escribe maripino-agente.json y maripino-configuracion.json
+"""
+import json
+import uuid
+from pathlib import Path
+
+AQUI = Path(__file__).parent
+CONFIG = json.loads((AQUI.parent / "enrutamiento-anuncios.json").read_text())
+
+LOCATION_ID = "8SiKgyVuy9KVUIx1Y1RT"
+CALENDAR_ID = "0YwJGtf0m8eI5hEacRMb"
+GHL = "https://services.leadconnectorhq.com"
+CRED_GHL = {"httpHeaderAuth": {"id": "u8Ru07QTVPNb28I6", "name": "GHL - PIT - XzenAuto"}}
+CRED_OPENAI = {"openAiApi": {"id": "W5zBaQ7k25sn9YQz", "name": "RsViaje Independencia"}}
+CRED_GMAIL = {"gmailOAuth2": {"id": "giX4xhnEUL2ltIcE", "name": "Gmail Xzen"}}
+CTX = "$('Contexto y enrutamiento').first().json"
+
+
+def nodo(nombre, tipo, version, pos, params, cred=None, **extra):
+    n = {
+        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/" + nombre)),
+        "name": nombre,
+        "type": tipo,
+        "typeVersion": version,
+        "position": pos,
+        "parameters": params,
+    }
+    if cred:
+        n["credentials"] = cred
+    n.update(extra)
+    return n
+
+
+def ghl(nombre, pos, metodo, url, cuerpo=None, query=None, version_api="2021-07-28",
+        herramienta=None, **extra):
+    """Petición a la API v2 de GoHighLevel (nodo normal o herramienta del agente)."""
+    p = {
+        "method": metodo,
+        "url": url,
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": True,
+        "headerParameters": {"parameters": [
+            {"name": "Version", "value": version_api},
+            {"name": "Accept", "value": "application/json"},
+        ]},
+        "options": {},
+    }
+    if query:
+        p["sendQuery"] = True
+        p["queryParameters"] = {"parameters": [{"name": k, "value": v} for k, v in query.items()]}
+    if cuerpo:
+        p["sendBody"] = True
+        p["specifyBody"] = "json"
+        p["jsonBody"] = cuerpo
+    tipo = "n8n-nodes-base.httpRequest"
+    if herramienta:
+        tipo = "n8n-nodes-base.httpRequestTool"
+        p = {"descriptionType": "manual", "toolDescription": herramienta, **p}
+    return nodo(nombre, tipo, 4.2, pos, p, CRED_GHL, **extra)
+
+
+# ---------------------------------------------------------------- IDs de GHL (subcuenta Xzen Auto)
+CFG = {
+    "locationId": LOCATION_ID,
+    "calendarId": CALENDAR_ID,
+    "pipelineId": "aCNhCRpOOyTfbHBPplyl",  # XzenAuto
+    "etapas": {
+        "nuevo": "fe64e5e5-f19a-4c8a-af74-20d0d2c12868",  # Nuevo lead (primera columna)
+        "agendado": "467bd371-b731-4bf6-892d-da5d4c2f31d0",  # Agendado
+    },
+    "etapaAtencion": "atencion personalizada",  # se busca por nombre en el pipeline
+    "campos": {
+        "anuncio": "hKffpuqKs9ks9zY54O4a",  # Anuncio de origen
+        "ubicacion": "KT0jJ23FRgNojKiQ88YG",  # Desde dónde nos contacta
+        "inversion": "FI2NXz4DYljZ0RhkCqmf",  # Invierte en anuncios de Facebook
+        "leads": "Pu2Gi0cSBV3gdMGKpWZr",  # Leads estimados por semana
+    },
+    "correoAviso": "xzenauto@gmail.com",
+}
+
+rutas = json.loads(json.dumps(CONFIG))
+for v in rutas["verticales"].values():
+    v["instrucciones"] = (AQUI.parent / v.pop("prompt")).read_text().strip()
+rutas.pop("_descripcion", None)
+CFG_JS = "const CFG = " + json.dumps(CFG, ensure_ascii=False) + ";\nconst RUTAS = " + json.dumps(
+    rutas, ensure_ascii=False) + ";\n"
+
+# ---------------------------------------------------------------- código
+NORMALIZAR = r"""// Webhook del flujo de GHL "Cliente respondió" (WhatsApp).
+const b = $json.body ?? $json;
+const contactId = b.contact_id || b.contactId || b.customData?.contact_id || b.contact?.id;
+if (!contactId) return [];
+// Solo mensajes de WhatsApp (tipo 19). "Contacto creado" no trae mensaje: lo ignoramos.
+const tipo = Number(b.message?.type);
+if (b.simulacion !== true && (!b.message || (tipo && tipo !== 19))) return [];
+const attr = b.contact?.lastAttributionSource || b.contact?.attributionSource || b.attributionSource || {};
+return [{ json: {
+  contactId: String(contactId),
+  texto: String(b.message?.body ?? b.customData?.mensaje ?? '').trim(),
+  adId: attr.adId || null,
+  recibidoEn: new Date().toISOString(),
+  // Pruebas: {"simulacion": true, "historial": [{"rol": "cliente"|"maripino", "texto": "..."}]}
+  simulacion: b.simulacion === true,
+  historialSimulado: Array.isArray(b.historial) ? b.historial : [],
+} }];
+"""
+
+ANALIZAR = CFG_JS + r"""
+const ent = $('Normalizar entrada').first().json;
+const contacto = $('GHL contacto').first().json.contact ?? {};
+const opps = $('GHL oportunidades').first().json.opportunities ?? [];
+const opp = opps.find((o) => o.pipelineId === CFG.pipelineId) ?? null;
+const tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());
+const limpio = (s) => String(s ?? '').trim();
+
+// 1. Con una persona del equipo: Maripino no contesta.
+if (tags.includes('atencion-personalizada')) return [];
+
+// 2. ¿Viene de un anuncio? Solo atendemos leads de anuncios (la coexistencia trae también contactos personales).
+const fuentes = [contacto.attributionSource, contacto.lastAttributionSource, ...(contacto.attributions ?? [])];
+let anuncioId = [ent.adId, ...fuentes.map((a) => a?.adId)].find((id) => id && RUTAS.anuncios[id]) ?? null;
+if (!anuncioId) {
+  const texto = JSON.stringify(contacto);
+  anuncioId = Object.keys(RUTAS.anuncios).find((id) => texto.includes(id)) ?? null;
+}
+const esPrueba = tags.includes('test-maripino') || ent.simulacion;
+if (!anuncioId && !tags.includes('maripino') && !esPrueba) return [];
+const anuncio = anuncioId ? RUTAS.anuncios[anuncioId] : null;
+
+let vertical = anuncio?.vertical ?? (esPrueba ? 'agencia_viajes' : RUTAS.vertical_por_defecto);
+if (!RUTAS.verticales[vertical]?.activo) vertical = RUTAS.vertical_por_defecto;
+const conf = RUTAS.verticales[vertical];
+
+// 3. Campos del contacto.
+const valor = (id) => {
+  const v = (contacto.customFields ?? []).find((c) => c.id === id)?.value;
+  return Array.isArray(v) ? v.join(', ') : limpio(v);
+};
+const valores = Object.fromEntries(Object.entries(CFG.campos).map(([k, id]) => [k, valor(id)]));
+const anuncioTexto = anuncio ? `${anuncio.nombre} (${anuncioId})` : (valores.anuncio || 'Prueba / sin anuncio');
+
+// 4. Conversación de WhatsApp y agrupado de ráfagas.
+let historial = [];
+let nuevos = [];
+if (ent.simulacion) {
+  historial = ent.historialSimulado.map((m) => ({ rol: m.rol === 'cliente' ? 'Cliente' : 'Maripino', texto: limpio(m.texto) }));
+  nuevos = [ent.texto];
+} else {
+  let msgs = [];
+  try { const m = $('GHL mensajes').first().json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}
+  if (!Array.isArray(msgs)) msgs = [];
+  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+  // Si después de este mensaje llegó otro, lo atiende la ejecución de ese otro mensaje.
+  // Si ya hubo una respuesta posterior (bot o persona), no contestamos de nuevo.
+  let mio = -1;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].direction === 'inbound' && limpio(msgs[i].body) === ent.texto) { mio = i; break; }
+  }
+  if (mio >= 0 && msgs.slice(mio + 1).length > 0) return [];
+  let corte = msgs.length;
+  while (corte > 0 && msgs[corte - 1].direction === 'inbound') corte--;
+  nuevos = msgs.slice(corte).map((m) => limpio(m.body) || '[audio, imagen o archivo sin texto]');
+  historial = msgs.slice(Math.max(0, corte - 20), corte)
+    .map((m) => ({ rol: m.direction === 'inbound' ? 'Cliente' : 'xzen Auto', texto: limpio(m.body) }))
+    .filter((m) => m.texto);
+  if (!nuevos.length) nuevos = [ent.texto || '[mensaje sin texto]'];
+}
+
+const ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' });
+const p = (v) => v || 'PENDIENTE';
+const dias = Array.from({ length: 14 }, (_, i) => new Date(Date.now() + i * 864e5).toLocaleDateString('es-MX',
+  { timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+const prompt = `# Fecha y hora actual (Ciudad de México)
+${ahora}
+
+# Calendario (úselo siempre para nombrar los días; no calcule días de la semana)
+${dias.join('\n')}
+
+# Datos del cliente en el CRM
+- Nombre: ${limpio(contacto.firstName) || 'desconocido'}${contacto.companyName ? `\n- Negocio: ${contacto.companyName}` : ''}${contacto.email ? `\n- Correo: ${contacto.email}` : ''}
+- Anuncio de origen: ${anuncioTexto}
+- Desde dónde nos contacta: ${p(valores.ubicacion)}
+- ¿Invierte en anuncios de Facebook?: ${p(valores.inversion)}
+- Leads estimados por semana: ${p(valores.leads)}
+- Video ya enviado: ${tags.includes('video-enviado') ? 'sí' : 'no'}
+- Cita ya agendada: ${tags.includes('cita-agendada') ? 'sí' : 'no'}
+
+${conf.instrucciones}
+
+# Video del sistema
+${conf.video_demo}
+
+# Conversación previa
+${historial.length ? historial.map((m) => `${m.rol}: ${m.texto}`).join('\n') : '(es el primer mensaje del cliente)'}
+
+# Mensaje(s) nuevo(s) del cliente
+${nuevos.join('\n')}`;
+
+return [{ json: {
+  contactId: ent.contactId,
+  simulacion: ent.simulacion,
+  nombre: limpio(contacto.firstName),
+  email: limpio(contacto.email),
+  negocio: limpio(contacto.companyName),
+  tags,
+  anuncioId,
+  anuncioTexto,
+  vertical,
+  tagVertical: conf.tag_ghl,
+  valores,
+  oportunidadId: opp?.id ?? null,
+  etapaActual: opp?.pipelineStageId ?? null,
+  crearOportunidad: !opp && !ent.simulacion,
+  prompt,
+} }];
+"""
+
+SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp a dueños y gerentes de negocios que escribieron desde un anuncio de Facebook/Instagram.
+
+# Personalidad
+- Siempre trata de USTED al cliente. Amigable, cálido y profesional.
+- Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.
+- Una sola pregunta por turno. Emojis con moderación (uno o dos como máximo).
+- No diga que la conversación es una demostración ni haga simulaciones o juegos de rol.
+
+# Objetivo de la conversación
+1. Salude con calidez, preséntese como Maripino de xzen Auto y pregunte su nombre si no lo tiene.
+2. Conózcalo con estas preguntas, de forma natural y una por turno, solo las que sigan PENDIENTES en el CRM:
+   a) ¿Desde dónde nos contacta? (ciudad / estado / país)
+   b) ¿Actualmente invierte en anuncios de Facebook?
+   c) ¿Cuántos leads o consultas recibe aproximadamente a la semana?
+   Comente brevemente cada respuesta (con empatía, conectándola con lo que hace el sistema) antes de seguir.
+3. Resuelva sus dudas con lo que hace el sistema (sección de instrucciones del giro).
+4. Envíe el video del sistema para que vea cómo funciona (una sola vez).
+5. Invítelo a una llamada con el equipo de xzen Auto y agéndela.
+
+# Precios
+Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su negocio y se presenta en la llamada, con una propuesta a su medida.
+
+# Cómo agendar
+1. Use consultar_disponibilidad y ofrezca 2 o 3 horarios concretos en hora de Ciudad de México (si el cliente está en otra zona horaria, aclárelo). Nunca invente horarios.
+2. Antes de agendar necesita su nombre completo, el nombre de su negocio y su correo; pídalos si faltan.
+3. Agende con agendar_cita usando EXACTAMENTE el inicio de un horario devuelto por consultar_disponibilidad.
+4. Solo si agendar_cita respondió correctamente, confirme día y hora y dígale que le llegará la confirmación.
+Si todavía no quiere agendar, envíele el video y pregúntele si le puede escribir en un par de días.
+
+# Atención personalizada
+Si el cliente pide hablar con una persona, está molesto, o pregunta algo que no puede responder con certeza, marque atencion_personalizada = true, explique el motivo y dígale que alguien del equipo le escribirá en breve.
+
+# Formato de salida
+- mensajes: 1 a 3 mensajes de WhatsApp para el cliente, en orden.
+- datos: lo que el cliente haya dicho en la conversación (cadena vacía si no lo sabe):
+  ubicacion, invierte_anuncios (p. ej. "Sí, unos $5,000 al mes" o "No"), leads_semana (p. ej. "150"),
+  nombre_completo, negocio, email.
+- video_enviado: true si en esta respuesta incluye el link del video.
+- cita_agendada: true solo si agendar_cita respondió correctamente en este turno.
+- atencion_personalizada / motivo_atencion: ver arriba.
+- resumen: una línea con el estado del prospecto para el equipo.
+
+# Reglas
+- No invente funciones, integraciones, clientes, casos de éxito ni resultados.
+- Nunca repita una pregunta que ya tenga respuesta en el CRM o en la conversación.
+"""
+
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "mensajes": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 3},
+        "datos": {
+            "type": "object",
+            "properties": {k: {"type": "string"} for k in
+                           ["ubicacion", "invierte_anuncios", "leads_semana", "nombre_completo", "negocio", "email"]},
+            "required": ["ubicacion", "invierte_anuncios", "leads_semana", "nombre_completo", "negocio", "email"],
+        },
+        "video_enviado": {"type": "boolean"},
+        "cita_agendada": {"type": "boolean"},
+        "atencion_personalizada": {"type": "boolean"},
+        "motivo_atencion": {"type": "string"},
+        "resumen": {"type": "string"},
+    },
+    "required": ["mensajes", "datos", "video_enviado", "cita_agendada", "atencion_personalizada",
+                 "motivo_atencion", "resumen"],
+}
+
+FALLBACK = r"""// Maripino falló (modelo caído, límite de iteraciones…): respuesta cortés y pasa con una persona.
+return [{ json: { output: {
+  mensajes: ['Permítame un momento, en breve una persona de nuestro equipo le escribe por aquí 🙏'],
+  datos: {}, video_enviado: false, cita_agendada: false,
+  atencion_personalizada: true, motivo_atencion: 'Error del agente automático', resumen: 'Error del agente',
+} } }];
+"""
+
+PREPARAR = r"""const out = $input.first().json.output ?? {};
+const c = $('Analizar').first().json;
+let mensajes = (Array.isArray(out.mensajes) ? out.mensajes : [out.mensajes])
+  .map((m) => String(m ?? '').trim()).filter(Boolean).slice(0, 3);
+if (!mensajes.length) mensajes = ['Permítame un momento y le confirmo 🙏'];
+return [{ json: { mensajes, out, contactId: c.contactId, simulacion: c.simulacion } }];
+"""
+
+ITEMS = r"""const s = $input.first().json;
+return s.mensajes.map((mensaje) => ({ json: { mensaje, contactId: s.contactId } }));
+"""
+
+PLAN_CRM = CFG_JS + r"""
+const c = $('Analizar').first().json;
+const out = $('Preparar salida').first().json.out;
+const d = out.datos ?? {};
+const limpio = (s) => String(s ?? '').trim();
+
+const customFields = [];
+const poner = (clave, v) => { v = limpio(v); if (v && v !== c.valores[clave]) customFields.push({ id: CFG.campos[clave], field_value: v }); };
+poner('ubicacion', d.ubicacion);
+poner('inversion', d.invierte_anuncios);
+poner('leads', d.leads_semana);
+if (!c.valores.anuncio) poner('anuncio', c.anuncioTexto);
+
+let oportunidadNueva = null;
+try { oportunidadNueva = $('GHL crear oportunidad').first().json.opportunity?.id ?? null; } catch (e) {}
+
+const contacto = {};
+if (customFields.length) contacto.customFields = customFields;
+if (limpio(d.email).includes('@') && !c.email) contacto.email = limpio(d.email);
+if (limpio(d.negocio) && !c.negocio) contacto.companyName = limpio(d.negocio);
+const partes = limpio(d.nombre_completo).split(/\s+/).filter(Boolean);
+if (partes.length > 1) { contacto.firstName = partes[0]; contacto.lastName = partes.slice(1).join(' '); }
+
+const tags = ['maripino', c.tagVertical];
+if (out.video_enviado) tags.push('video-enviado');
+if (out.cita_agendada) tags.push('cita-agendada');
+if (out.atencion_personalizada) tags.push('atencion-personalizada');
+
+return [{ json: {
+  contactId: c.contactId,
+  contacto,
+  hayCambiosContacto: Object.keys(contacto).length > 0,
+  tags,
+  oportunidadId: c.oportunidadId ?? oportunidadNueva,
+  etapaActual: c.etapaActual,
+  citaAgendada: !!out.cita_agendada,
+  atencion: !!out.atencion_personalizada,
+  motivo: limpio(out.motivo_atencion),
+  resumen: limpio(out.resumen),
+} }];
+"""
+
+ETAPA = CFG_JS + r"""
+const plan = $('Plan CRM').first().json;
+const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+const pipe = ($json.pipelines ?? []).find((p) => p.id === CFG.pipelineId);
+const atencion = pipe?.stages?.find((s) => norm(s.name).includes(CFG.etapaAtencion))?.id ?? null;
+let destino = null;
+if (plan.atencion) destino = atencion;
+else if (plan.citaAgendada) destino = CFG.etapas.agendado;
+return [{ json: { ...plan, destino, moverOportunidad: !!(destino && plan.oportunidadId && destino !== plan.etapaActual),
+  faltaColumnaAtencion: plan.atencion && !atencion } }];
+"""
+
+CORREO = r"""const p = $('Etapa destino').first().json;
+const c = $('Analizar').first().json;
+const out = $('Preparar salida').first().json;
+const enlace = `https://app.gohighlevel.com/v2/location/8SiKgyVuy9KVUIx1Y1RT/contacts/detail/${p.contactId}`;
+return [{ json: {
+  asunto: `Maripino: ${c.nombre || 'Un prospecto'} necesita atención personalizada`,
+  cuerpo: [
+    `${c.nombre || 'Un prospecto'} pidió atención personalizada por WhatsApp.`,
+    '',
+    `Motivo: ${p.motivo || 'sin especificar'}`,
+    `Resumen: ${p.resumen || '-'}`,
+    `Anuncio de origen: ${c.anuncioTexto}`,
+    `Desde dónde nos contacta: ${c.valores.ubicacion || '-'}`,
+    `Invierte en anuncios de Facebook: ${c.valores.inversion || '-'}`,
+    `Leads por semana: ${c.valores.leads || '-'}`,
+    '',
+    'Últimos mensajes:',
+    c.prompt.split('# Conversación previa')[1] ?? '',
+    'Respuesta de Maripino:',
+    ...out.mensajes,
+    '',
+    p.faltaColumnaAtencion ? '⚠️ No existe la columna "Atención personalizada" en el pipeline XzenAuto; créala para que la oportunidad se mueva sola.' : '',
+    `Contacto en GHL: ${enlace}`,
+  ].join('\n'),
+} }];
+"""
+
+
+def si(nombre, pos, expresion):
+    return nodo(nombre, "n8n-nodes-base.if", 2.2, pos, {
+        "conditions": {
+            "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "loose", "version": 2},
+            "conditions": [{"id": str(uuid.uuid5(uuid.NAMESPACE_URL, nombre)), "leftValue": expresion,
+                            "rightValue": "", "operator": {"type": "boolean", "operation": "true", "singleValue": True}}],
+            "combinator": "and",
+        },
+        "options": {},
+    })
+
+
+A = "$('Analizar').first().json"
+nodos = [
+    nodo("Mensaje WhatsApp (GHL)", "n8n-nodes-base.webhook", 2, [0, 300],
+         {"httpMethod": "POST", "path": "xzen-maripino", "options": {}},
+         webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/webhook"))),
+    nodo("Normalizar entrada", "n8n-nodes-base.code", 2, [200, 300], {"jsCode": NORMALIZAR}),
+    nodo("Esperar ráfaga (12 s)", "n8n-nodes-base.wait", 1.1, [400, 300],
+         {"amount": "={{ $json.simulacion ? 1 : 12 }}", "unit": "seconds"},
+         webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/wait"))),
+    ghl("GHL contacto", [600, 300], "GET",
+        "=" + GHL + "/contacts/{{ $('Normalizar entrada').first().json.contactId }}"),
+    ghl("GHL oportunidades", [800, 300], "GET", GHL + "/opportunities/search",
+        query={"location_id": LOCATION_ID, "contact_id": "={{ $('Normalizar entrada').first().json.contactId }}",
+               "pipeline_id": CFG["pipelineId"]}),
+    ghl("GHL conversación", [1000, 300], "GET", GHL + "/conversations/search",
+        query={"locationId": LOCATION_ID, "contactId": "={{ $('Normalizar entrada').first().json.contactId }}",
+               "limit": "1"}),
+    ghl("GHL mensajes", [1200, 300], "GET",
+        "=" + GHL + "/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        query={"limit": "40"}, onError="continueRegularOutput", alwaysOutputData=True),
+    nodo("Analizar", "n8n-nodes-base.code", 2, [1400, 300], {"jsCode": ANALIZAR}),
+    si("¿Primer contacto?", [1600, 300], "={{ $json.crearOportunidad }}"),
+    ghl("GHL crear oportunidad", [1800, 120], "POST", GHL + "/opportunities/",
+        cuerpo="={{ JSON.stringify({ locationId: '" + LOCATION_ID + "', pipelineId: '" + CFG["pipelineId"] + "',"
+               " pipelineStageId: '" + CFG["etapas"]["nuevo"] + "', status: 'open', contactId: $json.contactId,"
+               " name: ($json.nombre || 'Prospecto') + ' · ' + $json.anuncioTexto }) }}",
+        onError="continueRegularOutput"),
+    ghl("GHL guardar anuncio", [2000, 120], "PUT", "=" + GHL + "/contacts/{{ " + A + ".contactId }}",
+        cuerpo="={{ JSON.stringify({ tags: [...new Set([...(" + A + ".tags), 'maripino', " + A + ".tagVertical])],"
+               " customFields: [{ id: '" + CFG["campos"]["anuncio"] + "', field_value: " + A + ".anuncioTexto }] }) }}",
+        onError="continueRegularOutput"),
+    nodo("Maripino", "@n8n/n8n-nodes-langchain.agent", 3.1, [2260, 300], {
+        "promptType": "define",
+        "text": "={{ " + A + ".prompt }}",
+        "hasOutputParser": True,
+        "options": {"systemMessage": SYSTEM, "maxIterations": 8},
+    }, retryOnFail=True, onError="continueErrorOutput"),
+    nodo("OpenAI", "@n8n/n8n-nodes-langchain.lmChatOpenAi", 1.2, [2060, 560], {
+        "model": {"__rl": True, "mode": "list", "value": "gpt-4.1"},
+        "options": {"temperature": 0.4},
+    }, CRED_OPENAI),
+    nodo("Salida estructurada", "@n8n/n8n-nodes-langchain.outputParserStructured", 1.2, [2220, 560], {
+        "schemaType": "manual", "inputSchema": json.dumps(SCHEMA, ensure_ascii=False, indent=2),
+    }),
+    ghl("consultar_disponibilidad", [2380, 560], "GET", GHL + "/calendars/" + CALENDAR_ID + "/free-slots",
+        query={"startDate": "={{ $now.toMillis() }}", "endDate": "={{ $now.plus({ days: 10 }).toMillis() }}",
+               "timezone": "America/Mexico_City"},
+        version_api="2021-04-15",
+        herramienta="Consulta los horarios libres para la llamada con xzen Auto en los próximos 10 días. Devuelve, por fecha, los inicios de cada horario en hora de Ciudad de México."),
+    ghl("agendar_cita", [2540, 560], "POST", GHL + "/calendars/events/appointments",
+        cuerpo="={{ JSON.stringify({ calendarId: '" + CALENDAR_ID + "', locationId: '" + LOCATION_ID + "',"
+               " contactId: " + A + ".contactId, appointmentStatus: 'confirmed', toNotify: true,"
+               " title: 'Llamada xzen Auto · ' + $fromAI('nombre_negocio', 'Nombre del negocio del cliente', 'string'),"
+               " startTime: $fromAI('inicio', 'Inicio exacto de un horario devuelto por consultar_disponibilidad, ISO 8601 con zona, p. ej. 2026-10-28T16:30:00-06:00', 'string') }) }}",
+        version_api="2021-04-15",
+        herramienta="Agenda la llamada con xzen Auto en el horario elegido por el cliente. Solo con horarios devueltos por consultar_disponibilidad y cuando ya tenga nombre, negocio y correo del cliente."),
+    nodo("Respuesta de respaldo", "n8n-nodes-base.code", 2, [2500, 460], {"jsCode": FALLBACK}),
+    nodo("Preparar salida", "n8n-nodes-base.code", 2, [2700, 300], {"jsCode": PREPARAR}),
+    si("¿Es real? (no simulación)", [2900, 300], "={{ !$json.simulacion }}"),
+    nodo("Separar mensajes", "n8n-nodes-base.code", 2, [3100, 300], {"jsCode": ITEMS}),
+    ghl("GHL enviar WhatsApp", [3300, 300], "POST", GHL + "/conversations/messages",
+        cuerpo="={{ JSON.stringify({ type: 'WhatsApp', contactId: $json.contactId, message: $json.mensaje }) }}",
+        onError="continueRegularOutput"),
+    nodo("Plan CRM", "n8n-nodes-base.code", 2, [3500, 300], {"jsCode": PLAN_CRM}),
+    si("¿Datos nuevos?", [3700, 300], "={{ $json.hayCambiosContacto }}"),
+    ghl("GHL actualizar contacto", [3900, 200], "PUT", "=" + GHL + "/contacts/{{ $json.contactId }}",
+        cuerpo="={{ JSON.stringify($json.contacto) }}", onError="continueRegularOutput"),
+    ghl("GHL etiquetas", [4100, 300], "POST", "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}/tags",
+        cuerpo="={{ JSON.stringify({ tags: $('Plan CRM').first().json.tags }) }}", onError="continueRegularOutput",
+        executeOnce=True),
+    ghl("GHL pipelines", [4300, 300], "GET", GHL + "/opportunities/pipelines", query={"locationId": LOCATION_ID},
+        onError="continueRegularOutput", alwaysOutputData=True),
+    nodo("Etapa destino", "n8n-nodes-base.code", 2, [4500, 300], {"jsCode": ETAPA}),
+    si("¿Mover oportunidad?", [4700, 300], "={{ $json.moverOportunidad }}"),
+    ghl("GHL mover oportunidad", [4900, 200], "PUT", "=" + GHL + "/opportunities/{{ $json.oportunidadId }}",
+        cuerpo="={{ JSON.stringify({ pipelineId: '" + CFG["pipelineId"] + "', pipelineStageId: $json.destino }) }}",
+        onError="continueRegularOutput"),
+    si("¿Atención personalizada?", [5100, 300], "={{ $('Etapa destino').first().json.atencion }}"),
+    nodo("Armar aviso", "n8n-nodes-base.code", 2, [5300, 200], {"jsCode": CORREO}),
+    ghl("GHL nota", [5500, 200], "POST", "=" + GHL + "/contacts/{{ $('Etapa destino').first().json.contactId }}/notes",
+        cuerpo="={{ JSON.stringify({ body: $json.asunto + '\\n\\n' + $json.cuerpo }) }}", onError="continueRegularOutput"),
+    nodo("Correo a xzenauto@gmail.com", "n8n-nodes-base.gmail", 2.2, [5700, 200], {
+        "sendTo": CFG["correoAviso"], "subject": "={{ $('Armar aviso').first().json.asunto }}", "emailType": "text",
+        "message": "={{ $('Armar aviso').first().json.cuerpo }}", "options": {"appendAttribution": False},
+    }, CRED_GMAIL, onError="continueRegularOutput"),
+]
+
+con = {}
+
+
+def une(a, b, tipo="main", salida=0):
+    con.setdefault(a, {}).setdefault(tipo, [])
+    while len(con[a][tipo]) <= salida:
+        con[a][tipo].append([])
+    con[a][tipo][salida].append({"node": b, "type": tipo, "index": 0})
+
+
+cadena = ["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Esperar ráfaga (12 s)", "GHL contacto",
+          "GHL oportunidades", "GHL conversación", "GHL mensajes", "Analizar", "¿Primer contacto?"]
+for a, b in zip(cadena, cadena[1:]):
+    une(a, b)
+une("¿Primer contacto?", "GHL crear oportunidad", salida=0)
+une("GHL crear oportunidad", "GHL guardar anuncio")
+une("GHL guardar anuncio", "Maripino")
+une("¿Primer contacto?", "Maripino", salida=1)
+une("Maripino", "Preparar salida", salida=0)
+une("Maripino", "Respuesta de respaldo", salida=1)
+une("Respuesta de respaldo", "Preparar salida")
+une("Preparar salida", "¿Es real? (no simulación)")
+une("¿Es real? (no simulación)", "Separar mensajes", salida=0)
+for a, b in [("Separar mensajes", "GHL enviar WhatsApp"), ("GHL enviar WhatsApp", "Plan CRM"),
+             ("Plan CRM", "¿Datos nuevos?"), ("GHL actualizar contacto", "GHL etiquetas"),
+             ("GHL etiquetas", "GHL pipelines"), ("GHL pipelines", "Etapa destino"),
+             ("Etapa destino", "¿Mover oportunidad?"), ("GHL mover oportunidad", "¿Atención personalizada?"),
+             ("Armar aviso", "GHL nota"), ("GHL nota", "Correo a xzenauto@gmail.com")]:
+    une(a, b)
+une("¿Datos nuevos?", "GHL actualizar contacto", salida=0)
+une("¿Datos nuevos?", "GHL etiquetas", salida=1)
+une("¿Mover oportunidad?", "GHL mover oportunidad", salida=0)
+une("¿Mover oportunidad?", "¿Atención personalizada?", salida=1)
+une("¿Atención personalizada?", "Armar aviso", salida=0)
+une("OpenAI", "Maripino", "ai_languageModel")
+une("Salida estructurada", "Maripino", "ai_outputParser")
+for t in ["consultar_disponibilidad", "agendar_cita"]:
+    une(t, "Maripino", "ai_tool")
+
+# Envío de mensajes de uno en uno con pausa, como una persona.
+for n in nodos:
+    if n["name"] == "GHL enviar WhatsApp":
+        n["parameters"]["options"] = {"batching": {"batch": {"batchSize": 1, "batchInterval": 2000}}}
+
+agente = {"name": "Maripino · Agente WhatsApp xzen Auto", "nodes": nodos, "connections": con,
+          "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
+
+
+# ---------------------------------------------------------------- configuración (una sola vez)
+CREAR_CAMPOS = r"""const quiero = ['Anuncio de origen', 'Desde dónde nos contacta', 'Invierte en anuncios de Facebook', 'Leads estimados por semana'];
+const existentes = ($json.customFields ?? []).map((f) => f.name.trim().toLowerCase());
+return quiero.filter((n) => !existentes.includes(n.toLowerCase())).map((name) => ({ json: { name } }));
+"""
+cfg_nodos = [
+    nodo("Ejecutar una vez", "n8n-nodes-base.manualTrigger", 1, [0, 0], {}),
+    ghl("GHL · Campos actuales", [220, 0], "GET", GHL + "/locations/" + LOCATION_ID + "/customFields",
+        query={"model": "contact"}),
+    nodo("Campos que faltan", "n8n-nodes-base.code", 2, [440, 0], {"jsCode": CREAR_CAMPOS}),
+    ghl("GHL · Crear campo", [660, 0], "POST", GHL + "/locations/" + LOCATION_ID + "/customFields",
+        cuerpo="={{ JSON.stringify({ name: $json.name, dataType: 'TEXT', model: 'contact' }) }}"),
+]
+cfg_con = {}
+for a, b in [("Ejecutar una vez", "GHL · Campos actuales"), ("GHL · Campos actuales", "Campos que faltan"),
+             ("Campos que faltan", "GHL · Crear campo")]:
+    cfg_con[a] = {"main": [[{"node": b, "type": "main", "index": 0}]]}
+configuracion = {"name": "Maripino · Configuración GHL", "nodes": cfg_nodos, "connections": cfg_con,
+                 "settings": {"executionOrder": "v1"}}
+
+for nombre, wf in [("maripino-agente.json", agente), ("maripino-configuracion.json", configuracion)]:
+    (AQUI / nombre).write_text(json.dumps(wf, ensure_ascii=False, indent=2) + "\n")
+    print("escrito", nombre, len(wf["nodes"]), "nodos")

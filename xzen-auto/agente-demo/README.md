@@ -1,59 +1,57 @@
-# Agente demo xzen Auto — WhatsApp desde anuncios de Meta
+# Maripino — agente de WhatsApp de xzen Auto
 
-Agente de IA que atiende a quienes escriben por WhatsApp desde los anuncios de xzen Auto,
-**se presenta como la propia demostración del sistema**, resuelve dudas, envía el video y agenda
-una llamada en el calendario de GoHighLevel (subcuenta **Xzen Auto**, `8SiKgyVuy9KVUIx1Y1RT`).
+Atiende por WhatsApp (coexistencia en GHL, subcuenta **Xzen Auto** `8SiKgyVuy9KVUIx1Y1RT`) a quienes
+escriben desde los anuncios de Meta: conoce al prospecto, guarda sus respuestas en el CRM, envía el
+video y agenda una llamada en el calendario **Agencia 24/7 Rs Viajes** (`0YwJGtf0m8eI5hEacRMb`).
 
-## Anuncios detectados (Meta)
-Campaña `XZEN_AgenciaViajes` · objetivo Engagement · destino **WhatsApp** (Click-to-WhatsApp).
+Flujo en n8n: **Maripino · Agente WhatsApp xzen Auto** (`ukexs4vDn2P6XA4Q`), webhook
+`https://n8n.srv964593.hstgr.cloud/webhook/xzen-maripino`, llamado desde el flujo de GHL
+"Webhook xzen" (disparador *El cliente ha respondido*).
 
-| ID anuncio | Nombre | Vertical |
+## Anuncios → giro
+| ID anuncio | Nombre en el CRM | Giro |
 |---|---|---|
-| 52613806312397 | XZEN_AgenciaViajes_Flyer1 | agencia_viajes |
-| 52613807534997 | XZEN_AgenciaViajes_VideoXime | agencia_viajes |
-| 52613807845997 | XZEN_AgenciaViajes_VideoCarlos1 | agencia_viajes |
-| 52613808070397 | XZEN_AgenciaViajes_VideoCarlos2 | agencia_viajes |
-| _(futuros)_ | Muebles | tienda_muebles |
+| 52613806312397 | Agencia Flyer | agencia_viajes |
+| 52613807534997 | Agencia Xime | agencia_viajes |
+| 52613807845997 | Agencia Carlos1 | agencia_viajes |
+| 52613808070397 | Agencia Carlos2 | agencia_viajes |
+| _(próximamente)_ | Muebles | tienda_muebles (preparado, inactivo) |
 
-## Cómo se sabe de qué anuncio viene
-En los anuncios Click-to-WhatsApp, **el primer mensaje** del cliente trae un bloque `referral`
-con `source_type: "ad"` y `source_id` = **ID del anuncio**. Solo llega en ese primer mensaje, así que:
+GHL guarda el ID del anuncio en el contacto (`attributionSource.adId`); el flujo lo lee de ahí.
+**Solo responde a contactos que vienen de un anuncio** (o con la etiqueta `test-maripino` para
+pruebas): la coexistencia también importa los contactos personales del WhatsApp.
 
-1. En el primer mensaje se lee `source_id` → se busca en `enrutamiento-anuncios.json` → vertical.
-2. La vertical se **guarda en el contacto de GHL** (tag `demo-agencia-viajes` + campo
-   personalizado `vertical_demo`).
-3. En los mensajes siguientes se lee la vertical del contacto, no del anuncio.
-4. Sin `referral` o ID desconocido → vertical `general` (pregunta el giro del negocio).
+## Qué hace en cada mensaje
+1. Espera 12 s y junta los mensajes que el cliente mande seguidos (responde una sola vez).
+2. Si el contacto tiene la etiqueta `atencion-personalizada`, no contesta.
+3. Primer contacto → crea la oportunidad en el pipeline **XzenAuto**, columna **Nuevo lead**, y guarda
+   el campo **Anuncio de origen** + etiquetas `maripino`, `demo-agencia-viajes`.
+4. Maripino (OpenAI gpt-4.1, trata de usted) conversa con el historial real de WhatsApp de GHL y pregunta:
+   desde dónde contacta, si invierte en anuncios de Facebook y cuántos leads recibe por semana.
+5. Envía las respuestas de una en una y guarda en GHL:
+   - Campos: *Desde dónde nos contacta*, *Invierte en anuncios de Facebook*, *Leads estimados por semana*.
+   - Nombre, negocio y correo cuando los da.
+   - Etiquetas: `video-enviado`, `cita-agendada`, `atencion-personalizada`.
+6. Cita agendada (herramientas `consultar_disponibilidad` / `agendar_cita`) → oportunidad a **Agendado**.
+7. Atención personalizada → oportunidad a la columna **Atención personalizada**, nota en el contacto
+   y correo a xzenauto@gmail.com (Gmail Xzen). Desde ahí el bot deja de responder a ese contacto.
+8. Si OpenAI falla → mensaje cortés al cliente y pasa a atención personalizada.
 
-## Flujo (n8n)
+## Añadir muebles
+En `enrutamiento-anuncios.json` agregar los IDs con `"vertical": "tienda_muebles"`, poner el video
+y `"activo": true`; revisar `prompts/tienda-muebles.md`. Luego `python3 n8n/generar_flujos.py` y
+subir `n8n/maripino-agente.json` (PUT `/api/v1/workflows/ukexs4vDn2P6XA4Q`).
+
+## Pruebas sin enviar nada
+POST al webhook con `"simulacion": true`: corre el agente y consulta el calendario, pero no envía
+WhatsApp ni escribe en GHL. Ejemplo:
+```json
+{"contact_id": "<id>", "simulacion": true, "message": {"type": 19, "body": "Hola"},
+ "historial": [{"rol": "cliente", "texto": "..."}, {"rol": "maripino", "texto": "..."}]}
 ```
-WhatsApp entrante ──► Webhook n8n
-   │
-   ├─ ¿Contacto existe en GHL? ── no ─► crear contacto
-   ├─ ¿Tiene vertical? ── no ─► leer referral.source_id ─► mapa de anuncios ─► guardar tag/campo
-   │
-   ├─ Switch por vertical ──► agencia_viajes │ tienda_muebles (inactivo) │ general
-   │
-   └─ AI Agent (prompt de la vertical + memoria por teléfono)
-        herramientas:
-          • consultar_disponibilidad  → GET  /calendars/{id}/free-slots
-          • agendar_cita              → POST /calendars/events/appointments
-          • enviar_video              → mensaje con link de YouTube
-          • pasar_a_humano            → tag "atender-humano" + pausa del bot
-   │
-   └─ Respuesta ──► WhatsApp (vía GHL Conversations o Cloud API)
-```
-
-Añadir muebles = meter sus IDs en `enrutamiento-anuncios.json`, completar
-`prompts/tienda-muebles.md` y poner `activo: true`. No hay que tocar el flujo.
 
 ## Archivos
-- `enrutamiento-anuncios.json` — mapa anuncio → vertical, video y tag.
-- `prompts/agencia-viajes.md` — instrucciones del agente para agencias de viajes.
-- `prompts/tienda-muebles.md` — plantilla lista para cuando existan los anuncios de muebles.
-- `prompts/general.md` — mensajes sin anuncio identificado.
-- `simulacion-conversacion.md` — ejemplo de cómo hablaría el agente.
-
-## Pendiente de confirmar
-Los marcadores `{{...}}` de los prompts se rellenan con las respuestas del cliente
-(nombre del agente, política de precios, etc.).
+- `enrutamiento-anuncios.json` — anuncio → giro, video y etiqueta.
+- `prompts/*.md` — instrucciones por giro (se insertan en el flujo al generarlo).
+- `n8n/generar_flujos.py` — genera `n8n/maripino-agente.json` (y el de configuración de campos).
+- `simulacion-conversacion.md` — conversación real de prueba.

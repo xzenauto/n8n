@@ -1,0 +1,151 @@
+{
+  "name": "Maripino · Configuración GHL",
+  "nodes": [
+    {
+      "id": "f392ebc9-1e9e-588a-be30-e0687b9a5a08",
+      "name": "Ejecutar una vez",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "ad678468-6bac-5e64-b33c-55f5b1a8d9af",
+      "name": "GHL · Campos actuales",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/locations/8SiKgyVuy9KVUIx1Y1RT/customFields",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "contact"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "20298924-e484-598e-91e1-ba6b16f69202",
+      "name": "Campos que faltan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const quiero = ['Anuncio de origen', 'Desde dónde nos contacta', 'Invierte en anuncios de Facebook', 'Leads estimados por semana'];\nconst existentes = ($json.customFields ?? []).map((f) => f.name.trim().toLowerCase());\nreturn quiero.filter((n) => !existentes.includes(n.toLowerCase())).map((name) => ({ json: { name } }));\n"
+      }
+    },
+    {
+      "id": "976e422c-c05c-55a1-a752-c1ab598e9443",
+      "name": "GHL · Crear campo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/locations/8SiKgyVuy9KVUIx1Y1RT/customFields",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.name, dataType: 'TEXT', model: 'contact' }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar una vez": {
+      "main": [
+        [
+          {
+            "node": "GHL · Campos actuales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL · Campos actuales": {
+      "main": [
+        [
+          {
+            "node": "Campos que faltan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Campos que faltan": {
+      "main": [
+        [
+          {
+            "node": "GHL · Crear campo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
