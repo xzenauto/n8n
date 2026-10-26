@@ -7,15 +7,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "*/30 10-19 * * *"
-            },
-            {
-              "field": "cronExpression",
-              "expression": "0 20 * * *"
-            },
-            {
-              "field": "cronExpression",
-              "expression": "0 0,4,8 * * *"
+              "expression": "*/30 * * * *"
             }
           ]
         }
@@ -27,7 +19,7 @@
         0
       ],
       "id": "5d1d9792-f0e5-44bd-8aa0-a988d2f09d50",
-      "name": "Cada 30 min (10–20 h) y cada 4 h de noche"
+      "name": "Cada 30 min (de noche solo si el cliente está escribiendo)"
     },
     {
       "parameters": {
@@ -69,7 +61,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Conversaciones donde el último mensaje es del cliente (WhatsApp/Facebook/Instagram),\n// de hace más de 10 minutos y menos de 23 horas (aún se le puede contestar).\n// Cada mensaje se revisa una sola vez: se marca como visto en \"Marcar visto\" (si el envío falla, se reintenta en la siguiente vuelta).\nconst AG = {\"agencia\": \"hijar\", \"pipe\": \"GUvcGrI1qq62OcntR5br\", \"etapasIA\": [\"3f6cef8a-9563-407e-b3ca-493806b89f2b\", \"c2f34317-6a57-45a0-8fa1-08f956097324\", \"95b71dfd-d6ce-4471-9f35-1b7003de88ba\"]};\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst ahora = Date.now();\nfor (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];\nconst out = [];\nfor (const c of ($input.first().json.conversations || [])) {\n  const t = Number(c.lastMessageDate || 0);\n  const tipo = String(c.lastMessageType || '');\n  if (!/WHATSAPP|FACEBOOK|INSTAGRAM/.test(tipo)) continue;\n  if (ahora - t < 10 * 60e3 || ahora - t > 23 * 3600e3) continue;\n  const clave = `${c.id}:${t}`;\n  if (memoria.vistos[clave]) continue;\n  out.push({ json: { ...AG, clave, contactId: c.contactId, convId: c.id, nombre: c.fullName || c.contactName || '', telefono: c.phone || '',\n    medio: /WHATSAPP/.test(tipo) ? 'whatsapp' : /INSTAGRAM/.test(tipo) ? 'instagram' : 'facebook', tipo } });\n}\nreturn out;"
+        "jsCode": "// Conversaciones donde el último mensaje es del cliente (WhatsApp/Facebook/Instagram),\n// de hace más de 10 minutos y menos de 23 horas (aún se le puede contestar).\n// De 22:00 a 8:00 solo se rescata si el cliente está escribiendo en ese momento (último mensaje de hace menos de 40 min);\n// lo que quede pendiente de la noche se rescata en la vuelta de las 8:00.\n// Cada mensaje se revisa una sola vez: se marca como visto en \"Marcar visto\" (si el envío falla, se reintenta en la siguiente vuelta).\nconst AG = {\"agencia\": \"hijar\", \"pipe\": \"GUvcGrI1qq62OcntR5br\", \"etapasIA\": [\"3f6cef8a-9563-407e-b3ca-493806b89f2b\", \"c2f34317-6a57-45a0-8fa1-08f956097324\", \"95b71dfd-d6ce-4471-9f35-1b7003de88ba\"]};\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst ahora = Date.now();\nconst horaMx = DateTime.now().setZone('America/Mexico_City').hour;\nconst deNoche = horaMx >= 22 || horaMx < 8;\nfor (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];\nconst out = [];\nfor (const c of ($input.first().json.conversations || [])) {\n  const t = Number(c.lastMessageDate || 0);\n  const tipo = String(c.lastMessageType || '');\n  if (!/WHATSAPP|FACEBOOK|INSTAGRAM/.test(tipo)) continue;\n  if (ahora - t < 10 * 60e3 || ahora - t > 23 * 3600e3) continue;\n  if (deNoche && ahora - t > 40 * 60e3) continue;\n  const clave = `${c.id}:${t}`;\n  if (memoria.vistos[clave]) continue;\n  out.push({ json: { ...AG, clave, contactId: c.contactId, convId: c.id, nombre: c.fullName || c.contactName || '', telefono: c.phone || '',\n    medio: /WHATSAPP/.test(tipo) ? 'whatsapp' : /INSTAGRAM/.test(tipo) ? 'instagram' : 'facebook', tipo } });\n}\nreturn out;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -330,7 +322,7 @@
         ]
       ]
     },
-    "Cada 30 min (10–20 h) y cada 4 h de noche": {
+    "Cada 30 min (de noche solo si el cliente está escribiendo)": {
       "main": [
         [
           {
