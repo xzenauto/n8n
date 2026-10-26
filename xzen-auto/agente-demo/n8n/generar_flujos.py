@@ -71,6 +71,7 @@ CFG = {
     "etapas": {
         "nuevo": "fe64e5e5-f19a-4c8a-af74-20d0d2c12868",  # Nuevo lead (primera columna)
         "agendado": "467bd371-b731-4bf6-892d-da5d4c2f31d0",  # Agendado
+        "atencion": "e5701f60-f46f-4a9f-a64b-590068028c12",  # Atención personalizada
     },
     "etapaAtencion": "atencion personalizada",  # se busca por nombre en el pipeline
     "campos": {
@@ -117,8 +118,8 @@ const opp = opps.find((o) => o.pipelineId === CFG.pipelineId) ?? null;
 const tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());
 const limpio = (s) => String(s ?? '').trim();
 
-// 1. Con una persona del equipo: Maripino no contesta.
-if (tags.includes('atencion-personalizada')) return [];
+// 1. Con una persona del equipo o apagado a mano (etiqueta maripino-off): Maripino no contesta.
+if (tags.includes('atencion-personalizada') || tags.includes('maripino-off')) return [];
 
 // 2. ¿Viene de un anuncio? Solo atendemos leads de anuncios (la coexistencia trae también contactos personales).
 const fuentes = [contacto.attributionSource, contacto.lastAttributionSource, ...(contacto.attributions ?? [])];
@@ -235,8 +236,9 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
    c) ¿Cuántos leads o consultas recibe aproximadamente a la semana?
    Comente brevemente cada respuesta (con empatía, conectándola con lo que hace el sistema) antes de seguir.
 3. Resuelva sus dudas con lo que hace el sistema (sección de instrucciones del giro).
-4. Envíe el video del sistema para que vea cómo funciona (una sola vez).
-5. Invítelo a una llamada con el equipo de xzen Auto y agéndela.
+4. Envíe el video del sistema (una sola vez) y pídale que lo vea y nos cuente qué le pareció.
+   En ese mismo turno no proponga todavía la llamada: espere su opinión del video.
+5. Cuando comente el video (o si antes pide agendar), invítelo a una llamada con el equipo de xzen Auto y agéndela.
 
 # Precios
 Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su negocio y se presenta en la llamada, con una propuesta a su medida.
@@ -246,7 +248,7 @@ Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su 
 2. Antes de agendar necesita su nombre completo, el nombre de su negocio y su correo; pídalos si faltan.
 3. Agende con agendar_cita usando EXACTAMENTE el inicio de un horario devuelto por consultar_disponibilidad.
 4. Solo si agendar_cita respondió correctamente, confirme día y hora y dígale que le llegará la confirmación.
-Si todavía no quiere agendar, envíele el video y pregúntele si le puede escribir en un par de días.
+Si todavía no quiere agendar, pregúntele si le puede escribir en un par de días.
 
 # Atención personalizada
 Si el cliente pide hablar con una persona, está molesto, o pregunta algo que no puede responder con certeza, marque atencion_personalizada = true, explique el motivo y dígale que alguien del equipo le escribirá en breve.
@@ -352,7 +354,7 @@ ETAPA = CFG_JS + r"""
 const plan = $('Plan CRM').first().json;
 const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const pipe = ($json.pipelines ?? []).find((p) => p.id === CFG.pipelineId);
-const atencion = pipe?.stages?.find((s) => norm(s.name).includes(CFG.etapaAtencion))?.id ?? null;
+const atencion = pipe?.stages?.find((s) => norm(s.name).includes(CFG.etapaAtencion))?.id ?? CFG.etapas.atencion;
 let destino = null;
 if (plan.atencion) destino = atencion;
 else if (plan.citaAgendada) destino = CFG.etapas.agendado;
@@ -384,6 +386,24 @@ return [{ json: {
     p.faltaColumnaAtencion ? '⚠️ No existe la columna "Atención personalizada" en el pipeline XzenAuto; créala para que la oportunidad se mueva sola.' : '',
     `Contacto en GHL: ${enlace}`,
   ].join('\n'),
+} }];
+"""
+
+RECORDATORIO = r"""// ¿Sigue sin responder desde que le mandamos el video?
+const contacto = $('Recordatorio · contacto').first().json.contact ?? {};
+const tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());
+if (['atencion-personalizada', 'maripino-off', 'video-recordatorio'].some((t) => tags.includes(t))) return [];
+let msgs = [];
+try { const m = $json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}
+if (!Array.isArray(msgs)) msgs = [];
+msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+let video = -1;
+msgs.forEach((m, i) => { if (m.direction === 'outbound' && /youtu\.?be/.test(m.body ?? '')) video = i; });
+if (video < 0 || msgs.slice(video + 1).some((m) => m.direction === 'inbound')) return [];
+const nombre = String(contacto.firstName ?? '').trim();
+return [{ json: {
+  contactId: contacto.id,
+  mensaje: `${nombre ? `Hola, ${nombre}. ` : 'Hola. '}¿Pudo ver el video? 😊 Nos encantaría saber qué le pareció.`,
 } }];
 """
 
@@ -485,6 +505,24 @@ nodos = [
         "sendTo": CFG["correoAviso"], "subject": "={{ $('Armar aviso').first().json.asunto }}", "emailType": "text",
         "message": "={{ $('Armar aviso').first().json.cuerpo }}", "options": {"appendAttribution": False},
     }, CRED_GMAIL, onError="continueRegularOutput"),
+    # Recordatorio: 1 hora después de enviar el video, si no ha respondido.
+    si("¿Envió el video?", [5300, 460], "={{ $('Preparar salida').first().json.out.video_enviado === true }}"),
+    nodo("Esperar 1 hora", "n8n-nodes-base.wait", 1.1, [5500, 460], {"amount": 1, "unit": "hours"},
+         webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/wait-video"))),
+    ghl("Recordatorio · contacto", [5700, 460], "GET",
+        "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}"),
+    ghl("Recordatorio · conversación", [5900, 460], "GET", GHL + "/conversations/search",
+        query={"locationId": LOCATION_ID, "contactId": "={{ $('Plan CRM').first().json.contactId }}", "limit": "1"}),
+    ghl("Recordatorio · mensajes", [6100, 460], "GET",
+        "=" + GHL + "/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        query={"limit": "40"}, onError="continueRegularOutput", alwaysOutputData=True),
+    nodo("¿Sin respuesta al video?", "n8n-nodes-base.code", 2, [6300, 460], {"jsCode": RECORDATORIO}),
+    ghl("GHL enviar recordatorio", [6500, 460], "POST", GHL + "/conversations/messages",
+        cuerpo="={{ JSON.stringify({ type: 'WhatsApp', contactId: $json.contactId, message: $json.mensaje }) }}",
+        onError="continueRegularOutput"),
+    ghl("GHL etiqueta recordatorio", [6700, 460], "POST",
+        "=" + GHL + "/contacts/{{ $('¿Sin respuesta al video?').first().json.contactId }}/tags",
+        cuerpo='{"tags": ["video-recordatorio"]}', onError="continueRegularOutput"),
 ]
 
 con = {}
@@ -521,6 +559,14 @@ une("¿Datos nuevos?", "GHL etiquetas", salida=1)
 une("¿Mover oportunidad?", "GHL mover oportunidad", salida=0)
 une("¿Mover oportunidad?", "¿Atención personalizada?", salida=1)
 une("¿Atención personalizada?", "Armar aviso", salida=0)
+une("¿Atención personalizada?", "¿Envió el video?", salida=1)
+une("¿Envió el video?", "Esperar 1 hora", salida=0)
+for a, b in [("Esperar 1 hora", "Recordatorio · contacto"), ("Recordatorio · contacto", "Recordatorio · conversación"),
+             ("Recordatorio · conversación", "Recordatorio · mensajes"),
+             ("Recordatorio · mensajes", "¿Sin respuesta al video?"),
+             ("¿Sin respuesta al video?", "GHL enviar recordatorio"),
+             ("GHL enviar recordatorio", "GHL etiqueta recordatorio")]:
+    une(a, b)
 une("OpenAI", "Maripino", "ai_languageModel")
 une("Salida estructurada", "Maripino", "ai_outputParser")
 for t in ["consultar_disponibilidad", "agendar_cita"]:

@@ -244,7 +244,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n\nconst ent = $('Normalizar entrada').first().json;\nconst contacto = $('GHL contacto').first().json.contact ?? {};\nconst opps = $('GHL oportunidades').first().json.opportunities ?? [];\nconst opp = opps.find((o) => o.pipelineId === CFG.pipelineId) ?? null;\nconst tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());\nconst limpio = (s) => String(s ?? '').trim();\n\n// 1. Con una persona del equipo: Maripino no contesta.\nif (tags.includes('atencion-personalizada')) return [];\n\n// 2. ¿Viene de un anuncio? Solo atendemos leads de anuncios (la coexistencia trae también contactos personales).\nconst fuentes = [contacto.attributionSource, contacto.lastAttributionSource, ...(contacto.attributions ?? [])];\nlet anuncioId = [ent.adId, ...fuentes.map((a) => a?.adId)].find((id) => id && RUTAS.anuncios[id]) ?? null;\nif (!anuncioId) {\n  const texto = JSON.stringify(contacto);\n  anuncioId = Object.keys(RUTAS.anuncios).find((id) => texto.includes(id)) ?? null;\n}\nconst esPrueba = tags.includes('test-maripino') || ent.simulacion;\nif (!anuncioId && !tags.includes('maripino') && !esPrueba) return [];\nconst anuncio = anuncioId ? RUTAS.anuncios[anuncioId] : null;\n\nlet vertical = anuncio?.vertical ?? (esPrueba ? 'agencia_viajes' : RUTAS.vertical_por_defecto);\nif (!RUTAS.verticales[vertical]?.activo) vertical = RUTAS.vertical_por_defecto;\nconst conf = RUTAS.verticales[vertical];\n\n// 3. Campos del contacto.\nconst valor = (id) => {\n  const v = (contacto.customFields ?? []).find((c) => c.id === id)?.value;\n  return Array.isArray(v) ? v.join(', ') : limpio(v);\n};\nconst valores = Object.fromEntries(Object.entries(CFG.campos).map(([k, id]) => [k, valor(id)]));\nconst anuncioTexto = anuncio ? `${anuncio.nombre} (${anuncioId})` : (valores.anuncio || 'Prueba / sin anuncio');\n\n// 4. Conversación de WhatsApp y agrupado de ráfagas.\nlet historial = [];\nlet nuevos = [];\nif (ent.simulacion) {\n  historial = ent.historialSimulado.map((m) => ({ rol: m.rol === 'cliente' ? 'Cliente' : 'Maripino', texto: limpio(m.texto) }));\n  nuevos = [ent.texto];\n} else {\n  let msgs = [];\n  try { const m = $('GHL mensajes').first().json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\n  if (!Array.isArray(msgs)) msgs = [];\n  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));\n  // Si después de este mensaje llegó otro, lo atiende la ejecución de ese otro mensaje.\n  // Si ya hubo una respuesta posterior (bot o persona), no contestamos de nuevo.\n  let mio = -1;\n  for (let i = msgs.length - 1; i >= 0; i--) {\n    if (msgs[i].direction === 'inbound' && limpio(msgs[i].body) === ent.texto) { mio = i; break; }\n  }\n  if (mio >= 0 && msgs.slice(mio + 1).length > 0) return [];\n  let corte = msgs.length;\n  while (corte > 0 && msgs[corte - 1].direction === 'inbound') corte--;\n  nuevos = msgs.slice(corte).map((m) => limpio(m.body) || '[audio, imagen o archivo sin texto]');\n  historial = msgs.slice(Math.max(0, corte - 20), corte)\n    .map((m) => ({ rol: m.direction === 'inbound' ? 'Cliente' : 'xzen Auto', texto: limpio(m.body) }))\n    .filter((m) => m.texto);\n  if (!nuevos.length) nuevos = [ent.texto || '[mensaje sin texto]'];\n}\n\nconst ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' });\nconst p = (v) => v || 'PENDIENTE';\nconst dias = Array.from({ length: 14 }, (_, i) => new Date(Date.now() + i * 864e5).toLocaleDateString('es-MX',\n  { timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));\nconst prompt = `# Fecha y hora actual (Ciudad de México)\n${ahora}\n\n# Calendario (úselo siempre para nombrar los días; no calcule días de la semana)\n${dias.join('\\n')}\n\n# Datos del cliente en el CRM\n- Nombre: ${limpio(contacto.firstName) || 'desconocido'}${contacto.companyName ? `\\n- Negocio: ${contacto.companyName}` : ''}${contacto.email ? `\\n- Correo: ${contacto.email}` : ''}\n- Anuncio de origen: ${anuncioTexto}\n- Desde dónde nos contacta: ${p(valores.ubicacion)}\n- ¿Invierte en anuncios de Facebook?: ${p(valores.inversion)}\n- Leads estimados por semana: ${p(valores.leads)}\n- Video ya enviado: ${tags.includes('video-enviado') ? 'sí' : 'no'}\n- Cita ya agendada: ${tags.includes('cita-agendada') ? 'sí' : 'no'}\n\n${conf.instrucciones}\n\n# Video del sistema\n${conf.video_demo}\n\n# Conversación previa\n${historial.length ? historial.map((m) => `${m.rol}: ${m.texto}`).join('\\n') : '(es el primer mensaje del cliente)'}\n\n# Mensaje(s) nuevo(s) del cliente\n${nuevos.join('\\n')}`;\n\nreturn [{ json: {\n  contactId: ent.contactId,\n  simulacion: ent.simulacion,\n  nombre: limpio(contacto.firstName),\n  email: limpio(contacto.email),\n  negocio: limpio(contacto.companyName),\n  tags,\n  anuncioId,\n  anuncioTexto,\n  vertical,\n  tagVertical: conf.tag_ghl,\n  valores,\n  oportunidadId: opp?.id ?? null,\n  etapaActual: opp?.pipelineStageId ?? null,\n  crearOportunidad: !opp && !ent.simulacion,\n  prompt,\n} }];\n"
+        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\", \"atencion\": \"e5701f60-f46f-4a9f-a64b-590068028c12\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n\nconst ent = $('Normalizar entrada').first().json;\nconst contacto = $('GHL contacto').first().json.contact ?? {};\nconst opps = $('GHL oportunidades').first().json.opportunities ?? [];\nconst opp = opps.find((o) => o.pipelineId === CFG.pipelineId) ?? null;\nconst tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());\nconst limpio = (s) => String(s ?? '').trim();\n\n// 1. Con una persona del equipo o apagado a mano (etiqueta maripino-off): Maripino no contesta.\nif (tags.includes('atencion-personalizada') || tags.includes('maripino-off')) return [];\n\n// 2. ¿Viene de un anuncio? Solo atendemos leads de anuncios (la coexistencia trae también contactos personales).\nconst fuentes = [contacto.attributionSource, contacto.lastAttributionSource, ...(contacto.attributions ?? [])];\nlet anuncioId = [ent.adId, ...fuentes.map((a) => a?.adId)].find((id) => id && RUTAS.anuncios[id]) ?? null;\nif (!anuncioId) {\n  const texto = JSON.stringify(contacto);\n  anuncioId = Object.keys(RUTAS.anuncios).find((id) => texto.includes(id)) ?? null;\n}\nconst esPrueba = tags.includes('test-maripino') || ent.simulacion;\nif (!anuncioId && !tags.includes('maripino') && !esPrueba) return [];\nconst anuncio = anuncioId ? RUTAS.anuncios[anuncioId] : null;\n\nlet vertical = anuncio?.vertical ?? (esPrueba ? 'agencia_viajes' : RUTAS.vertical_por_defecto);\nif (!RUTAS.verticales[vertical]?.activo) vertical = RUTAS.vertical_por_defecto;\nconst conf = RUTAS.verticales[vertical];\n\n// 3. Campos del contacto.\nconst valor = (id) => {\n  const v = (contacto.customFields ?? []).find((c) => c.id === id)?.value;\n  return Array.isArray(v) ? v.join(', ') : limpio(v);\n};\nconst valores = Object.fromEntries(Object.entries(CFG.campos).map(([k, id]) => [k, valor(id)]));\nconst anuncioTexto = anuncio ? `${anuncio.nombre} (${anuncioId})` : (valores.anuncio || 'Prueba / sin anuncio');\n\n// 4. Conversación de WhatsApp y agrupado de ráfagas.\nlet historial = [];\nlet nuevos = [];\nif (ent.simulacion) {\n  historial = ent.historialSimulado.map((m) => ({ rol: m.rol === 'cliente' ? 'Cliente' : 'Maripino', texto: limpio(m.texto) }));\n  nuevos = [ent.texto];\n} else {\n  let msgs = [];\n  try { const m = $('GHL mensajes').first().json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\n  if (!Array.isArray(msgs)) msgs = [];\n  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));\n  // Si después de este mensaje llegó otro, lo atiende la ejecución de ese otro mensaje.\n  // Si ya hubo una respuesta posterior (bot o persona), no contestamos de nuevo.\n  let mio = -1;\n  for (let i = msgs.length - 1; i >= 0; i--) {\n    if (msgs[i].direction === 'inbound' && limpio(msgs[i].body) === ent.texto) { mio = i; break; }\n  }\n  if (mio >= 0 && msgs.slice(mio + 1).length > 0) return [];\n  let corte = msgs.length;\n  while (corte > 0 && msgs[corte - 1].direction === 'inbound') corte--;\n  nuevos = msgs.slice(corte).map((m) => limpio(m.body) || '[audio, imagen o archivo sin texto]');\n  historial = msgs.slice(Math.max(0, corte - 20), corte)\n    .map((m) => ({ rol: m.direction === 'inbound' ? 'Cliente' : 'xzen Auto', texto: limpio(m.body) }))\n    .filter((m) => m.texto);\n  if (!nuevos.length) nuevos = [ent.texto || '[mensaje sin texto]'];\n}\n\nconst ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' });\nconst p = (v) => v || 'PENDIENTE';\nconst dias = Array.from({ length: 14 }, (_, i) => new Date(Date.now() + i * 864e5).toLocaleDateString('es-MX',\n  { timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));\nconst prompt = `# Fecha y hora actual (Ciudad de México)\n${ahora}\n\n# Calendario (úselo siempre para nombrar los días; no calcule días de la semana)\n${dias.join('\\n')}\n\n# Datos del cliente en el CRM\n- Nombre: ${limpio(contacto.firstName) || 'desconocido'}${contacto.companyName ? `\\n- Negocio: ${contacto.companyName}` : ''}${contacto.email ? `\\n- Correo: ${contacto.email}` : ''}\n- Anuncio de origen: ${anuncioTexto}\n- Desde dónde nos contacta: ${p(valores.ubicacion)}\n- ¿Invierte en anuncios de Facebook?: ${p(valores.inversion)}\n- Leads estimados por semana: ${p(valores.leads)}\n- Video ya enviado: ${tags.includes('video-enviado') ? 'sí' : 'no'}\n- Cita ya agendada: ${tags.includes('cita-agendada') ? 'sí' : 'no'}\n\n${conf.instrucciones}\n\n# Video del sistema\n${conf.video_demo}\n\n# Conversación previa\n${historial.length ? historial.map((m) => `${m.rol}: ${m.texto}`).join('\\n') : '(es el primer mensaje del cliente)'}\n\n# Mensaje(s) nuevo(s) del cliente\n${nuevos.join('\\n')}`;\n\nreturn [{ json: {\n  contactId: ent.contactId,\n  simulacion: ent.simulacion,\n  nombre: limpio(contacto.firstName),\n  email: limpio(contacto.email),\n  negocio: limpio(contacto.companyName),\n  tags,\n  anuncioId,\n  anuncioTexto,\n  vertical,\n  tagVertical: conf.tag_ghl,\n  valores,\n  oportunidadId: opp?.id ?? null,\n  etapaActual: opp?.pipelineStageId ?? null,\n  crearOportunidad: !opp && !ent.simulacion,\n  prompt,\n} }];\n"
       }
     },
     {
@@ -375,7 +375,7 @@
         "text": "={{ $('Analizar').first().json.prompt }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp a dueños y gerentes de negocios que escribieron desde un anuncio de Facebook/Instagram.\n\n# Personalidad\n- Siempre trata de USTED al cliente. Amigable, cálido y profesional.\n- Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.\n- Una sola pregunta por turno. Emojis con moderación (uno o dos como máximo).\n- No diga que la conversación es una demostración ni haga simulaciones o juegos de rol.\n\n# Objetivo de la conversación\n1. Salude con calidez, preséntese como Maripino de xzen Auto y pregunte su nombre si no lo tiene.\n2. Conózcalo con estas preguntas, de forma natural y una por turno, solo las que sigan PENDIENTES en el CRM:\n   a) ¿Desde dónde nos contacta? (ciudad / estado / país)\n   b) ¿Actualmente invierte en anuncios de Facebook?\n   c) ¿Cuántos leads o consultas recibe aproximadamente a la semana?\n   Comente brevemente cada respuesta (con empatía, conectándola con lo que hace el sistema) antes de seguir.\n3. Resuelva sus dudas con lo que hace el sistema (sección de instrucciones del giro).\n4. Envíe el video del sistema para que vea cómo funciona (una sola vez).\n5. Invítelo a una llamada con el equipo de xzen Auto y agéndela.\n\n# Precios\nNunca dé precios, rangos ni planes. El precio depende de las necesidades de su negocio y se presenta en la llamada, con una propuesta a su medida.\n\n# Cómo agendar\n1. Use consultar_disponibilidad y ofrezca 2 o 3 horarios concretos en hora de Ciudad de México (si el cliente está en otra zona horaria, aclárelo). Nunca invente horarios.\n2. Antes de agendar necesita su nombre completo, el nombre de su negocio y su correo; pídalos si faltan.\n3. Agende con agendar_cita usando EXACTAMENTE el inicio de un horario devuelto por consultar_disponibilidad.\n4. Solo si agendar_cita respondió correctamente, confirme día y hora y dígale que le llegará la confirmación.\nSi todavía no quiere agendar, envíele el video y pregúntele si le puede escribir en un par de días.\n\n# Atención personalizada\nSi el cliente pide hablar con una persona, está molesto, o pregunta algo que no puede responder con certeza, marque atencion_personalizada = true, explique el motivo y dígale que alguien del equipo le escribirá en breve.\n\n# Formato de salida\n- mensajes: 1 a 3 mensajes de WhatsApp para el cliente, en orden.\n- datos: lo que el cliente haya dicho en la conversación (cadena vacía si no lo sabe):\n  ubicacion, invierte_anuncios (p. ej. \"Sí, unos $5,000 al mes\" o \"No\"), leads_semana (p. ej. \"150\"),\n  nombre_completo, negocio, email.\n- video_enviado: true si en esta respuesta incluye el link del video.\n- cita_agendada: true solo si agendar_cita respondió correctamente en este turno.\n- atencion_personalizada / motivo_atencion: ver arriba.\n- resumen: una línea con el estado del prospecto para el equipo.\n\n# Reglas\n- No invente funciones, integraciones, clientes, casos de éxito ni resultados.\n- Nunca repita una pregunta que ya tenga respuesta en el CRM o en la conversación.\n",
+          "systemMessage": "Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp a dueños y gerentes de negocios que escribieron desde un anuncio de Facebook/Instagram.\n\n# Personalidad\n- Siempre trata de USTED al cliente. Amigable, cálido y profesional.\n- Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.\n- Una sola pregunta por turno. Emojis con moderación (uno o dos como máximo).\n- No diga que la conversación es una demostración ni haga simulaciones o juegos de rol.\n\n# Objetivo de la conversación\n1. Salude con calidez, preséntese como Maripino de xzen Auto y pregunte su nombre si no lo tiene.\n2. Conózcalo con estas preguntas, de forma natural y una por turno, solo las que sigan PENDIENTES en el CRM:\n   a) ¿Desde dónde nos contacta? (ciudad / estado / país)\n   b) ¿Actualmente invierte en anuncios de Facebook?\n   c) ¿Cuántos leads o consultas recibe aproximadamente a la semana?\n   Comente brevemente cada respuesta (con empatía, conectándola con lo que hace el sistema) antes de seguir.\n3. Resuelva sus dudas con lo que hace el sistema (sección de instrucciones del giro).\n4. Envíe el video del sistema (una sola vez) y pídale que lo vea y nos cuente qué le pareció.\n   En ese mismo turno no proponga todavía la llamada: espere su opinión del video.\n5. Cuando comente el video (o si antes pide agendar), invítelo a una llamada con el equipo de xzen Auto y agéndela.\n\n# Precios\nNunca dé precios, rangos ni planes. El precio depende de las necesidades de su negocio y se presenta en la llamada, con una propuesta a su medida.\n\n# Cómo agendar\n1. Use consultar_disponibilidad y ofrezca 2 o 3 horarios concretos en hora de Ciudad de México (si el cliente está en otra zona horaria, aclárelo). Nunca invente horarios.\n2. Antes de agendar necesita su nombre completo, el nombre de su negocio y su correo; pídalos si faltan.\n3. Agende con agendar_cita usando EXACTAMENTE el inicio de un horario devuelto por consultar_disponibilidad.\n4. Solo si agendar_cita respondió correctamente, confirme día y hora y dígale que le llegará la confirmación.\nSi todavía no quiere agendar, pregúntele si le puede escribir en un par de días.\n\n# Atención personalizada\nSi el cliente pide hablar con una persona, está molesto, o pregunta algo que no puede responder con certeza, marque atencion_personalizada = true, explique el motivo y dígale que alguien del equipo le escribirá en breve.\n\n# Formato de salida\n- mensajes: 1 a 3 mensajes de WhatsApp para el cliente, en orden.\n- datos: lo que el cliente haya dicho en la conversación (cadena vacía si no lo sabe):\n  ubicacion, invierte_anuncios (p. ej. \"Sí, unos $5,000 al mes\" o \"No\"), leads_semana (p. ej. \"150\"),\n  nombre_completo, negocio, email.\n- video_enviado: true si en esta respuesta incluye el link del video.\n- cita_agendada: true solo si agendar_cita respondió correctamente en este turno.\n- atencion_personalizada / motivo_atencion: ver arriba.\n- resumen: una línea con el estado del prospecto para el equipo.\n\n# Reglas\n- No invente funciones, integraciones, clientes, casos de éxito ni resultados.\n- Nunca repita una pregunta que ya tenga respuesta en el CRM o en la conversación.\n",
           "maxIterations": 8
         }
       },
@@ -648,7 +648,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n\nconst c = $('Analizar').first().json;\nconst out = $('Preparar salida').first().json.out;\nconst d = out.datos ?? {};\nconst limpio = (s) => String(s ?? '').trim();\n\nconst customFields = [];\nconst poner = (clave, v) => { v = limpio(v); if (v && v !== c.valores[clave]) customFields.push({ id: CFG.campos[clave], field_value: v }); };\nponer('ubicacion', d.ubicacion);\nponer('inversion', d.invierte_anuncios);\nponer('leads', d.leads_semana);\nif (!c.valores.anuncio) poner('anuncio', c.anuncioTexto);\n\nlet oportunidadNueva = null;\ntry { oportunidadNueva = $('GHL crear oportunidad').first().json.opportunity?.id ?? null; } catch (e) {}\n\nconst contacto = {};\nif (customFields.length) contacto.customFields = customFields;\nif (limpio(d.email).includes('@') && !c.email) contacto.email = limpio(d.email);\nif (limpio(d.negocio) && !c.negocio) contacto.companyName = limpio(d.negocio);\nconst partes = limpio(d.nombre_completo).split(/\\s+/).filter(Boolean);\nif (partes.length > 1) { contacto.firstName = partes[0]; contacto.lastName = partes.slice(1).join(' '); }\n\nconst tags = ['maripino', c.tagVertical];\nif (out.video_enviado) tags.push('video-enviado');\nif (out.cita_agendada) tags.push('cita-agendada');\nif (out.atencion_personalizada) tags.push('atencion-personalizada');\n\nreturn [{ json: {\n  contactId: c.contactId,\n  contacto,\n  hayCambiosContacto: Object.keys(contacto).length > 0,\n  tags,\n  oportunidadId: c.oportunidadId ?? oportunidadNueva,\n  etapaActual: c.etapaActual,\n  citaAgendada: !!out.cita_agendada,\n  atencion: !!out.atencion_personalizada,\n  motivo: limpio(out.motivo_atencion),\n  resumen: limpio(out.resumen),\n} }];\n"
+        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\", \"atencion\": \"e5701f60-f46f-4a9f-a64b-590068028c12\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n\nconst c = $('Analizar').first().json;\nconst out = $('Preparar salida').first().json.out;\nconst d = out.datos ?? {};\nconst limpio = (s) => String(s ?? '').trim();\n\nconst customFields = [];\nconst poner = (clave, v) => { v = limpio(v); if (v && v !== c.valores[clave]) customFields.push({ id: CFG.campos[clave], field_value: v }); };\nponer('ubicacion', d.ubicacion);\nponer('inversion', d.invierte_anuncios);\nponer('leads', d.leads_semana);\nif (!c.valores.anuncio) poner('anuncio', c.anuncioTexto);\n\nlet oportunidadNueva = null;\ntry { oportunidadNueva = $('GHL crear oportunidad').first().json.opportunity?.id ?? null; } catch (e) {}\n\nconst contacto = {};\nif (customFields.length) contacto.customFields = customFields;\nif (limpio(d.email).includes('@') && !c.email) contacto.email = limpio(d.email);\nif (limpio(d.negocio) && !c.negocio) contacto.companyName = limpio(d.negocio);\nconst partes = limpio(d.nombre_completo).split(/\\s+/).filter(Boolean);\nif (partes.length > 1) { contacto.firstName = partes[0]; contacto.lastName = partes.slice(1).join(' '); }\n\nconst tags = ['maripino', c.tagVertical];\nif (out.video_enviado) tags.push('video-enviado');\nif (out.cita_agendada) tags.push('cita-agendada');\nif (out.atencion_personalizada) tags.push('atencion-personalizada');\n\nreturn [{ json: {\n  contactId: c.contactId,\n  contacto,\n  hayCambiosContacto: Object.keys(contacto).length > 0,\n  tags,\n  oportunidadId: c.oportunidadId ?? oportunidadNueva,\n  etapaActual: c.etapaActual,\n  citaAgendada: !!out.cita_agendada,\n  atencion: !!out.atencion_personalizada,\n  motivo: limpio(out.motivo_atencion),\n  resumen: limpio(out.resumen),\n} }];\n"
       }
     },
     {
@@ -823,7 +823,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n\nconst plan = $('Plan CRM').first().json;\nconst norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();\nconst pipe = ($json.pipelines ?? []).find((p) => p.id === CFG.pipelineId);\nconst atencion = pipe?.stages?.find((s) => norm(s.name).includes(CFG.etapaAtencion))?.id ?? null;\nlet destino = null;\nif (plan.atencion) destino = atencion;\nelse if (plan.citaAgendada) destino = CFG.etapas.agendado;\nreturn [{ json: { ...plan, destino, moverOportunidad: !!(destino && plan.oportunidadId && destino !== plan.etapaActual),\n  faltaColumnaAtencion: plan.atencion && !atencion } }];\n"
+        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\", \"atencion\": \"e5701f60-f46f-4a9f-a64b-590068028c12\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n\nconst plan = $('Plan CRM').first().json;\nconst norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();\nconst pipe = ($json.pipelines ?? []).find((p) => p.id === CFG.pipelineId);\nconst atencion = pipe?.stages?.find((s) => norm(s.name).includes(CFG.etapaAtencion))?.id ?? CFG.etapas.atencion;\nlet destino = null;\nif (plan.atencion) destino = atencion;\nelse if (plan.citaAgendada) destino = CFG.etapas.agendado;\nreturn [{ json: { ...plan, destino, moverOportunidad: !!(destino && plan.oportunidadId && destino !== plan.etapaActual),\n  faltaColumnaAtencion: plan.atencion && !atencion } }];\n"
       }
     },
     {
@@ -1009,6 +1009,284 @@
         "gmailOAuth2": {
           "id": "giX4xhnEUL2ltIcE",
           "name": "Gmail Xzen"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ce455b41-8d0c-5943-9382-8776cc0f33d2",
+      "name": "¿Envió el video?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5300,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8a376a40-9314-5b70-950e-4c63f5965e0c",
+              "leftValue": "={{ $('Preparar salida').first().json.out.video_enviado === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "5859a84f-a739-5da7-9349-9eb2ea53171e",
+      "name": "Esperar 1 hora",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5500,
+        460
+      ],
+      "parameters": {
+        "amount": 1,
+        "unit": "hours"
+      },
+      "webhookId": "531df584-1b99-5fe5-9356-21c134352543"
+    },
+    {
+      "id": "54f57dcc-088e-5ca9-9a98-671186e56470",
+      "name": "Recordatorio · contacto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5700,
+        460
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Plan CRM').first().json.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "d495a76c-84e2-51f7-95d7-634369aa6ed1",
+      "name": "Recordatorio · conversación",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5900,
+        460
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/conversations/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            },
+            {
+              "name": "contactId",
+              "value": "={{ $('Plan CRM').first().json.contactId }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "3afc3ac1-b179-5f4e-ae27-e1787158fa95",
+      "name": "Recordatorio · mensajes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6100,
+        460
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "40"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "aa12dbab-78b1-5cac-aa12-174f1ebe1662",
+      "name": "¿Sin respuesta al video?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6300,
+        460
+      ],
+      "parameters": {
+        "jsCode": "// ¿Sigue sin responder desde que le mandamos el video?\nconst contacto = $('Recordatorio · contacto').first().json.contact ?? {};\nconst tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());\nif (['atencion-personalizada', 'maripino-off', 'video-recordatorio'].some((t) => tags.includes(t))) return [];\nlet msgs = [];\ntry { const m = $json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\nif (!Array.isArray(msgs)) msgs = [];\nmsgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));\nlet video = -1;\nmsgs.forEach((m, i) => { if (m.direction === 'outbound' && /youtu\\.?be/.test(m.body ?? '')) video = i; });\nif (video < 0 || msgs.slice(video + 1).some((m) => m.direction === 'inbound')) return [];\nconst nombre = String(contacto.firstName ?? '').trim();\nreturn [{ json: {\n  contactId: contacto.id,\n  mensaje: `${nombre ? `Hola, ${nombre}. ` : 'Hola. '}¿Pudo ver el video? 😊 Nos encantaría saber qué le pareció.`,\n} }];\n"
+      }
+    },
+    {
+      "id": "be004a79-c66e-547e-9879-a640bdd11f47",
+      "name": "GHL enviar recordatorio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6500,
+        460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/conversations/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'WhatsApp', contactId: $json.contactId, message: $json.mensaje }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "0eb6318c-9c20-5631-b094-a19c3d33cc77",
+      "name": "GHL etiqueta recordatorio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6700,
+        460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('¿Sin respuesta al video?').first().json.contactId }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"tags\": [\"video-recordatorio\"]}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
         }
       },
       "onError": "continueRegularOutput"
@@ -1345,6 +1623,90 @@
         [
           {
             "node": "Armar aviso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Envió el video?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Envió el video?": {
+      "main": [
+        [
+          {
+            "node": "Esperar 1 hora",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 1 hora": {
+      "main": [
+        [
+          {
+            "node": "Recordatorio · contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recordatorio · contacto": {
+      "main": [
+        [
+          {
+            "node": "Recordatorio · conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recordatorio · conversación": {
+      "main": [
+        [
+          {
+            "node": "Recordatorio · mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recordatorio · mensajes": {
+      "main": [
+        [
+          {
+            "node": "¿Sin respuesta al video?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sin respuesta al video?": {
+      "main": [
+        [
+          {
+            "node": "GHL enviar recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL enviar recordatorio": {
+      "main": [
+        [
+          {
+            "node": "GHL etiqueta recordatorio",
             "type": "main",
             "index": 0
           }

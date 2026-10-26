@@ -19,11 +19,12 @@ Flujo en n8n: **Maripino · Agente WhatsApp xzen Auto** (`ukexs4vDn2P6XA4Q`), we
 
 GHL guarda el ID del anuncio en el contacto (`attributionSource.adId`); el flujo lo lee de ahí.
 **Solo responde a contactos que vienen de un anuncio** (o con la etiqueta `test-maripino` para
-pruebas): la coexistencia también importa los contactos personales del WhatsApp.
+pruebas; la tiene el contacto de pruebas Carlos +34 638 76 07 11): la coexistencia también importa los contactos personales del WhatsApp.
 
 ## Qué hace en cada mensaje
 1. Espera 12 s y junta los mensajes que el cliente mande seguidos (responde una sola vez).
-2. Si el contacto tiene la etiqueta `atencion-personalizada`, no contesta.
+2. Si el contacto tiene la etiqueta `atencion-personalizada` o `maripino-off`, no contesta
+   (`maripino-off` sirve para apagar a Maripino a mano en un contacto concreto).
 3. Primer contacto → crea la oportunidad en el pipeline **XzenAuto**, columna **Nuevo lead**, y guarda
    el campo **Anuncio de origen** + etiquetas `maripino`, `demo-agencia-viajes`.
 4. Maripino (OpenAI gpt-4.1, trata de usted) conversa con el historial real de WhatsApp de GHL y pregunta:
@@ -32,6 +33,8 @@ pruebas): la coexistencia también importa los contactos personales del WhatsApp
    - Campos: *Desde dónde nos contacta*, *Invierte en anuncios de Facebook*, *Leads estimados por semana*.
    - Nombre, negocio y correo cuando los da.
    - Etiquetas: `video-enviado`, `cita-agendada`, `atencion-personalizada`.
+   Al enviar el video le pide que lo vea y nos cuente qué le pareció; si en **1 hora** no responde,
+   le escribe una sola vez: «¿Pudo ver el video? Nos encantaría saber qué le pareció» (etiqueta `video-recordatorio`).
 6. Cita agendada (herramientas `consultar_disponibilidad` / `agendar_cita`) → oportunidad a **Agendado**.
 7. Atención personalizada → oportunidad a la columna **Atención personalizada**, nota en el contacto
    y correo a xzenauto@gmail.com (Gmail Xzen). Desde ahí el bot deja de responder a ese contacto.
