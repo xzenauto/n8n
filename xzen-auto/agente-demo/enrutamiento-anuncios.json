@@ -1,0 +1,30 @@
+{
+  "_descripcion": "Mapa ID de anuncio de Meta (referral.source_id del primer mensaje de WhatsApp) -> vertical del agente. Para añadir muebles basta con agregar sus IDs aquí.",
+  "vertical_por_defecto": "general",
+  "anuncios": {
+    "52613806312397": { "vertical": "agencia_viajes", "nombre": "XZEN_AgenciaViajes_Flyer1" },
+    "52613807534997": { "vertical": "agencia_viajes", "nombre": "XZEN_AgenciaViajes_VideoXime" },
+    "52613807845997": { "vertical": "agencia_viajes", "nombre": "XZEN_AgenciaViajes_VideoCarlos1" },
+    "52613808070397": { "vertical": "agencia_viajes", "nombre": "XZEN_AgenciaViajes_VideoCarlos2" }
+  },
+  "verticales": {
+    "agencia_viajes": {
+      "prompt": "prompts/agencia-viajes.md",
+      "video_demo": "https://youtu.be/t2bvakV2WMw",
+      "tag_ghl": "demo-agencia-viajes",
+      "activo": true
+    },
+    "tienda_muebles": {
+      "prompt": "prompts/tienda-muebles.md",
+      "video_demo": "PENDIENTE",
+      "tag_ghl": "demo-tienda-muebles",
+      "activo": false
+    },
+    "general": {
+      "prompt": "prompts/general.md",
+      "video_demo": "https://youtu.be/t2bvakV2WMw",
+      "tag_ghl": "demo-general",
+      "activo": true
+    }
+  }
+}
