@@ -844,6 +844,47 @@
       "executeOnce": true
     },
     {
+      "id": "b63aa8d7-2502-5354-9d0d-2fcb26b6f5a1",
+      "name": "GHL reiniciar seguimientos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4200,
+        160
+      ],
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Plan CRM').first().json.contactId }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"tags\": [\"seguimiento-1\", \"seguimiento-2\", \"seguimiento-3\"]}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "executeOnce": true
+    },
+    {
       "id": "973db50d-6d88-5049-9a1b-7e12765ae8aa",
       "name": "GHL pipelines",
       "type": "n8n-nodes-base.httpRequest",
@@ -1716,6 +1757,17 @@
       ]
     },
     "GHL etiquetas": {
+      "main": [
+        [
+          {
+            "node": "GHL reiniciar seguimientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL reiniciar seguimientos": {
       "main": [
         [
           {

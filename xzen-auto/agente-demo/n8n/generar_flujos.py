@@ -571,6 +571,10 @@ nodos = [
     ghl("GHL etiquetas", [4100, 300], "POST", "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}/tags",
         cuerpo="={{ JSON.stringify({ tags: $('Plan CRM').first().json.tags }) }}", onError="continueRegularOutput",
         executeOnce=True),
+    ghl("GHL reiniciar seguimientos", [4200, 160], "DELETE",
+        "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}/tags",
+        cuerpo='{"tags": ["seguimiento-1", "seguimiento-2", "seguimiento-3"]}', onError="continueRegularOutput",
+        executeOnce=True),
     ghl("GHL pipelines", [4300, 300], "GET", GHL + "/opportunities/pipelines", query={"locationId": LOCATION_ID},
         onError="continueRegularOutput", alwaysOutputData=True),
     nodo("Etapa destino", "n8n-nodes-base.code", 2, [4500, 300], {"jsCode": ETAPA}),
@@ -643,7 +647,7 @@ une("¿Es real? (no simulación)", "Separar mensajes", salida=0)
 for a, b in [("Separar mensajes", "GHL enviar WhatsApp"), ("GHL enviar WhatsApp", "Plan CRM"),
              ("Plan CRM", "¿Datos nuevos?"), ("GHL actualizar contacto", "¿Hay correo nuevo?"),
              ("GHL guardar correo", "GHL etiquetas"),
-             ("GHL etiquetas", "GHL pipelines"), ("GHL pipelines", "Etapa destino"),
+             ("GHL etiquetas", "GHL reiniciar seguimientos"), ("GHL reiniciar seguimientos", "GHL pipelines"), ("GHL pipelines", "Etapa destino"),
              ("Etapa destino", "¿Mover oportunidad?"), ("GHL mover oportunidad", "¿Atención personalizada?"),
              ("Armar aviso", "GHL nota"), ("GHL nota", "Correo a xzenauto@gmail.com")]:
     une(a, b)
@@ -681,6 +685,111 @@ agente = {"name": "Maripino · Agente WhatsApp xzen Auto", "nodes": nodos, "conn
           "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
 
 
+# ---------------------------------------------------------------- seguimientos (cada 15 min)
+SEG_CANDIDATOS = r"""// Leads de Maripino que pueden necesitar seguimiento.
+const fuera = ['atencion-personalizada', 'maripino-off', 'cita-agendada', 'seguimiento-3'];
+return ($json.contacts ?? [])
+  .map((c) => ({ id: c.id, nombre: c.firstName || '', tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))
+  .filter((c) => c.tags.includes('maripino') && !fuera.some((t) => c.tags.includes(t)))
+  .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));
+"""
+
+SEG_DECIDIR = r"""// ¿A quién le toca seguimiento ahora? Horas desde el último mensaje de Maripino sin respuesta: 5, 7 y 12.
+const HORAS = [5, 7, 12];
+const H = 3600e3;
+const candidatos = $('Candidatos').all();
+const ahora = Date.now();
+const horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
+const silencio = horaMx >= 23 || horaMx < 8;
+const salida = [];
+
+$input.all().forEach((item, i) => {
+  const c = candidatos[i]?.json;
+  if (!c) return;
+  const prueba = c.tags.includes('test-maripino');
+  const u = prueba ? 60e3 : H; // en pruebas, minutos en lugar de horas
+  if (silencio && !prueba) return;
+
+  let msgs = [];
+  try { const m = item.json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}
+  if (!Array.isArray(msgs)) msgs = [];
+  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+  const ultimoIn = [...msgs].reverse().find((m) => m.direction === 'inbound');
+  if (!ultimoIn) return;
+  const tIn = new Date(ultimoIn.dateAdded).getTime();
+  const despues = msgs.filter((m) => m.direction === 'outbound' && new Date(m.dateAdded).getTime() > tIn);
+  if (!despues.length) return; // aún no le hemos respondido
+  if (ahora - tIn > 23.5 * H) return; // fuera de la ventana de 24 h de WhatsApp
+
+  const base = new Date(despues[0].dateAdded).getTime();
+  const ultimoOut = new Date(despues[despues.length - 1].dateAdded).getTime();
+  const hechos = [1, 2, 3].filter((k) => c.tags.includes(`seguimiento-${k}`)).length;
+  if (hechos >= HORAS.length) return;
+  const paso = hechos + 1;
+  if (ahora < base + HORAS[paso - 1] * u) return;
+  if (ahora - ultimoOut < (prueba ? 1 : 1.8) * u) return; // no amontonar mensajes (p. ej. a las 8:00)
+
+  const historial = msgs.slice(-16).map((m) => `${m.direction === 'inbound' ? 'Cliente' : 'xzen Auto'}: ${String(m.body ?? '').trim()}`)
+    .filter((l) => !l.endsWith(': ')).join('\n');
+  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial } });
+});
+return salida;
+"""
+
+SEG_PROMPT = """Eres Maripino, asistente virtual de xzen Auto (automatización con IA para negocios, ahora para agencias de viajes).
+El cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimiento (máximo 2-3 líneas) para retomar la conversación.
+- Trate de USTED al cliente; amigable y profesional; español de México; uno o dos emojis como máximo.
+- Retome exactamente donde quedó la conversación (la última pregunta o tema pendiente) sin repetir textualmente mensajes anteriores.
+- Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: aporte un beneficio concreto del sistema relacionado con lo que contó y vuelva a preguntar. Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.
+- No dé precios (se ven en la llamada). No invente datos. No diga que es un seguimiento automático.
+- Responda solo con el texto del mensaje."""
+
+SEG_CUERPO_OPENAI = ("={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: ["
+                     "{ role: 'system', content: " + json.dumps(SEG_PROMPT, ensure_ascii=False) + " },"
+                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3.' + ($json.nombre ? ' Nombre del cliente: ' + $json.nombre + '.' : '')"
+                     " + '\\n\\nConversación:\\n' + $json.historial } ] }) }}")
+
+SEG_MENSAJE = r"""const d = $('¿Toca seguimiento?').all();
+return $input.all().map((item, i) => ({ json: {
+  ...d[i].json,
+  mensaje: String(item.json.choices?.[0]?.message?.content ?? '').trim().replace(/^"|"$/g, ''),
+} })).filter((x) => x.json.mensaje);
+"""
+
+seg_nodos = [
+    nodo("Cada 15 minutos", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 0],
+         {"rule": {"interval": [{"field": "minutes", "minutesInterval": 15}]}}),
+    ghl("GHL leads de Maripino", [200, 0], "POST", GHL + "/contacts/search",
+        cuerpo=json.dumps({"locationId": LOCATION_ID, "pageLimit": 100,
+                           "filters": [{"field": "tags", "operator": "contains", "value": "maripino"}]})),
+    nodo("Candidatos", "n8n-nodes-base.code", 2, [400, 0], {"jsCode": SEG_CANDIDATOS}),
+    ghl("GHL conversación", [600, 0], "GET", GHL + "/conversations/search",
+        query={"locationId": LOCATION_ID, "contactId": "={{ $json.contactId }}", "limit": "1"},
+        onError="continueRegularOutput", alwaysOutputData=True),
+    ghl("GHL mensajes", [800, 0], "GET",
+        "=" + GHL + "/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        query={"limit": "40"}, onError="continueRegularOutput", alwaysOutputData=True),
+    nodo("¿Toca seguimiento?", "n8n-nodes-base.code", 2, [1000, 0], {"jsCode": SEG_DECIDIR}),
+    nodo("OpenAI redactar", "n8n-nodes-base.httpRequest", 4.2, [1200, 0], {
+        "method": "POST", "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "openAiApi",
+        "sendBody": True, "specifyBody": "json", "jsonBody": SEG_CUERPO_OPENAI, "options": {},
+    }, CRED_OPENAI, onError="continueRegularOutput"),
+    nodo("Preparar mensaje", "n8n-nodes-base.code", 2, [1400, 0], {"jsCode": SEG_MENSAJE}),
+    ghl("GHL enviar seguimiento", [1600, 0], "POST", GHL + "/conversations/messages",
+        cuerpo="={{ JSON.stringify({ type: 'WhatsApp', contactId: $json.contactId, message: $json.mensaje }) }}",
+        onError="continueRegularOutput"),
+    ghl("GHL etiqueta seguimiento", [1800, 0], "POST",
+        "=" + GHL + "/contacts/{{ $('Preparar mensaje').all()[$itemIndex].json.contactId }}/tags",
+        cuerpo="={{ JSON.stringify({ tags: ['seguimiento-' + $('Preparar mensaje').all()[$itemIndex].json.paso] }) }}",
+        onError="continueRegularOutput"),
+]
+seg_con = {}
+for a, b in zip(seg_nodos, seg_nodos[1:]):
+    seg_con[a["name"]] = {"main": [[{"node": b["name"], "type": "main", "index": 0}]]}
+seguimientos = {"name": "Maripino · Seguimientos", "nodes": seg_nodos, "connections": seg_con,
+                "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
+
 # ---------------------------------------------------------------- configuración (una sola vez)
 CREAR_CAMPOS = r"""const quiero = ['Anuncio de origen', 'Desde dónde nos contacta', 'Invierte en anuncios de Facebook', 'Leads estimados por semana'];
 const existentes = ($json.customFields ?? []).map((f) => f.name.trim().toLowerCase());
@@ -701,6 +810,7 @@ for a, b in [("Ejecutar una vez", "GHL · Campos actuales"), ("GHL · Campos act
 configuracion = {"name": "Maripino · Configuración GHL", "nodes": cfg_nodos, "connections": cfg_con,
                  "settings": {"executionOrder": "v1"}}
 
-for nombre, wf in [("maripino-agente.json", agente), ("maripino-configuracion.json", configuracion)]:
+for nombre, wf in [("maripino-agente.json", agente), ("maripino-seguimientos.json", seguimientos),
+                   ("maripino-configuracion.json", configuracion)]:
     (AQUI / nombre).write_text(json.dumps(wf, ensure_ascii=False, indent=2) + "\n")
     print("escrito", nombre, len(wf["nodes"]), "nodos")

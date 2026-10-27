@@ -42,6 +42,15 @@ pruebas; la tiene el contacto de pruebas Carlos +34 638 76 07 11): la coexistenc
    y correo a xzenauto@gmail.com (Gmail Xzen). Desde ahí el bot deja de responder a ese contacto.
 8. Si OpenAI falla → mensaje cortés al cliente y pasa a atención personalizada.
 
+## Seguimientos (flujo «Maripino · Seguimientos», cada 15 min)
+Si el lead no responde al último mensaje de Maripino, le escribe a las **5 h, 7 h y 12 h** un mensaje
+redactado por la IA según la conversación (el 3.º es una despedida amable). Reglas:
+- Nunca entre las 23:00 y las 08:00 (hora de México); lo pendiente sale a partir de las 8:00, uno a la vez.
+- Solo dentro de la ventana de 24 h de WhatsApp desde el último mensaje del cliente.
+- No a contactos con `cita-agendada`, `atencion-personalizada` o `maripino-off`.
+- Etiquetas `seguimiento-1/2/3`; se borran cuando el cliente vuelve a escribir.
+- Contactos `test-maripino`: 5, 7 y 12 minutos, sin horario silencioso.
+
 ## Añadir muebles
 En `enrutamiento-anuncios.json` agregar los IDs con `"vertical": "tienda_muebles"`, poner el video
 y `"activo": true`; revisar `prompts/tienda-muebles.md`. Luego `python3 n8n/generar_flujos.py` y

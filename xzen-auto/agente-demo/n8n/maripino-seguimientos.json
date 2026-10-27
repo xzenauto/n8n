@@ -1,0 +1,417 @@
+{
+  "name": "Maripino · Seguimientos",
+  "nodes": [
+    {
+      "id": "e7a31b28-7c33-586c-8969-520c8c7f77ca",
+      "name": "Cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2085ec79-e1d9-5e03-993d-ace96047749f",
+      "name": "GHL leads de Maripino",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"pageLimit\": 100, \"filters\": [{\"field\": \"tags\", \"operator\": \"contains\", \"value\": \"maripino\"}]}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "f5e125d5-cdeb-5359-bbdc-fdd732f015fe",
+      "name": "Candidatos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Leads de Maripino que pueden necesitar seguimiento.\nconst fuera = ['atencion-personalizada', 'maripino-off', 'cita-agendada', 'seguimiento-3'];\nreturn ($json.contacts ?? [])\n  .map((c) => ({ id: c.id, nombre: c.firstName || '', tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))\n  .filter((c) => c.tags.includes('maripino') && !fuera.some((t) => c.tags.includes(t)))\n  .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));\n"
+      }
+    },
+    {
+      "id": "1a7e50eb-71ae-5721-bd43-3bb06fe1d19d",
+      "name": "GHL conversación",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/conversations/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            },
+            {
+              "name": "contactId",
+              "value": "={{ $json.contactId }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "215f62ba-cf36-5afe-b379-baacf2b0359c",
+      "name": "GHL mensajes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "40"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "6fc9cd68-9e7a-5f76-a1be-89d86a4046d2",
+      "name": "¿Toca seguimiento?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// ¿A quién le toca seguimiento ahora? Horas desde el último mensaje de Maripino sin respuesta: 5, 7 y 12.\nconst HORAS = [5, 7, 12];\nconst H = 3600e3;\nconst candidatos = $('Candidatos').all();\nconst ahora = Date.now();\nconst horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;\nconst silencio = horaMx >= 23 || horaMx < 8;\nconst salida = [];\n\n$input.all().forEach((item, i) => {\n  const c = candidatos[i]?.json;\n  if (!c) return;\n  const prueba = c.tags.includes('test-maripino');\n  const u = prueba ? 60e3 : H; // en pruebas, minutos en lugar de horas\n  if (silencio && !prueba) return;\n\n  let msgs = [];\n  try { const m = item.json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\n  if (!Array.isArray(msgs)) msgs = [];\n  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));\n  const ultimoIn = [...msgs].reverse().find((m) => m.direction === 'inbound');\n  if (!ultimoIn) return;\n  const tIn = new Date(ultimoIn.dateAdded).getTime();\n  const despues = msgs.filter((m) => m.direction === 'outbound' && new Date(m.dateAdded).getTime() > tIn);\n  if (!despues.length) return; // aún no le hemos respondido\n  if (ahora - tIn > 23.5 * H) return; // fuera de la ventana de 24 h de WhatsApp\n\n  const base = new Date(despues[0].dateAdded).getTime();\n  const ultimoOut = new Date(despues[despues.length - 1].dateAdded).getTime();\n  const hechos = [1, 2, 3].filter((k) => c.tags.includes(`seguimiento-${k}`)).length;\n  if (hechos >= HORAS.length) return;\n  const paso = hechos + 1;\n  if (ahora < base + HORAS[paso - 1] * u) return;\n  if (ahora - ultimoOut < (prueba ? 1 : 1.8) * u) return; // no amontonar mensajes (p. ej. a las 8:00)\n\n  const historial = msgs.slice(-16).map((m) => `${m.direction === 'inbound' ? 'Cliente' : 'xzen Auto'}: ${String(m.body ?? '').trim()}`)\n    .filter((l) => !l.endsWith(': ')).join('\\n');\n  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial } });\n});\nreturn salida;\n"
+      }
+    },
+    {
+      "id": "f327accf-a0f5-5976-a878-312cb053852d",
+      "name": "OpenAI redactar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: [{ role: 'system', content: \"Eres Maripino, asistente virtual de xzen Auto (automatización con IA para negocios, ahora para agencias de viajes).\\nEl cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimiento (máximo 2-3 líneas) para retomar la conversación.\\n- Trate de USTED al cliente; amigable y profesional; español de México; uno o dos emojis como máximo.\\n- Retome exactamente donde quedó la conversación (la última pregunta o tema pendiente) sin repetir textualmente mensajes anteriores.\\n- Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: aporte un beneficio concreto del sistema relacionado con lo que contó y vuelva a preguntar. Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.\\n- No dé precios (se ven en la llamada). No invente datos. No diga que es un seguimiento automático.\\n- Responda solo con el texto del mensaje.\" }, { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3.' + ($json.nombre ? ' Nombre del cliente: ' + $json.nombre + '.' : '') + '\\n\\nConversación:\\n' + $json.historial } ] }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "W5zBaQ7k25sn9YQz",
+          "name": "RsViaje Independencia"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "eebb7aaa-cf1d-551d-ba9d-5d23fe10a919",
+      "name": "Preparar mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const d = $('¿Toca seguimiento?').all();\nreturn $input.all().map((item, i) => ({ json: {\n  ...d[i].json,\n  mensaje: String(item.json.choices?.[0]?.message?.content ?? '').trim().replace(/^\"|\"$/g, ''),\n} })).filter((x) => x.json.mensaje);\n"
+      }
+    },
+    {
+      "id": "f23cda9f-dc5f-58ef-9b55-b010d8114a17",
+      "name": "GHL enviar seguimiento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/conversations/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'WhatsApp', contactId: $json.contactId, message: $json.mensaje }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "4f837137-58fd-5285-a2fb-139b17aa0069",
+      "name": "GHL etiqueta seguimiento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Preparar mensaje').all()[$itemIndex].json.contactId }}/tags",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: ['seguimiento-' + $('Preparar mensaje').all()[$itemIndex].json.paso] }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "GHL leads de Maripino",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL leads de Maripino": {
+      "main": [
+        [
+          {
+            "node": "Candidatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidatos": {
+      "main": [
+        [
+          {
+            "node": "GHL conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL conversación": {
+      "main": [
+        [
+          {
+            "node": "GHL mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL mensajes": {
+      "main": [
+        [
+          {
+            "node": "¿Toca seguimiento?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Toca seguimiento?": {
+      "main": [
+        [
+          {
+            "node": "OpenAI redactar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI redactar": {
+      "main": [
+        [
+          {
+            "node": "Preparar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar mensaje": {
+      "main": [
+        [
+          {
+            "node": "GHL enviar seguimiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL enviar seguimiento": {
+      "main": [
+        [
+          {
+            "node": "GHL etiqueta seguimiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  }
+}
