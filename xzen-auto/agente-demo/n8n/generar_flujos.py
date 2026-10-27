@@ -236,6 +236,9 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 - Siempre trata de USTED al cliente. Amigable, cálido y profesional.
 - Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.
 - Una sola pregunta por turno. Emojis con moderación (uno o dos como máximo).
+- Sea breve: normalmente 1 mensaje y como máximo 2 por turno; no repita en un mensaje lo que ya dijo en otro.
+- No responda "¡Perfecto!" o "¡Excelente!" a una respuesta negativa (p. ej. "no invierto"); use algo natural como "Entiendo" o "Gracias por contarme".
+- No sea insistente: si el cliente no contestó una pregunta, no la repita en cada mensaje.
 - No diga que la conversación es una demostración ni haga simulaciones o juegos de rol.
 
 # Objetivo de la conversación
@@ -269,8 +272,11 @@ Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su 
    NO llame a agendar_cita hasta tener los tres datos dichos por el cliente.
 3. Agende con agendar_cita usando EXACTAMENTE el inicio de un horario devuelto por consultar_disponibilidad.
 4. Solo si agendar_cita respondió correctamente (devuelve un id), confirme día y hora y dígale que le llegará la confirmación.
-   Si respondió con error, discúlpese, consulte de nuevo la disponibilidad y ofrezca otros horarios.
-5. Si en el CRM dice "Cita ya agendada: sí", NO vuelva a agendar: confirme la cita existente y resuelva dudas.
+   Si respondió error 404 (Not Found): NO es el horario, es que faltan datos. Pida nombre completo (nombre y apellido),
+   nombre de su negocio y correo, y agende después con el mismo horario.
+   Si respondió otro error, discúlpese, consulte de nuevo la disponibilidad y ofrezca otros horarios.
+5. Si en el CRM dice "Cita ya agendada: sí", NO vuelva a agendar ni repita los datos de la cita en cada mensaje.
+   Si el cliente solo agradece o se despide, responda con UN mensaje corto y cordial.
    Si quiere cambiarla o cancelarla, márquelo para atención personalizada.
 Si todavía no quiere agendar, pregúntele si le puede escribir en un par de días.
 
@@ -278,7 +284,7 @@ Si todavía no quiere agendar, pregúntele si le puede escribir en un par de dí
 Si el cliente pide hablar con una persona, está molesto, o pregunta algo que no puede responder con certeza, marque atencion_personalizada = true, explique el motivo y dígale que alguien del equipo le escribirá en breve.
 
 # Formato de salida
-- mensajes: 1 a 3 mensajes de WhatsApp para el cliente, en orden.
+- mensajes: 1 o 2 mensajes de WhatsApp para el cliente, en orden.
 - datos: lo que el cliente haya dicho en la conversación (cadena vacía si no lo sabe):
   ubicacion, invierte_anuncios (p. ej. "Sí, unos $5,000 al mes" o "No"), leads_semana (p. ej. "150"),
   nombre_completo, negocio (el nombre propio, p. ej. "Viajes Horizonte"; nunca el giro como "agencia de viajes"), email.
@@ -295,7 +301,7 @@ Si el cliente pide hablar con una persona, está molesto, o pregunta algo que no
 SCHEMA = {
     "type": "object",
     "properties": {
-        "mensajes": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 3},
+        "mensajes": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 2},
         "datos": {
             "type": "object",
             "properties": {k: {"type": "string"} for k in
@@ -435,6 +441,8 @@ RECORDATORIO = r"""// ¿Sigue sin responder desde que le mandamos el video?
 const contacto = $('Recordatorio · contacto').first().json.contact ?? {};
 const tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());
 if (['atencion-personalizada', 'maripino-off', 'video-recordatorio'].some((t) => tags.includes(t))) return [];
+const horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
+if ((horaMx >= 23 || horaMx < 8) && !tags.includes('test-maripino')) return []; // de noche no se escribe
 let msgs = [];
 try { const m = $json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}
 if (!Array.isArray(msgs)) msgs = [];
@@ -548,7 +556,14 @@ nodos = [
         version_api="2021-04-15",
         herramienta="Consulta los horarios libres para la llamada con xzen Auto en los próximos 10 días. Devuelve, por fecha, los inicios de cada horario en hora de Ciudad de México.",
         onError="continueRegularOutput"),
-    ghl("agendar_cita", [2540, 560], "POST", GHL + "/calendars/events/appointments",
+    ghl("agendar_cita", [2540, 560], "POST",
+        # Si faltan nombre completo, negocio o un correo válido, se manda a una ruta inexistente: GHL responde
+        # "Cannot POST /FALTAN-DATOS..." y Maripino sabe que debe pedirlos antes de agendar.
+        "={{ /^\\S+@\\S+\\.\\S+$/.test($fromAI('email', 'Correo electrónico del cliente', 'string').trim())"
+        " && $fromAI('nombre_completo', 'Nombre completo del cliente (nombre y apellido)', 'string').trim().split(/\\s+/).length > 1"
+        " && $fromAI('negocio', 'Nombre propio del negocio del cliente', 'string').trim().length > 1"
+        " ? '" + GHL + "/calendars/events/appointments'"
+        " : '" + GHL + "/FALTAN-DATOS-pida-nombre-completo-negocio-y-correo-antes-de-agendar' }}",
         cuerpo="={{ JSON.stringify({ calendarId: '" + CALENDAR_ID + "', locationId: '" + LOCATION_ID + "',"
                " contactId: " + A + ".contactId, appointmentStatus: 'confirmed', toNotify: true,"
                " title: 'Llamada xzen Auto · ' + $fromAI('nombre_completo', 'Nombre completo del cliente (nombre y apellido)', 'string') + ' (' + $fromAI('negocio', 'Nombre propio del negocio del cliente', 'string') + ') · ' + $fromAI('email', 'Correo electrónico del cliente', 'string'),"
@@ -725,11 +740,13 @@ $input.all().forEach((item, i) => {
 
   const base = new Date(despues[0].dateAdded).getTime();
   const ultimoOut = new Date(despues[despues.length - 1].dateAdded).getTime();
-  const hechos = [1, 2, 3].filter((k) => c.tags.includes(`seguimiento-${k}`)).length;
+  // El recordatorio del video cuenta como un seguimiento más.
+  const recordatorio = despues.some((m) => /pudo ver el video/i.test(m.body ?? '')) ? 1 : 0;
+  const hechos = Math.max([1, 2, 3].filter((k) => c.tags.includes(`seguimiento-${k}`)).length, 0) + recordatorio;
   if (hechos >= HORAS.length) return;
   const paso = hechos + 1;
   if (ahora < base + HORAS[paso - 1] * u) return;
-  if (ahora - ultimoOut < (prueba ? 1 : 1.8) * u) return; // no amontonar mensajes (p. ej. a las 8:00)
+  if (ahora - ultimoOut < (prueba ? 1 : 3) * u) return; // al menos 3 h desde nuestro último mensaje
 
   const historial = msgs.slice(-16).map((m) => `${m.direction === 'inbound' ? 'Cliente' : 'xzen Auto'}: ${String(m.body ?? '').trim()}`)
     .filter((l) => !l.endsWith(': ')).join('\n');
@@ -741,7 +758,9 @@ return salida;
 SEG_PROMPT = """Eres Maripino, asistente virtual de xzen Auto (automatización con IA para negocios, ahora para agencias de viajes).
 El cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimiento (máximo 2-3 líneas) para retomar la conversación.
 - Trate de USTED al cliente; amigable y profesional; español de México; uno o dos emojis como máximo.
-- Retome exactamente donde quedó la conversación (la última pregunta o tema pendiente) sin repetir textualmente mensajes anteriores.
+- Retome la conversación con naturalidad, sin repetir textualmente mensajes anteriores.
+- NUNCA vuelva a preguntar lo mismo que el último mensaje de xzen Auto (si ya se preguntó por el video, no pregunte otra vez por el video): cambie de ángulo.
+- Tono ligero, nada insistente ni de reclamo; no diga "solo quería saber si…" ni "le escribo de nuevo".
 - Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: aporte un beneficio concreto del sistema relacionado con lo que contó y vuelva a preguntar. Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.
 - No dé precios (se ven en la llamada). No invente datos. No diga que es un seguimiento automático.
 - Responda solo con el texto del mensaje."""
