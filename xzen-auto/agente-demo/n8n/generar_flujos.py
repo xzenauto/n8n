@@ -81,7 +81,9 @@ CFG = {
         "ubicacion": "KT0jJ23FRgNojKiQ88YG",  # Desde dónde nos contacta
         "inversion": "FI2NXz4DYljZ0RhkCqmf",  # Invierte en anuncios de Facebook
         "leads": "Pu2Gi0cSBV3gdMGKpWZr",  # Leads estimados por semana
+        "cita": "KZIraI4WWxYrTv7FaRql",  # Cita agendada (fecha y hora)
     },
+    # Todos estos campos están en la carpeta de campos de contacto "Maripino · xzen Auto" (xuN41xy4vPvelwkG0zpP).
     "correoAviso": "xzenauto@gmail.com",
 }
 
@@ -198,7 +200,7 @@ ${dias.join('\n')}
 - ¿Invierte en anuncios de Facebook?: ${p(valores.inversion)}
 - Leads estimados por semana: ${p(valores.leads)}
 - Video ya enviado: ${tags.includes('video-enviado') ? 'sí' : 'no'}
-- Cita ya agendada: ${tags.includes('cita-agendada') ? 'sí' : 'no'}
+- Cita ya agendada: ${tags.includes('cita-agendada') ? 'sí' + (valores.cita ? ` (${valores.cita})` : '') : 'no'}
 
 ${conf.instrucciones}
 
@@ -618,6 +620,11 @@ nodos = [
     si("¿Cita agendada?", [5300, 700], "={{ $('Etapa destino').first().json.citaAgendada }}"),
     ghl("GHL datos cita", [5400, 700], "GET", "=" + GHL + "/calendars/events/appointments/{{ $('Etapa destino').first().json.cita.id }}",
         version_api="2021-04-15", onError="continueRegularOutput", alwaysOutputData=True),
+    ghl("GHL guardar cita", [5500, 820], "PUT", "=" + GHL + "/contacts/{{ $('Etapa destino').first().json.contactId }}",
+        cuerpo="={{ (() => { const a = $json.appointment ?? $json; const t = a.startTime ?? $('Etapa destino').first().json.cita?.inicio;"
+               " return JSON.stringify({ customFields: [{ id: '" + CFG["campos"]["cita"] + "', field_value: t ? new Date(t).toLocaleString('es-MX',"
+               " { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' }) + ' (hora de Ciudad de México)' : 'Agendada' }] }); })() }}",
+        onError="continueRegularOutput"),
     nodo("Armar correo cita", "n8n-nodes-base.code", 2, [5600, 700], {"jsCode": CORREO_CITA}),
     nodo("Correo cita a xzenauto@gmail.com", "n8n-nodes-base.gmail", 2.2, [5700, 700], {
         "sendTo": CFG["correoAviso"], "subject": "={{ $json.asunto }}", "emailType": "text",
@@ -687,7 +694,8 @@ une("¿Renombrar oportunidad?", "¿Atención personalizada?", salida=1)
 une("¿Atención personalizada?", "Armar aviso", salida=0)
 une("¿Atención personalizada?", "¿Cita agendada?", salida=1)
 une("¿Cita agendada?", "GHL datos cita", salida=0)
-une("GHL datos cita", "Armar correo cita")
+une("GHL datos cita", "GHL guardar cita")
+une("GHL guardar cita", "Armar correo cita")
 une("Armar correo cita", "Correo cita a xzenauto@gmail.com")
 une("Correo cita a xzenauto@gmail.com", "¿Envió el video?")
 une("¿Cita agendada?", "¿Envió el video?", salida=1)

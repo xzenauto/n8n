@@ -21,6 +21,10 @@ GHL guarda el ID del anuncio en el contacto (`attributionSource.adId`); el flujo
 **Solo responde a contactos que vienen de un anuncio** (o con la etiqueta `test-maripino` para
 pruebas; la tiene el contacto de pruebas Carlos +34 638 76 07 11): la coexistencia también importa los contactos personales del WhatsApp.
 
+## Campos del contacto (carpeta «Maripino · xzen Auto» en GHL)
+Anuncio de origen · Desde dónde nos contacta · Invierte en anuncios de Facebook · Leads estimados por semana ·
+Cita agendada (fecha y hora de la llamada, en hora de Ciudad de México).
+
 ## Qué hace en cada mensaje
 1. Espera 12 s y junta los mensajes que el cliente mande seguidos (responde una sola vez).
 2. Si el contacto tiene la etiqueta `atencion-personalizada` o `maripino-off`, no contesta
