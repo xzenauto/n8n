@@ -47,6 +47,18 @@ Cita agendada (fecha y hora de la llamada, en hora de Ciudad de México).
    y correo a xzenauto@gmail.com (Gmail Xzen). Desde ahí el bot deja de responder a ese contacto.
 8. Si OpenAI falla → mensaje cortés al cliente y pasa a atención personalizada.
 
+## Preguntas frecuentes (solo si el cliente pregunta)
+Agentes y cuentas sin límite (un solo agente de IA adaptado al negocio) · WhatsApp Business, varias cuentas posibles
+(ideal un número oficial) y se sigue usando en el celular · app de celular y computadora · WhatsApp, Instagram,
+Facebook, TikTok y email · a los curiosos se les resuelven dudas y se recopilan los datos del viaje · ideal para
+agencias que empiezan · llamada por Zoom de 20-30 min con el equipo · implementación de 3 a 5 días · contrato con
+permanencia inicial de 3 meses · la información y promociones de la agencia se guardan en un documento.
+Lo que no está en la lista (p. ej. integraciones) no lo afirma ni lo niega: lo deja para la llamada.
+
+## Buffer de mensajes (pendiente)
+`USAR_BUFFER = False` en `n8n/generar_flujos.py`. Para activarlo: ejecutar `supabase/maripino_buffer.sql` en el
+proyecto XzenAuto, poner `USAR_BUFFER = True`, regenerar y subir el flujo.
+
 ## Seguimientos (flujo «Maripino · Seguimientos», cada 15 min)
 Si el lead no responde al último mensaje de Maripino, le escribe a las **5 h, 7 h y 12 h** un mensaje
 redactado por la IA según la conversación (el 3.º es una despedida amable). Reglas:

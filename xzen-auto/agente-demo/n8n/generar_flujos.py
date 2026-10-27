@@ -18,6 +18,9 @@ CRED_OPENAI = {"openAiApi": {"id": "W5zBaQ7k25sn9YQz", "name": "RsViaje Independ
 CRED_GMAIL = {"gmailOAuth2": {"id": "giX4xhnEUL2ltIcE", "name": "Gmail Xzen"}}
 CRED_SUPABASE = {"supabaseApi": {"id": "QIVohgUOAGTuwYd1", "name": "XzenAuto"}}
 SUPABASE = "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/"
+# Buffer de mensajes en Supabase (tabla maripino_buffer, ver supabase/maripino_buffer.sql).
+# Activar solo cuando la tabla y sus funciones existan.
+USAR_BUFFER = False
 # Credencial "Facebook Graph API" con un token de Meta con permiso ads_read (se crea a mano en n8n).
 CRED_META = {"facebookGraphApi": {"id": None, "name": "Meta Ads XzenAuto"}}
 CTX = "$('Contexto y enrutamiento').first().json"
@@ -165,14 +168,24 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
   try { const m = $('GHL mensajes').first().json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}
   if (!Array.isArray(msgs)) msgs = [];
   msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
-  // Si después de este mensaje llegó otro, lo atiende la ejecución de ese otro mensaje.
-  // Si ya hubo una respuesta posterior (bot o persona), no contestamos de nuevo.
-  // El buffer ya garantiza que solo responde la ejecución del último mensaje de la ráfaga.
-  const buffer = $('Buffer · tomar').first().json;
-  // Si mientras esperábamos ya le contestó alguien (otra ejecución o una persona), no respondemos.
+  const USAR_BUFFER = __USAR_BUFFER__;
   const ultimo = msgs[msgs.length - 1];
-  if (ultimo && ultimo.direction === 'outbound' && new Date(ultimo.dateAdded) > new Date(buffer.primero_en)) return [];
-  if (!(buffer.textos ?? []).length && (!ultimo || ultimo.direction !== 'inbound')) return [];
+  const buffer = USAR_BUFFER ? $('Buffer · tomar').first().json : { textos: [] };
+  if (USAR_BUFFER) {
+    // El buffer ya garantiza que solo responde la ejecución del último mensaje de la ráfaga.
+    // Si mientras esperábamos ya le contestó alguien (otra ejecución o una persona), no respondemos.
+    if (ultimo && ultimo.direction === 'outbound' && new Date(ultimo.dateAdded) > new Date(buffer.primero_en)) return [];
+    if (!(buffer.textos ?? []).length && (!ultimo || ultimo.direction !== 'inbound')) return [];
+  } else {
+    // Sin buffer: si después de este mensaje llegó otro, lo atiende la ejecución de ese otro mensaje;
+    // si ya hubo una respuesta posterior (bot o persona), no contestamos de nuevo.
+    if (ent.contactoCreado && (!ultimo || ultimo.direction !== 'inbound')) return [];
+    let mio = -1;
+    for (let i = msgs.length - 1; ent.texto && i >= 0; i--) {
+      if (msgs[i].direction === 'inbound' && limpio(msgs[i].body) === ent.texto) { mio = i; break; }
+    }
+    if (mio >= 0 && msgs.slice(mio + 1).length > 0) return [];
+  }
   let corte = msgs.length;
   while (corte > 0 && msgs[corte - 1].direction === 'inbound') corte--;
   nuevos = (buffer.textos ?? []).length ? buffer.textos.map(limpio)
@@ -265,6 +278,21 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 Menciónelo cuando venga al caso (si no invierte en anuncios, si le preocupa que su equipo no sepa usar el
 sistema, o si pregunta por capacitación). No invente precio, duración, modalidad ni otros detalles del curso;
 si pregunta más, dígale que se lo explican en la llamada.
+
+# Preguntas frecuentes
+Úselas SOLO para responder si el cliente lo pregunta; no las mencione por iniciativa propia. Responda breve y con sus palabras.
+- ¿Cuántos agentes o usuarios? No hay límite de agentes de ventas ni de cuentas. El agente de IA es uno solo, adaptado a las necesidades de su negocio.
+- ¿Qué WhatsApp se conecta? WhatsApp Business. Se pueden conectar varias cuentas, aunque lo óptimo es dejar un número oficial del negocio dedicado a los clientes. Pueden seguir usando WhatsApp en el celular como siempre.
+- ¿Celular o computadora? Las dos: hay app para el celular y también se usa desde la computadora.
+- ¿Qué canales? WhatsApp, Instagram, Facebook, TikTok y email, todos centralizados en un solo lugar.
+- ¿Y los curiosos o "preguntones"? La IA les resuelve las dudas y les recopila todos los datos del viaje (destino, fechas, número de viajeros, presupuesto), así el equipo solo dedica su tiempo a quien ya está listo para cotizar y no a responder lo mismo una y otra vez.
+- ¿Me sirve si estoy empezando o tengo pocos leads? Es el mejor momento: empezar con el sistema permite ordenar y optimizar el trabajo desde el primer día, responder rápido a cada viajero y crecer sin saturarse. Es mucho más fácil arrancar con un proceso ordenado que corregirlo cuando ya hay volumen.
+- ¿Cómo es la llamada? Por Zoom, de 20 a 30 minutos, con el equipo de xzen Auto. El enlace le llega en la confirmación de la cita. (Nunca diga Google Meet ni otra plataforma.)
+- ¿Cuánto tarda la implementación? Entre 3 y 5 días.
+- ¿Hay contrato? Sí, con una permanencia inicial de 3 meses.
+- ¿Cómo sabe la IA lo de mi agencia? Guardamos toda la información de la agencia y sus promociones en un documento para que la IA responda a los clientes con información real.
+- ¿Se conecta con mi sistema de reservas, Amadeus, mi CRM u otra herramienta? No afirme ni niegue: dígale que las integraciones con su sistema se revisan con el equipo en la llamada, según lo que use su agencia.
+Si preguntan algo que no esté aquí ni en esta guía, NO lo invente (ni que sí ni que no): dígale que es un buen punto para revisarlo en la llamada con el equipo.
 
 # Precios
 Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su negocio y se presenta en la llamada, con una propuesta a su medida.
@@ -513,6 +541,8 @@ def si(nombre, pos, expresion):
 
 
 A = "$('Analizar').first().json"
+ANALIZAR = ANALIZAR.replace("__USAR_BUFFER__", "true" if USAR_BUFFER else "false")
+
 nodos = [
     nodo("Mensaje WhatsApp (GHL)", "n8n-nodes-base.webhook", 2, [0, 300],
          {"httpMethod": "POST", "path": "xzen-maripino", "options": {}},
@@ -525,7 +555,7 @@ nodos = [
         "jsonBody": "={{ JSON.stringify({ p_contact_id: $json.contactId, p_texto: $json.texto, p_origen: $json.contactoCreado ? 'contacto_creado' : 'mensaje' }) }}",
         "options": {}}, CRED_SUPABASE),
     nodo("Esperar ráfaga (12 s)", "n8n-nodes-base.wait", 1.1, [400, 300],
-         {"amount": "={{ $('Normalizar entrada').first().json.simulacion ? 1 : $('Normalizar entrada').first().json.contactoCreado ? 25 : 12 }}", "unit": "seconds"},
+         {"amount": "={{ $('Normalizar entrada').first().json.simulacion ? 1 : $('Normalizar entrada').first().json.contactoCreado ? " + ("25" if USAR_BUFFER else "40") + " : 12 }}", "unit": "seconds"},
          webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/wait"))),
     nodo("Buffer · tomar", "n8n-nodes-base.httpRequest", 4.2, [500, 300], {
         "method": "POST", "url": SUPABASE + "maripino_buffer_tomar",
@@ -675,8 +705,11 @@ def une(a, b, tipo="main", salida=0):
     con[a][tipo][salida].append({"node": b, "type": tipo, "index": 0})
 
 
-cadena = ["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Buffer · guardar", "Esperar ráfaga (12 s)", "Buffer · tomar",
-          "¿Último mensaje?", "GHL contacto",
+if not USAR_BUFFER:
+    nodos = [n for n in nodos if n["name"] not in ("Buffer · guardar", "Buffer · tomar", "¿Último mensaje?")]
+cadena = (["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Buffer · guardar", "Esperar ráfaga (12 s)", "Buffer · tomar",
+           "¿Último mensaje?", "GHL contacto"] if USAR_BUFFER else
+          ["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Esperar ráfaga (12 s)", "GHL contacto"]) + [
           "GHL oportunidades", "GHL conversación", "GHL mensajes", "Analizar", "¿Primer contacto?"]
 for a, b in zip(cadena, cadena[1:]):
     une(a, b)
