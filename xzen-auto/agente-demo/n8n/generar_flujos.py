@@ -876,18 +876,25 @@ const sum = (arr, k) => (arr ?? []).reduce((s, x) => s + x[k], 0);
 const pipes = $('GHL pipelines').first().json.pipelines ?? [];
 const pipe = pipes.find((p) => p.id === CFG.pipelineId);
 const etapaNombre = Object.fromEntries((pipe?.stages ?? []).map((s) => [s.id, s.name]));
+// Lead = contacto nuevo desde el inicio de la campaña que viene de uno de nuestros anuncios, tiene oportunidad
+// en el pipeline XzenAuto o lo atiende Maripino. Sin contactos de prueba ni los importados por la coexistencia.
+const INICIO = '2026-10-26';
+const todasOpps = $('GHL oportunidades').first().json.opportunities ?? [];
+const oppDe = (id) => todasOpps.find((o) => (o.contactId || o.contact?.id) === id);
+const adDe = (c) => [c.attributionSource?.adId, c.lastAttributionSource?.adId, ...(c.attributions ?? []).map((a) => a?.adId)]
+  .find((id) => id && NOMBRE_AD[id]) || Object.keys(NOMBRE_AD).find((id) => JSON.stringify(c.customFields ?? []).includes(id)) || null;
 const contactos = $('GHL leads').all().flatMap((i) => i.json.contacts ?? [])
   .filter((c, i, a) => a.findIndex((x) => x.id === c.id) === i)
-  .filter((c) => !(c.tags ?? []).map((t) => String(t).toLowerCase()).includes('test-maripino'));
-const ids = new Set(contactos.map((c) => c.id));
-const opps = ($('GHL oportunidades').first().json.opportunities ?? []).filter((o) => ids.has(o.contactId || o.contact?.id));
+  .filter((c) => (c.dateAdded ?? '') >= INICIO)
+  .filter((c) => !(c.tags ?? []).map((t) => String(t).toLowerCase()).includes('test-maripino'))
+  .filter((c) => adDe(c) || oppDe(c.id) || (c.tags ?? []).map((t) => String(t).toLowerCase()).includes('maripino'));
+const opps = contactos.map((c) => oppDe(c.id)).filter(Boolean);
 const campo = (c, k) => { const v = (c.customFields ?? []).find((f) => f.id === CFG.campos[k])?.value; return Array.isArray(v) ? v.join(', ') : norm(v); };
 const tagsDe = (c) => (c.tags ?? []).map((t) => String(t).toLowerCase());
 
 const leads = contactos.map((c) => {
   const o = opps.find((x) => (x.contactId || x.contact?.id) === c.id);
-  const anuncio = campo(c, 'anuncio');
-  const adId = Object.keys(NOMBRE_AD).find((id) => anuncio.includes(id)) || c.attributionSource?.adId || null;
+  const adId = adDe(c);
   return { c, o, tags: tagsDe(c), adId, alta: new Date(c.dateAdded).getTime(),
     ciudad: campo(c, 'ubicacion'), inversion: campo(c, 'inversion'), leadsSemana: campo(c, 'leads') };
 });
@@ -899,6 +906,7 @@ const estado = (l) => {
   if (l.o?.status === 'lost' || l.o?.status === 'abandoned') return 'Perdido';
   if (l.tags.includes('cita-agendada') || etapaNombre[l.o?.pipelineStageId] === 'Agendado') return 'Agendado';
   if (l.tags.includes('atencion-personalizada')) return 'Atención personalizada';
+  if (l.tags.includes('maripino-off')) return 'Lo atiende el equipo (Maripino apagado)';
   if (l.tags.includes('seguimiento-3')) return 'Perdido (sin respuesta tras 3 seguimientos)';
   if (l.tags.some((t) => t.startsWith('seguimiento-'))) return 'En seguimiento';
   return 'En conversación';
@@ -943,6 +951,10 @@ const tasa = leads.length ? Math.round(100 * agendadosTotal / leads.length) + '%
 const html = `<div style="font-family:Arial,sans-serif;max-width:760px;color:#222">
 <h1 style="color:#1f3b73;font-size:21px">Reporte diario xzen Auto · ${ayer}</h1>
 <table style="width:100%;border-spacing:8px"><tr>${kpi('Leads ayer', deAyer.length)}${kpi('Leads 7 días', deSemana.length)}${kpi('Leads totales', leads.length)}${kpi('Agendados', agendadosTotal)}${kpi('Perdidos', perdidosTotal)}${kpi('Tasa de agenda', tasa)}</tr></table>
+${h2('Leads por anuncio (GHL)')}${tabla(['Anuncio', 'Ayer', '7 días', 'Total'], [...Object.keys(NOMBRE_AD), null].map((id) => {
+  const n = (arr) => arr.filter((l) => l.adId === id).length;
+  return [id ? esc(NOMBRE_AD[id]) : 'Sin anuncio identificado (orgánico)', num(n(deAyer)), num(n(deSemana)), num(n(leads))];
+}).filter((f, i, a) => f[3] !== '0' || i < a.length - 1))}
 ${h2('Anuncios · ayer')}${meta.ayer ? tabla(cabMeta, filasMeta(meta.ayer, deAyer)) : `<p style="color:#b00">⚠️ Sin datos de Meta (${esc(metaError)}). Revisa la credencial «Meta Ads XzenAuto» en n8n.</p>`}
 ${meta.semana ? h2('Anuncios · últimos 7 días') + tabla(cabMeta, filasMeta(meta.semana, deSemana)) : ''}
 ${meta.total ? h2('Anuncios · desde el inicio') + tabla(cabMeta, filasMeta(meta.total, leads)) : ''}
@@ -952,8 +964,8 @@ ${h2('Ciudades que más nos contactan')}${ciudades.length ? tabla(['Ciudad', 'Le
 ${h2('¿Invierten en anuncios de Facebook?')}${tabla(['Respuesta', 'Leads'], ['Sí invierte', 'No invierte', 'Sin dato'].map((k) => [k, num(inversion[k] || 0)]))}
 <p style="font-size:14px">Volumen medio que declaran: <b>${volumenMedio ? num(volumenMedio) + ' leads por semana' : 'sin datos'}</b>${volumenes.length ? ` (${volumenes.length} respuestas)` : ''}.</p>
 ${h2('Próximas llamadas agendadas')}${eventos.length ? tabla(['Cuándo', 'Cita'], eventos.slice(0, 15).map((e) => [esc(f(e.startTime)), esc(e.title)])) : '<p>No hay llamadas agendadas en los próximos 7 días.</p>'}
-${h2('Leads de ayer')}${deAyer.length ? tabla(['Lead', 'Anuncio', 'Ciudad', 'Estado'], deAyer.map((l) => [esc([l.c.firstName, l.c.lastName].filter(Boolean).join(' ') || l.c.phone), esc(NOMBRE_AD[l.adId] || '-'), esc(l.ciudad || '-'), estado(l)])) : '<p>Ayer no entraron leads.</p>'}
-<p style="font-size:12px;color:#777;margin-top:24px">Leads = contactos atendidos por Maripino (sin contactos de prueba). Conversaciones = conversaciones de mensajería iniciadas según Meta. Perdidos = oportunidades marcadas como perdidas en GHL más leads sin respuesta tras los 3 seguimientos.</p>
+${h2('Leads de los últimos 7 días')}${deSemana.length ? tabla(['Fecha', 'Lead', 'Anuncio', 'Ciudad', 'Estado'], [...deSemana].sort((a, b) => b.alta - a.alta).map((l) => [esc(new Date(l.alta).toLocaleString('es-MX', { timeZone: tz, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })), esc([l.c.firstName, l.c.lastName].filter(Boolean).join(' ') || l.c.phone), esc(NOMBRE_AD[l.adId] || 'Sin anuncio (orgánico)'), esc(l.ciudad || '-'), estado(l)])) : '<p>No entraron leads en los últimos 7 días.</p>'}
+<p style="font-size:12px;color:#777;margin-top:24px">Leads = contactos nuevos desde el ${INICIO} que vienen de nuestros anuncios, tienen oportunidad en XzenAuto o los atiende Maripino (sin contactos de prueba). Conversaciones = conversaciones de mensajería iniciadas según Meta. Perdidos = oportunidades marcadas como perdidas en GHL más leads sin respuesta tras los 3 seguimientos.</p>
 </div>`;
 
 return [{ json: { asunto: `📊 xzen Auto · ${ayer}: ${deAyer.length} leads, ${agendadosTotal} agendados en total${meta.ayer ? ', gasto ' + money(sum(meta.ayer, 'gasto')) : ''}`, html } }];
@@ -979,10 +991,10 @@ rep_nodos = [
     meta_insights("Meta ayer", [200, 0], "yesterday"),
     meta_insights("Meta 7 días", [400, 0], "last_7d"),
     meta_insights("Meta total", [600, 0], "maximum"),
-    nodo("Páginas", "n8n-nodes-base.code", 2, [800, 0], {"jsCode": "return [1, 2, 3, 4, 5].map((page) => ({ json: { page } }));"}),
+    nodo("Páginas", "n8n-nodes-base.code", 2, [800, 0], {"jsCode": "return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((page) => ({ json: { page } }));"}),
     ghl("GHL leads", [1000, 0], "POST", GHL + "/contacts/search",
         cuerpo="={{ JSON.stringify({ locationId: '" + LOCATION_ID + "', pageLimit: 100, page: $json.page,"
-               " filters: [{ field: 'tags', operator: 'contains', value: 'maripino' }] }) }}",
+               " sort: [{ field: 'dateAdded', direction: 'desc' }] }) }}",
         onError="continueRegularOutput"),
     ghl("GHL oportunidades", [1200, 0], "GET", GHL + "/opportunities/search",
         query={"location_id": LOCATION_ID, "pipeline_id": CFG["pipelineId"], "limit": "100"}, executeOnce=True),
