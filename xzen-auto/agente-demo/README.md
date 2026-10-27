@@ -51,6 +51,19 @@ redactado por la IA según la conversación (el 3.º es una despedida amable). R
 - Etiquetas `seguimiento-1/2/3`; se borran cuando el cliente vuelve a escribir.
 - Contactos `test-maripino`: 5, 7 y 12 minutos, sin horario silencioso.
 
+## Rescate de leads sin respuesta (flujo «Maripino · Rescate de leads sin respuesta», cada 2 h)
+Busca en GHL conversaciones de WhatsApp cuyo último mensaje es del cliente (de hace más de 10 min y menos de
+23 h) y se las pasa a Maripino, que contesta si es un lead suyo. Entre las 23:00 y las 08:00 no rescata: lo
+pendiente sale en la vuelta de las 8:00. Cada mensaje se rescata una sola vez.
+
+## Reporte diario (flujo «Maripino · Reporte diario (correo)», 8:00)
+Correo HTML a xzenauto@gmail.com con: anuncios (ayer, 7 días y desde el inicio: gasto, impresiones, clics,
+conversaciones, leads y costo por lead), estado de los leads (en conversación, en seguimiento, agendados,
+atención personalizada, perdidos), columnas del pipeline, ciudades que más contactan, si invierten en
+anuncios de Facebook, volumen medio de leads que declaran, próximas llamadas y leads de ayer.
+Las estadísticas de Meta necesitan la credencial **«Meta Ads XzenAuto»** (tipo *Facebook Graph API*, token
+con permiso `ads_read` sobre la cuenta publicitaria `act_48823661`) en los nodos *Meta ayer / 7 días / total*.
+
 ## Añadir muebles
 En `enrutamiento-anuncios.json` agregar los IDs con `"vertical": "tienda_muebles"`, poner el video
 y `"activo": true`; revisar `prompts/tienda-muebles.md`. Luego `python3 n8n/generar_flujos.py` y

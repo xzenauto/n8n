@@ -16,6 +16,8 @@ GHL = "https://services.leadconnectorhq.com"
 CRED_GHL = {"httpHeaderAuth": {"id": "u8Ru07QTVPNb28I6", "name": "GHL - PIT - XzenAuto"}}
 CRED_OPENAI = {"openAiApi": {"id": "W5zBaQ7k25sn9YQz", "name": "RsViaje Independencia"}}
 CRED_GMAIL = {"gmailOAuth2": {"id": "giX4xhnEUL2ltIcE", "name": "Gmail Xzen"}}
+# Credencial "Facebook Graph API" con un token de Meta con permiso ads_read (se crea a mano en n8n).
+CRED_META = {"facebookGraphApi": {"id": None, "name": "Meta Ads XzenAuto"}}
 CTX = "$('Contexto y enrutamiento').first().json"
 
 
@@ -790,6 +792,216 @@ for a, b in zip(seg_nodos, seg_nodos[1:]):
 seguimientos = {"name": "Maripino · Seguimientos", "nodes": seg_nodos, "connections": seg_con,
                 "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
 
+# ---------------------------------------------------------------- rescate de leads colgados (cada 2 h)
+RES_CANDIDATOS = r"""// Conversaciones de WhatsApp cuyo último mensaje es del cliente y nadie ha contestado:
+// de hace más de 10 minutos y menos de 23 horas (aún se le puede escribir).
+// Entre las 23:00 y las 8:00 no se rescata; lo pendiente sale en la vuelta de las 8:00.
+// Maripino decide después si le corresponde (solo leads de anuncios, sin atención personalizada ni maripino-off).
+const horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
+if (horaMx >= 23 || horaMx < 8) return [];
+const memoria = $getWorkflowStaticData('global');
+memoria.vistos = memoria.vistos || {};
+const ahora = Date.now();
+for (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];
+return ($json.conversations ?? [])
+  .filter((c) => c.lastMessageDirection === 'inbound' && /WHATSAPP/.test(c.lastMessageType ?? ''))
+  .map((c) => ({ c, t: Number(c.lastMessageDate) || new Date(c.lastMessageDate).getTime() }))
+  .filter(({ t }) => ahora - t > 10 * 60e3 && ahora - t < 23 * 3600e3)
+  .map(({ c, t }) => ({ clave: `${c.contactId}:${t}`, contactId: c.contactId, nombre: c.fullName || c.contactName || '' }))
+  .filter((x) => !memoria.vistos[x.clave])
+  .map((x) => ({ json: x }));
+"""
+
+RES_MARCAR = r"""// Recuerda lo ya enviado para no rescatarlo dos veces (si el envío falló, se reintenta en la siguiente vuelta).
+const memoria = $getWorkflowStaticData('global');
+memoria.vistos = memoria.vistos || {};
+const cand = $('Candidatos').all();
+return $input.all().map((item, i) => {
+  if (!item.json.error) memoria.vistos[cand[i].json.clave] = Date.now();
+  return { json: { ...cand[i].json, enviado: !item.json.error } };
+});
+"""
+
+res_nodos = [
+    nodo("Cada 2 horas", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 0],
+         {"rule": {"interval": [{"field": "cronExpression", "expression": "0 */2 * * *"}]}}),
+    ghl("GHL conversaciones sin respuesta", [200, 0], "GET", GHL + "/conversations/search",
+        query={"locationId": LOCATION_ID, "lastMessageDirection": "inbound", "sortBy": "last_message_date",
+               "sort": "desc", "limit": "100"}),
+    nodo("Candidatos", "n8n-nodes-base.code", 2, [400, 0], {"jsCode": RES_CANDIDATOS}),
+    nodo("Enviar a Maripino", "n8n-nodes-base.httpRequest", 4.2, [600, 0], {
+        "method": "POST", "url": "http://localhost:5678/webhook/xzen-maripino",
+        "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify({ contact_id: $json.contactId, rescate: true }) }}",
+        "options": {"batching": {"batch": {"batchSize": 1, "batchInterval": 3000}}},
+    }, onError="continueRegularOutput"),
+    nodo("Marcar visto", "n8n-nodes-base.code", 2, [800, 0], {"jsCode": RES_MARCAR}),
+]
+res_con = {a["name"]: {"main": [[{"node": b["name"], "type": "main", "index": 0}]]} for a, b in zip(res_nodos, res_nodos[1:])}
+rescate = {"name": "Maripino · Rescate de leads sin respuesta", "nodes": res_nodos, "connections": res_con,
+           "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
+
+# ---------------------------------------------------------------- reporte diario (8:00)
+IDS_ANUNCIOS = list(CONFIG["anuncios"].keys())
+META_CAMPOS = "ad_id,ad_name,spend,impressions,reach,clicks,actions"
+
+REP_REPORTE = CFG_JS + r"""
+const tz = 'America/Mexico_City';
+const dia = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: tz });
+const hoy = dia(Date.now());
+const ayer = dia(Date.now() - 864e5);
+const hace7 = Date.now() - 7 * 864e5;
+const norm = (s) => String(s ?? '').trim();
+const sinAcento = (s) => norm(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const money = (n) => '$' + Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = (n) => Number(n || 0).toLocaleString('es-MX');
+
+// ---------- Meta
+const NOMBRE_AD = Object.fromEntries(Object.entries(RUTAS.anuncios).map(([id, a]) => [id, a.nombre]));
+const meta = {};
+let metaError = null;
+for (const [clave, nodo] of [['ayer', 'Meta ayer'], ['semana', 'Meta 7 días'], ['total', 'Meta total']]) {
+  const r = $(nodo).first().json;
+  if (r.error || !Array.isArray(r.data)) { metaError = r.error?.message || r.error || 'sin datos'; meta[clave] = null; continue; }
+  meta[clave] = r.data.filter((x) => NOMBRE_AD[x.ad_id]).map((x) => {
+    const acc = (t) => Number((x.actions ?? []).find((a) => a.action_type === t)?.value || 0);
+    return { id: x.ad_id, nombre: NOMBRE_AD[x.ad_id], gasto: Number(x.spend || 0), impresiones: Number(x.impressions || 0),
+      alcance: Number(x.reach || 0), clics: Number(x.clicks || 0),
+      conversaciones: acc('onsite_conversion.messaging_conversation_started_7d') };
+  });
+}
+const sum = (arr, k) => (arr ?? []).reduce((s, x) => s + x[k], 0);
+
+// ---------- GHL
+const pipes = $('GHL pipelines').first().json.pipelines ?? [];
+const pipe = pipes.find((p) => p.id === CFG.pipelineId);
+const etapaNombre = Object.fromEntries((pipe?.stages ?? []).map((s) => [s.id, s.name]));
+const contactos = $('GHL leads').all().flatMap((i) => i.json.contacts ?? [])
+  .filter((c, i, a) => a.findIndex((x) => x.id === c.id) === i)
+  .filter((c) => !(c.tags ?? []).map((t) => String(t).toLowerCase()).includes('test-maripino'));
+const ids = new Set(contactos.map((c) => c.id));
+const opps = ($('GHL oportunidades').first().json.opportunities ?? []).filter((o) => ids.has(o.contactId || o.contact?.id));
+const campo = (c, k) => { const v = (c.customFields ?? []).find((f) => f.id === CFG.campos[k])?.value; return Array.isArray(v) ? v.join(', ') : norm(v); };
+const tagsDe = (c) => (c.tags ?? []).map((t) => String(t).toLowerCase());
+
+const leads = contactos.map((c) => {
+  const o = opps.find((x) => (x.contactId || x.contact?.id) === c.id);
+  const anuncio = campo(c, 'anuncio');
+  const adId = Object.keys(NOMBRE_AD).find((id) => anuncio.includes(id)) || c.attributionSource?.adId || null;
+  return { c, o, tags: tagsDe(c), adId, alta: new Date(c.dateAdded).getTime(),
+    ciudad: campo(c, 'ubicacion'), inversion: campo(c, 'inversion'), leadsSemana: campo(c, 'leads') };
+});
+const deAyer = leads.filter((l) => dia(l.alta) === ayer);
+const deSemana = leads.filter((l) => l.alta >= hace7);
+
+const estado = (l) => {
+  if (l.o?.status === 'won') return 'Ganado';
+  if (l.o?.status === 'lost' || l.o?.status === 'abandoned') return 'Perdido';
+  if (l.tags.includes('cita-agendada') || etapaNombre[l.o?.pipelineStageId] === 'Agendado') return 'Agendado';
+  if (l.tags.includes('atencion-personalizada')) return 'Atención personalizada';
+  if (l.tags.includes('seguimiento-3')) return 'Perdido (sin respuesta tras 3 seguimientos)';
+  if (l.tags.some((t) => t.startsWith('seguimiento-'))) return 'En seguimiento';
+  return 'En conversación';
+};
+const contar = (arr, f) => arr.reduce((m, x) => { const k = f(x); if (k) m[k] = (m[k] || 0) + 1; return m; }, {});
+const porEstado = contar(leads, estado);
+const porEtapa = contar(leads.filter((l) => l.o), (l) => etapaNombre[l.o.pipelineStageId] || 'Otra');
+
+const ciudadNorm = (s) => { const t = norm(s).split(/[,(]/)[0].trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : ''; };
+const ciudades = Object.entries(contar(leads, (l) => ciudadNorm(l.ciudad))).sort((a, b) => b[1] - a[1]).slice(0, 10);
+const inversion = contar(leads, (l) => { const v = sinAcento(l.inversion); if (!v) return 'Sin dato'; if (/^(si|sí|yes)\b|invert|invier/.test(v) && !/^no\b/.test(v)) return 'Sí invierte'; if (/^no\b|nunca|todavia no/.test(v)) return 'No invierte'; return 'Sin dato'; });
+const volumenes = leads.map((l) => Number(String(l.leadsSemana).replace(/[^\d.]/g, ''))).filter((n) => n > 0);
+const volumenMedio = volumenes.length ? Math.round(volumenes.reduce((a, b) => a + b, 0) / volumenes.length) : null;
+
+// ---------- Citas próximas
+const eventos = ($('GHL citas').first().json.events ?? []).filter((e) => !/cancel/i.test(e.appointmentStatus || ''))
+  .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+const f = (t) => new Date(t).toLocaleString('es-MX', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+
+// ---------- HTML
+const tabla = (cab, filas) => `<table style="border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 18px">
+<tr>${cab.map((h, i) => `<th style="text-align:${i ? 'right' : 'left'};border-bottom:2px solid #1f3b73;padding:6px">${h}</th>`).join('')}</tr>
+${filas.map((f) => `<tr>${f.map((v, i) => `<td style="text-align:${i ? 'right' : 'left'};border-bottom:1px solid #e3e6ee;padding:6px">${v}</td>`).join('')}</tr>`).join('')}</table>`;
+const h2 = (t) => `<h2 style="color:#1f3b73;font-size:17px;margin:22px 0 6px">${t}</h2>`;
+const kpi = (t, v) => `<td style="padding:10px;background:#f2f5fb;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:bold;color:#1f3b73">${v}</div><div style="font-size:12px;color:#555">${t}</div></td>`;
+
+const leadsPorAd = (arr) => contar(arr, (l) => l.adId);
+const filasMeta = (datos, arrLeads) => {
+  const la = leadsPorAd(arrLeads);
+  const filas = (datos ?? []).map((x) => [esc(x.nombre), money(x.gasto), num(x.impresiones), num(x.clics), num(x.conversaciones), num(la[x.id] || 0),
+    la[x.id] ? money(x.gasto / la[x.id]) : '-']);
+  const g = sum(datos, 'gasto'); const tl = arrLeads.filter((l) => l.adId).length;
+  filas.push(['<b>Total</b>', `<b>${money(g)}</b>`, `<b>${num(sum(datos, 'impresiones'))}</b>`, `<b>${num(sum(datos, 'clics'))}</b>`,
+    `<b>${num(sum(datos, 'conversaciones'))}</b>`, `<b>${num(tl)}</b>`, `<b>${tl ? money(g / tl) : '-'}</b>`]);
+  return filas;
+};
+const cabMeta = ['Anuncio', 'Gasto', 'Impresiones', 'Clics', 'Conversaciones', 'Leads (CRM)', 'Costo por lead'];
+const agendadosTotal = (porEstado['Agendado'] || 0) + (porEstado['Ganado'] || 0);
+const perdidosTotal = (porEstado['Perdido'] || 0) + (porEstado['Perdido (sin respuesta tras 3 seguimientos)'] || 0);
+const tasa = leads.length ? Math.round(100 * agendadosTotal / leads.length) + '%' : '-';
+
+const html = `<div style="font-family:Arial,sans-serif;max-width:760px;color:#222">
+<h1 style="color:#1f3b73;font-size:21px">Reporte diario xzen Auto · ${ayer}</h1>
+<table style="width:100%;border-spacing:8px"><tr>${kpi('Leads ayer', deAyer.length)}${kpi('Leads 7 días', deSemana.length)}${kpi('Leads totales', leads.length)}${kpi('Agendados', agendadosTotal)}${kpi('Perdidos', perdidosTotal)}${kpi('Tasa de agenda', tasa)}</tr></table>
+${h2('Anuncios · ayer')}${meta.ayer ? tabla(cabMeta, filasMeta(meta.ayer, deAyer)) : `<p style="color:#b00">⚠️ Sin datos de Meta (${esc(metaError)}). Revisa la credencial «Meta Ads XzenAuto» en n8n.</p>`}
+${meta.semana ? h2('Anuncios · últimos 7 días') + tabla(cabMeta, filasMeta(meta.semana, deSemana)) : ''}
+${meta.total ? h2('Anuncios · desde el inicio') + tabla(cabMeta, filasMeta(meta.total, leads)) : ''}
+${h2('Estado de los leads (total)')}${tabla(['Estado', 'Leads'], Object.entries(porEstado).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, num(v)]))}
+${h2('Pipeline XzenAuto')}${tabla(['Columna', 'Oportunidades'], (pipe?.stages ?? []).map((s) => [esc(s.name), num(porEtapa[s.name] || 0)]))}
+${h2('Ciudades que más nos contactan')}${ciudades.length ? tabla(['Ciudad', 'Leads'], ciudades.map(([k, v]) => [esc(k), num(v)])) : '<p>Aún sin datos.</p>'}
+${h2('¿Invierten en anuncios de Facebook?')}${tabla(['Respuesta', 'Leads'], ['Sí invierte', 'No invierte', 'Sin dato'].map((k) => [k, num(inversion[k] || 0)]))}
+<p style="font-size:14px">Volumen medio que declaran: <b>${volumenMedio ? num(volumenMedio) + ' leads por semana' : 'sin datos'}</b>${volumenes.length ? ` (${volumenes.length} respuestas)` : ''}.</p>
+${h2('Próximas llamadas agendadas')}${eventos.length ? tabla(['Cuándo', 'Cita'], eventos.slice(0, 15).map((e) => [esc(f(e.startTime)), esc(e.title)])) : '<p>No hay llamadas agendadas en los próximos 7 días.</p>'}
+${h2('Leads de ayer')}${deAyer.length ? tabla(['Lead', 'Anuncio', 'Ciudad', 'Estado'], deAyer.map((l) => [esc([l.c.firstName, l.c.lastName].filter(Boolean).join(' ') || l.c.phone), esc(NOMBRE_AD[l.adId] || '-'), esc(l.ciudad || '-'), estado(l)])) : '<p>Ayer no entraron leads.</p>'}
+<p style="font-size:12px;color:#777;margin-top:24px">Leads = contactos atendidos por Maripino (sin contactos de prueba). Conversaciones = conversaciones de mensajería iniciadas según Meta. Perdidos = oportunidades marcadas como perdidas en GHL más leads sin respuesta tras los 3 seguimientos.</p>
+</div>`;
+
+return [{ json: { asunto: `📊 xzen Auto · ${ayer}: ${deAyer.length} leads, ${agendadosTotal} agendados en total${meta.ayer ? ', gasto ' + money(sum(meta.ayer, 'gasto')) : ''}`, html } }];
+"""
+
+
+def meta_insights(nombre, pos, preset):
+    return nodo(nombre, "n8n-nodes-base.httpRequest", 4.2, pos, {
+        "url": "https://graph.facebook.com/v21.0/act_48823661/insights",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": True, "queryParameters": {"parameters": [
+            {"name": "level", "value": "ad"}, {"name": "date_preset", "value": preset},
+            {"name": "fields", "value": META_CAMPOS}, {"name": "limit", "value": "200"},
+            {"name": "filtering", "value": json.dumps([{"field": "ad.id", "operator": "IN", "value": IDS_ANUNCIOS}])},
+        ]},
+        "options": {},
+    }, CRED_META, onError="continueRegularOutput", alwaysOutputData=True)
+
+
+rep_nodos = [
+    nodo("Diario 8:00", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 0],
+         {"rule": {"interval": [{"field": "cronExpression", "expression": "0 8 * * *"}]}}),
+    meta_insights("Meta ayer", [200, 0], "yesterday"),
+    meta_insights("Meta 7 días", [400, 0], "last_7d"),
+    meta_insights("Meta total", [600, 0], "maximum"),
+    nodo("Páginas", "n8n-nodes-base.code", 2, [800, 0], {"jsCode": "return [1, 2, 3, 4, 5].map((page) => ({ json: { page } }));"}),
+    ghl("GHL leads", [1000, 0], "POST", GHL + "/contacts/search",
+        cuerpo="={{ JSON.stringify({ locationId: '" + LOCATION_ID + "', pageLimit: 100, page: $json.page,"
+               " filters: [{ field: 'tags', operator: 'contains', value: 'maripino' }] }) }}",
+        onError="continueRegularOutput"),
+    ghl("GHL oportunidades", [1200, 0], "GET", GHL + "/opportunities/search",
+        query={"location_id": LOCATION_ID, "pipeline_id": CFG["pipelineId"], "limit": "100"}, executeOnce=True),
+    ghl("GHL pipelines", [1400, 0], "GET", GHL + "/opportunities/pipelines", query={"locationId": LOCATION_ID},
+        executeOnce=True),
+    ghl("GHL citas", [1600, 0], "GET", GHL + "/calendars/events",
+        query={"locationId": LOCATION_ID, "calendarId": CALENDAR_ID, "startTime": "={{ $now.toMillis() }}",
+               "endTime": "={{ $now.plus({ days: 7 }).toMillis() }}"},
+        version_api="2021-04-15", executeOnce=True, onError="continueRegularOutput", alwaysOutputData=True),
+    nodo("Armar reporte", "n8n-nodes-base.code", 2, [1800, 0], {"jsCode": REP_REPORTE}),
+    nodo("Enviar reporte", "n8n-nodes-base.gmail", 2.2, [2000, 0], {
+        "sendTo": CFG["correoAviso"], "subject": "={{ $json.asunto }}", "emailType": "html",
+        "message": "={{ $json.html }}", "options": {"appendAttribution": False},
+    }, CRED_GMAIL),
+]
+rep_con = {a["name"]: {"main": [[{"node": b["name"], "type": "main", "index": 0}]]} for a, b in zip(rep_nodos, rep_nodos[1:])}
+reporte = {"name": "Maripino · Reporte diario (correo)", "nodes": rep_nodos, "connections": rep_con,
+           "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
+
 # ---------------------------------------------------------------- configuración (una sola vez)
 CREAR_CAMPOS = r"""const quiero = ['Anuncio de origen', 'Desde dónde nos contacta', 'Invierte en anuncios de Facebook', 'Leads estimados por semana'];
 const existentes = ($json.customFields ?? []).map((f) => f.name.trim().toLowerCase());
@@ -811,6 +1023,7 @@ configuracion = {"name": "Maripino · Configuración GHL", "nodes": cfg_nodos, "
                  "settings": {"executionOrder": "v1"}}
 
 for nombre, wf in [("maripino-agente.json", agente), ("maripino-seguimientos.json", seguimientos),
+                   ("maripino-rescate.json", rescate), ("maripino-reporte.json", reporte),
                    ("maripino-configuracion.json", configuracion)]:
     (AQUI / nombre).write_text(json.dumps(wf, ensure_ascii=False, indent=2) + "\n")
     print("escrito", nombre, len(wf["nodes"]), "nodos")

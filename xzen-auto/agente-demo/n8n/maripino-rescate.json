@@ -1,0 +1,188 @@
+{
+  "name": "Maripino · Rescate de leads sin respuesta",
+  "nodes": [
+    {
+      "id": "87780972-12be-5f3a-ba6d-e53195f7144a",
+      "name": "Cada 2 horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */2 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "014a250e-9866-54aa-b282-3edd507814c0",
+      "name": "GHL conversaciones sin respuesta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/conversations/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            },
+            {
+              "name": "lastMessageDirection",
+              "value": "inbound"
+            },
+            {
+              "name": "sortBy",
+              "value": "last_message_date"
+            },
+            {
+              "name": "sort",
+              "value": "desc"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "f5e125d5-cdeb-5359-bbdc-fdd732f015fe",
+      "name": "Candidatos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Conversaciones de WhatsApp cuyo último mensaje es del cliente y nadie ha contestado:\n// de hace más de 10 minutos y menos de 23 horas (aún se le puede escribir).\n// Entre las 23:00 y las 8:00 no se rescata; lo pendiente sale en la vuelta de las 8:00.\n// Maripino decide después si le corresponde (solo leads de anuncios, sin atención personalizada ni maripino-off).\nconst horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;\nif (horaMx >= 23 || horaMx < 8) return [];\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst ahora = Date.now();\nfor (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];\nreturn ($json.conversations ?? [])\n  .filter((c) => c.lastMessageDirection === 'inbound' && /WHATSAPP/.test(c.lastMessageType ?? ''))\n  .map((c) => ({ c, t: Number(c.lastMessageDate) || new Date(c.lastMessageDate).getTime() }))\n  .filter(({ t }) => ahora - t > 10 * 60e3 && ahora - t < 23 * 3600e3)\n  .map(({ c, t }) => ({ clave: `${c.contactId}:${t}`, contactId: c.contactId, nombre: c.fullName || c.contactName || '' }))\n  .filter((x) => !memoria.vistos[x.clave])\n  .map((x) => ({ json: x }));\n"
+      }
+    },
+    {
+      "id": "527996a5-7eac-5585-8c29-5ee1b11b54e3",
+      "name": "Enviar a Maripino",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/xzen-maripino",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contact_id: $json.contactId, rescate: true }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "eb3da818-f7e2-547f-913b-d9e5d6d2d626",
+      "name": "Marcar visto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Recuerda lo ya enviado para no rescatarlo dos veces (si el envío falló, se reintenta en la siguiente vuelta).\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst cand = $('Candidatos').all();\nreturn $input.all().map((item, i) => {\n  if (!item.json.error) memoria.vistos[cand[i].json.clave] = Date.now();\n  return { json: { ...cand[i].json, enviado: !item.json.error } };\n});\n"
+      }
+    }
+  ],
+  "connections": {
+    "Cada 2 horas": {
+      "main": [
+        [
+          {
+            "node": "GHL conversaciones sin respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL conversaciones sin respuesta": {
+      "main": [
+        [
+          {
+            "node": "Candidatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidatos": {
+      "main": [
+        [
+          {
+            "node": "Enviar a Maripino",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar a Maripino": {
+      "main": [
+        [
+          {
+            "node": "Marcar visto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  }
+}

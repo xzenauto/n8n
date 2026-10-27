@@ -1,0 +1,539 @@
+{
+  "name": "Maripino · Reporte diario (correo)",
+  "nodes": [
+    {
+      "id": "abd8243d-9eff-5b56-b210-c1887e70757a",
+      "name": "Diario 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "133ccc58-e5f6-5adc-bc6d-991fbb78585f",
+      "name": "Meta ayer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "url": "https://graph.facebook.com/v21.0/act_48823661/insights",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "level",
+              "value": "ad"
+            },
+            {
+              "name": "date_preset",
+              "value": "yesterday"
+            },
+            {
+              "name": "fields",
+              "value": "ad_id,ad_name,spend,impressions,reach,clicks,actions"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            },
+            {
+              "name": "filtering",
+              "value": "[{\"field\": \"ad.id\", \"operator\": \"IN\", \"value\": [\"52613806312397\", \"52613807534997\", \"52613807845997\", \"52613808070397\"]}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": null,
+          "name": "Meta Ads XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "c51f4e8b-630d-51d2-8a85-1a503054f477",
+      "name": "Meta 7 días",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "url": "https://graph.facebook.com/v21.0/act_48823661/insights",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "level",
+              "value": "ad"
+            },
+            {
+              "name": "date_preset",
+              "value": "last_7d"
+            },
+            {
+              "name": "fields",
+              "value": "ad_id,ad_name,spend,impressions,reach,clicks,actions"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            },
+            {
+              "name": "filtering",
+              "value": "[{\"field\": \"ad.id\", \"operator\": \"IN\", \"value\": [\"52613806312397\", \"52613807534997\", \"52613807845997\", \"52613808070397\"]}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": null,
+          "name": "Meta Ads XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "12519036-db04-549d-bfd7-de3a5c2ea080",
+      "name": "Meta total",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "url": "https://graph.facebook.com/v21.0/act_48823661/insights",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "level",
+              "value": "ad"
+            },
+            {
+              "name": "date_preset",
+              "value": "maximum"
+            },
+            {
+              "name": "fields",
+              "value": "ad_id,ad_name,spend,impressions,reach,clicks,actions"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            },
+            {
+              "name": "filtering",
+              "value": "[{\"field\": \"ad.id\", \"operator\": \"IN\", \"value\": [\"52613806312397\", \"52613807534997\", \"52613807845997\", \"52613808070397\"]}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": null,
+          "name": "Meta Ads XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "67fecf4a-8821-5d25-be0f-2579bee785b1",
+      "name": "Páginas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "jsCode": "return [1, 2, 3, 4, 5].map((page) => ({ json: { page } }));"
+      }
+    },
+    {
+      "id": "0911b9db-2395-5122-bd9c-c91a81c2f4c2",
+      "name": "GHL leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: '8SiKgyVuy9KVUIx1Y1RT', pageLimit: 100, page: $json.page, filters: [{ field: 'tags', operator: 'contains', value: 'maripino' }] }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "8214a4c9-209b-5f82-a163-713e0d348335",
+      "name": "GHL oportunidades",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/opportunities/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "location_id",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            },
+            {
+              "name": "pipeline_id",
+              "value": "aCNhCRpOOyTfbHBPplyl"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "973db50d-6d88-5049-9a1b-7e12765ae8aa",
+      "name": "GHL pipelines",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/opportunities/pipelines",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "cdc13cc3-ad54-5744-82c7-b88c0ce8cc25",
+      "name": "GHL citas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/calendars/events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-04-15"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            },
+            {
+              "name": "calendarId",
+              "value": "0YwJGtf0m8eI5hEacRMb"
+            },
+            {
+              "name": "startTime",
+              "value": "={{ $now.toMillis() }}"
+            },
+            {
+              "name": "endTime",
+              "value": "={{ $now.plus({ days: 7 }).toMillis() }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "3cf38601-7d82-50e3-a336-1e2d8a692595",
+      "name": "Armar reporte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\", \"atencion\": \"e5701f60-f46f-4a9f-a64b-590068028c12\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n\nconst tz = 'America/Mexico_City';\nconst dia = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: tz });\nconst hoy = dia(Date.now());\nconst ayer = dia(Date.now() - 864e5);\nconst hace7 = Date.now() - 7 * 864e5;\nconst norm = (s) => String(s ?? '').trim();\nconst sinAcento = (s) => norm(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');\nconst esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst money = (n) => '$' + Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\nconst num = (n) => Number(n || 0).toLocaleString('es-MX');\n\n// ---------- Meta\nconst NOMBRE_AD = Object.fromEntries(Object.entries(RUTAS.anuncios).map(([id, a]) => [id, a.nombre]));\nconst meta = {};\nlet metaError = null;\nfor (const [clave, nodo] of [['ayer', 'Meta ayer'], ['semana', 'Meta 7 días'], ['total', 'Meta total']]) {\n  const r = $(nodo).first().json;\n  if (r.error || !Array.isArray(r.data)) { metaError = r.error?.message || r.error || 'sin datos'; meta[clave] = null; continue; }\n  meta[clave] = r.data.filter((x) => NOMBRE_AD[x.ad_id]).map((x) => {\n    const acc = (t) => Number((x.actions ?? []).find((a) => a.action_type === t)?.value || 0);\n    return { id: x.ad_id, nombre: NOMBRE_AD[x.ad_id], gasto: Number(x.spend || 0), impresiones: Number(x.impressions || 0),\n      alcance: Number(x.reach || 0), clics: Number(x.clicks || 0),\n      conversaciones: acc('onsite_conversion.messaging_conversation_started_7d') };\n  });\n}\nconst sum = (arr, k) => (arr ?? []).reduce((s, x) => s + x[k], 0);\n\n// ---------- GHL\nconst pipes = $('GHL pipelines').first().json.pipelines ?? [];\nconst pipe = pipes.find((p) => p.id === CFG.pipelineId);\nconst etapaNombre = Object.fromEntries((pipe?.stages ?? []).map((s) => [s.id, s.name]));\nconst contactos = $('GHL leads').all().flatMap((i) => i.json.contacts ?? [])\n  .filter((c, i, a) => a.findIndex((x) => x.id === c.id) === i)\n  .filter((c) => !(c.tags ?? []).map((t) => String(t).toLowerCase()).includes('test-maripino'));\nconst ids = new Set(contactos.map((c) => c.id));\nconst opps = ($('GHL oportunidades').first().json.opportunities ?? []).filter((o) => ids.has(o.contactId || o.contact?.id));\nconst campo = (c, k) => { const v = (c.customFields ?? []).find((f) => f.id === CFG.campos[k])?.value; return Array.isArray(v) ? v.join(', ') : norm(v); };\nconst tagsDe = (c) => (c.tags ?? []).map((t) => String(t).toLowerCase());\n\nconst leads = contactos.map((c) => {\n  const o = opps.find((x) => (x.contactId || x.contact?.id) === c.id);\n  const anuncio = campo(c, 'anuncio');\n  const adId = Object.keys(NOMBRE_AD).find((id) => anuncio.includes(id)) || c.attributionSource?.adId || null;\n  return { c, o, tags: tagsDe(c), adId, alta: new Date(c.dateAdded).getTime(),\n    ciudad: campo(c, 'ubicacion'), inversion: campo(c, 'inversion'), leadsSemana: campo(c, 'leads') };\n});\nconst deAyer = leads.filter((l) => dia(l.alta) === ayer);\nconst deSemana = leads.filter((l) => l.alta >= hace7);\n\nconst estado = (l) => {\n  if (l.o?.status === 'won') return 'Ganado';\n  if (l.o?.status === 'lost' || l.o?.status === 'abandoned') return 'Perdido';\n  if (l.tags.includes('cita-agendada') || etapaNombre[l.o?.pipelineStageId] === 'Agendado') return 'Agendado';\n  if (l.tags.includes('atencion-personalizada')) return 'Atención personalizada';\n  if (l.tags.includes('seguimiento-3')) return 'Perdido (sin respuesta tras 3 seguimientos)';\n  if (l.tags.some((t) => t.startsWith('seguimiento-'))) return 'En seguimiento';\n  return 'En conversación';\n};\nconst contar = (arr, f) => arr.reduce((m, x) => { const k = f(x); if (k) m[k] = (m[k] || 0) + 1; return m; }, {});\nconst porEstado = contar(leads, estado);\nconst porEtapa = contar(leads.filter((l) => l.o), (l) => etapaNombre[l.o.pipelineStageId] || 'Otra');\n\nconst ciudadNorm = (s) => { const t = norm(s).split(/[,(]/)[0].trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : ''; };\nconst ciudades = Object.entries(contar(leads, (l) => ciudadNorm(l.ciudad))).sort((a, b) => b[1] - a[1]).slice(0, 10);\nconst inversion = contar(leads, (l) => { const v = sinAcento(l.inversion); if (!v) return 'Sin dato'; if (/^(si|sí|yes)\\b|invert|invier/.test(v) && !/^no\\b/.test(v)) return 'Sí invierte'; if (/^no\\b|nunca|todavia no/.test(v)) return 'No invierte'; return 'Sin dato'; });\nconst volumenes = leads.map((l) => Number(String(l.leadsSemana).replace(/[^\\d.]/g, ''))).filter((n) => n > 0);\nconst volumenMedio = volumenes.length ? Math.round(volumenes.reduce((a, b) => a + b, 0) / volumenes.length) : null;\n\n// ---------- Citas próximas\nconst eventos = ($('GHL citas').first().json.events ?? []).filter((e) => !/cancel/i.test(e.appointmentStatus || ''))\n  .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));\nconst f = (t) => new Date(t).toLocaleString('es-MX', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });\n\n// ---------- HTML\nconst tabla = (cab, filas) => `<table style=\"border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 18px\">\n<tr>${cab.map((h, i) => `<th style=\"text-align:${i ? 'right' : 'left'};border-bottom:2px solid #1f3b73;padding:6px\">${h}</th>`).join('')}</tr>\n${filas.map((f) => `<tr>${f.map((v, i) => `<td style=\"text-align:${i ? 'right' : 'left'};border-bottom:1px solid #e3e6ee;padding:6px\">${v}</td>`).join('')}</tr>`).join('')}</table>`;\nconst h2 = (t) => `<h2 style=\"color:#1f3b73;font-size:17px;margin:22px 0 6px\">${t}</h2>`;\nconst kpi = (t, v) => `<td style=\"padding:10px;background:#f2f5fb;border-radius:8px;text-align:center\"><div style=\"font-size:22px;font-weight:bold;color:#1f3b73\">${v}</div><div style=\"font-size:12px;color:#555\">${t}</div></td>`;\n\nconst leadsPorAd = (arr) => contar(arr, (l) => l.adId);\nconst filasMeta = (datos, arrLeads) => {\n  const la = leadsPorAd(arrLeads);\n  const filas = (datos ?? []).map((x) => [esc(x.nombre), money(x.gasto), num(x.impresiones), num(x.clics), num(x.conversaciones), num(la[x.id] || 0),\n    la[x.id] ? money(x.gasto / la[x.id]) : '-']);\n  const g = sum(datos, 'gasto'); const tl = arrLeads.filter((l) => l.adId).length;\n  filas.push(['<b>Total</b>', `<b>${money(g)}</b>`, `<b>${num(sum(datos, 'impresiones'))}</b>`, `<b>${num(sum(datos, 'clics'))}</b>`,\n    `<b>${num(sum(datos, 'conversaciones'))}</b>`, `<b>${num(tl)}</b>`, `<b>${tl ? money(g / tl) : '-'}</b>`]);\n  return filas;\n};\nconst cabMeta = ['Anuncio', 'Gasto', 'Impresiones', 'Clics', 'Conversaciones', 'Leads (CRM)', 'Costo por lead'];\nconst agendadosTotal = (porEstado['Agendado'] || 0) + (porEstado['Ganado'] || 0);\nconst perdidosTotal = (porEstado['Perdido'] || 0) + (porEstado['Perdido (sin respuesta tras 3 seguimientos)'] || 0);\nconst tasa = leads.length ? Math.round(100 * agendadosTotal / leads.length) + '%' : '-';\n\nconst html = `<div style=\"font-family:Arial,sans-serif;max-width:760px;color:#222\">\n<h1 style=\"color:#1f3b73;font-size:21px\">Reporte diario xzen Auto · ${ayer}</h1>\n<table style=\"width:100%;border-spacing:8px\"><tr>${kpi('Leads ayer', deAyer.length)}${kpi('Leads 7 días', deSemana.length)}${kpi('Leads totales', leads.length)}${kpi('Agendados', agendadosTotal)}${kpi('Perdidos', perdidosTotal)}${kpi('Tasa de agenda', tasa)}</tr></table>\n${h2('Anuncios · ayer')}${meta.ayer ? tabla(cabMeta, filasMeta(meta.ayer, deAyer)) : `<p style=\"color:#b00\">⚠️ Sin datos de Meta (${esc(metaError)}). Revisa la credencial «Meta Ads XzenAuto» en n8n.</p>`}\n${meta.semana ? h2('Anuncios · últimos 7 días') + tabla(cabMeta, filasMeta(meta.semana, deSemana)) : ''}\n${meta.total ? h2('Anuncios · desde el inicio') + tabla(cabMeta, filasMeta(meta.total, leads)) : ''}\n${h2('Estado de los leads (total)')}${tabla(['Estado', 'Leads'], Object.entries(porEstado).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, num(v)]))}\n${h2('Pipeline XzenAuto')}${tabla(['Columna', 'Oportunidades'], (pipe?.stages ?? []).map((s) => [esc(s.name), num(porEtapa[s.name] || 0)]))}\n${h2('Ciudades que más nos contactan')}${ciudades.length ? tabla(['Ciudad', 'Leads'], ciudades.map(([k, v]) => [esc(k), num(v)])) : '<p>Aún sin datos.</p>'}\n${h2('¿Invierten en anuncios de Facebook?')}${tabla(['Respuesta', 'Leads'], ['Sí invierte', 'No invierte', 'Sin dato'].map((k) => [k, num(inversion[k] || 0)]))}\n<p style=\"font-size:14px\">Volumen medio que declaran: <b>${volumenMedio ? num(volumenMedio) + ' leads por semana' : 'sin datos'}</b>${volumenes.length ? ` (${volumenes.length} respuestas)` : ''}.</p>\n${h2('Próximas llamadas agendadas')}${eventos.length ? tabla(['Cuándo', 'Cita'], eventos.slice(0, 15).map((e) => [esc(f(e.startTime)), esc(e.title)])) : '<p>No hay llamadas agendadas en los próximos 7 días.</p>'}\n${h2('Leads de ayer')}${deAyer.length ? tabla(['Lead', 'Anuncio', 'Ciudad', 'Estado'], deAyer.map((l) => [esc([l.c.firstName, l.c.lastName].filter(Boolean).join(' ') || l.c.phone), esc(NOMBRE_AD[l.adId] || '-'), esc(l.ciudad || '-'), estado(l)])) : '<p>Ayer no entraron leads.</p>'}\n<p style=\"font-size:12px;color:#777;margin-top:24px\">Leads = contactos atendidos por Maripino (sin contactos de prueba). Conversaciones = conversaciones de mensajería iniciadas según Meta. Perdidos = oportunidades marcadas como perdidas en GHL más leads sin respuesta tras los 3 seguimientos.</p>\n</div>`;\n\nreturn [{ json: { asunto: `📊 xzen Auto · ${ayer}: ${deAyer.length} leads, ${agendadosTotal} agendados en total${meta.ayer ? ', gasto ' + money(sum(meta.ayer, 'gasto')) : ''}`, html } }];\n"
+      }
+    },
+    {
+      "id": "6731c854-fbce-5b0b-b69d-f4ab1f415582",
+      "name": "Enviar reporte",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        0
+      ],
+      "parameters": {
+        "sendTo": "xzenauto@gmail.com",
+        "subject": "={{ $json.asunto }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "giX4xhnEUL2ltIcE",
+          "name": "Gmail Xzen"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Diario 8:00": {
+      "main": [
+        [
+          {
+            "node": "Meta ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta ayer": {
+      "main": [
+        [
+          {
+            "node": "Meta 7 días",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta 7 días": {
+      "main": [
+        [
+          {
+            "node": "Meta total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta total": {
+      "main": [
+        [
+          {
+            "node": "Páginas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Páginas": {
+      "main": [
+        [
+          {
+            "node": "GHL leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL leads": {
+      "main": [
+        [
+          {
+            "node": "GHL oportunidades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL oportunidades": {
+      "main": [
+        [
+          {
+            "node": "GHL pipelines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL pipelines": {
+      "main": [
+        [
+          {
+            "node": "GHL citas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL citas": {
+      "main": [
+        [
+          {
+            "node": "Armar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar reporte": {
+      "main": [
+        [
+          {
+            "node": "Enviar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  }
+}
