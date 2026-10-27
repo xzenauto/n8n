@@ -16,6 +16,8 @@ GHL = "https://services.leadconnectorhq.com"
 CRED_GHL = {"httpHeaderAuth": {"id": "u8Ru07QTVPNb28I6", "name": "GHL - PIT - XzenAuto"}}
 CRED_OPENAI = {"openAiApi": {"id": "W5zBaQ7k25sn9YQz", "name": "RsViaje Independencia"}}
 CRED_GMAIL = {"gmailOAuth2": {"id": "giX4xhnEUL2ltIcE", "name": "Gmail Xzen"}}
+CRED_SUPABASE = {"supabaseApi": {"id": "QIVohgUOAGTuwYd1", "name": "XzenAuto"}}
+SUPABASE = "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/rpc/"
 # Credencial "Facebook Graph API" con un token de Meta con permiso ads_read (se crea a mano en n8n).
 CRED_META = {"facebookGraphApi": {"id": None, "name": "Meta Ads XzenAuto"}}
 CTX = "$('Contexto y enrutamiento').first().json"
@@ -165,18 +167,16 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
   msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
   // Si después de este mensaje llegó otro, lo atiende la ejecución de ese otro mensaje.
   // Si ya hubo una respuesta posterior (bot o persona), no contestamos de nuevo.
-  if (ent.contactoCreado) {
-    // Solo si el último mensaje es del cliente y nadie le ha respondido todavía.
-    if (!msgs.length || msgs[msgs.length - 1].direction !== 'inbound') return [];
-  }
-  let mio = -1;
-  for (let i = msgs.length - 1; ent.texto && i >= 0; i--) {
-    if (msgs[i].direction === 'inbound' && limpio(msgs[i].body) === ent.texto) { mio = i; break; }
-  }
-  if (mio >= 0 && msgs.slice(mio + 1).length > 0) return [];
+  // El buffer ya garantiza que solo responde la ejecución del último mensaje de la ráfaga.
+  const buffer = $('Buffer · tomar').first().json;
+  // Si mientras esperábamos ya le contestó alguien (otra ejecución o una persona), no respondemos.
+  const ultimo = msgs[msgs.length - 1];
+  if (ultimo && ultimo.direction === 'outbound' && new Date(ultimo.dateAdded) > new Date(buffer.primero_en)) return [];
+  if (!(buffer.textos ?? []).length && (!ultimo || ultimo.direction !== 'inbound')) return [];
   let corte = msgs.length;
   while (corte > 0 && msgs[corte - 1].direction === 'inbound') corte--;
-  nuevos = msgs.slice(corte).map((m) => limpio(m.body) || '[audio, imagen o archivo sin texto]');
+  nuevos = (buffer.textos ?? []).length ? buffer.textos.map(limpio)
+    : msgs.slice(corte).map((m) => limpio(m.body) || '[audio, imagen o archivo sin texto]');
   historial = msgs.slice(Math.max(0, corte - 20), corte)
     .map((m) => ({ rol: m.direction === 'inbound' ? 'Cliente' : 'xzen Auto', texto: limpio(m.body) }))
     .filter((m) => m.texto);
@@ -518,9 +518,22 @@ nodos = [
          {"httpMethod": "POST", "path": "xzen-maripino", "options": {}},
          webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/webhook"))),
     nodo("Normalizar entrada", "n8n-nodes-base.code", 2, [200, 300], {"jsCode": NORMALIZAR}),
+    nodo("Buffer · guardar", "n8n-nodes-base.httpRequest", 4.2, [300, 300], {
+        "method": "POST", "url": SUPABASE + "maripino_buffer_agregar",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "supabaseApi",
+        "sendBody": True, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $json.contactId, p_texto: $json.texto, p_origen: $json.contactoCreado ? 'contacto_creado' : 'mensaje' }) }}",
+        "options": {}}, CRED_SUPABASE),
     nodo("Esperar ráfaga (12 s)", "n8n-nodes-base.wait", 1.1, [400, 300],
-         {"amount": "={{ $json.simulacion ? 1 : $json.contactoCreado ? 40 : 12 }}", "unit": "seconds"},
+         {"amount": "={{ $('Normalizar entrada').first().json.simulacion ? 1 : $('Normalizar entrada').first().json.contactoCreado ? 25 : 12 }}", "unit": "seconds"},
          webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/wait"))),
+    nodo("Buffer · tomar", "n8n-nodes-base.httpRequest", 4.2, [500, 300], {
+        "method": "POST", "url": SUPABASE + "maripino_buffer_tomar",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "supabaseApi",
+        "sendBody": True, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_contact_id: $('Normalizar entrada').first().json.contactId, p_id: $('Buffer · guardar').first().json.id }) }}",
+        "options": {}}, CRED_SUPABASE),
+    si("¿Último mensaje?", [550, 300], "={{ $json.es_ultimo === true }}"),
     ghl("GHL contacto", [600, 300], "GET",
         "=" + GHL + "/contacts/{{ $('Normalizar entrada').first().json.contactId }}"),
     ghl("GHL oportunidades", [800, 300], "GET", GHL + "/opportunities/search",
@@ -662,7 +675,8 @@ def une(a, b, tipo="main", salida=0):
     con[a][tipo][salida].append({"node": b, "type": tipo, "index": 0})
 
 
-cadena = ["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Esperar ráfaga (12 s)", "GHL contacto",
+cadena = ["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Buffer · guardar", "Esperar ráfaga (12 s)", "Buffer · tomar",
+          "¿Último mensaje?", "GHL contacto",
           "GHL oportunidades", "GHL conversación", "GHL mensajes", "Analizar", "¿Primer contacto?"]
 for a, b in zip(cadena, cadena[1:]):
     une(a, b)
