@@ -215,6 +215,7 @@ return [{ json: {
   contactId: ent.contactId,
   simulacion: ent.simulacion,
   nombre: limpio(contacto.firstName),
+  nombreCompleto: [contacto.firstName, contacto.lastName].map(limpio).filter(Boolean).join(' '),
   email: limpio(contacto.email),
   negocio: limpio(contacto.companyName),
   tags,
@@ -391,6 +392,9 @@ return [{ json: {
   oportunidadId: c.oportunidadId ?? oportunidadNueva,
   etapaActual: c.etapaActual,
   citaAgendada: citaOk,
+  // Cuando el cliente dice el nombre de su negocio, la oportunidad pasa a llamarse "Negocio (Nombre)".
+  nombreOportunidad: contacto.companyName
+    ? `${contacto.companyName} (${[contacto.firstName || c.nombre, contacto.lastName].filter(Boolean).join(' ')})` : null,
   cita: salida.cita,
   atencion: !!out.atencion_personalizada,
   motivo: limpio(out.motivo_atencion),
@@ -531,7 +535,7 @@ nodos = [
     ghl("GHL crear oportunidad", [1800, 120], "POST", GHL + "/opportunities/",
         cuerpo="={{ JSON.stringify({ locationId: '" + LOCATION_ID + "', pipelineId: '" + CFG["pipelineId"] + "',"
                " pipelineStageId: '" + CFG["etapas"]["nuevo"] + "', status: 'open', contactId: $json.contactId,"
-               " name: ($json.nombre || 'Prospecto') + ' · ' + $json.anuncioTexto }) }}",
+               " name: $json.nombreCompleto || $json.nombre || 'Prospecto' }) }}",
         onError="continueRegularOutput"),
     ghl("GHL guardar anuncio", [2000, 120], "PUT", "=" + GHL + "/contacts/{{ " + A + ".contactId }}",
         cuerpo="={{ JSON.stringify({ tags: [...new Set([...(" + A + ".tags), 'maripino', " + A + ".tagVertical])],"
@@ -599,6 +603,9 @@ nodos = [
     ghl("GHL mover oportunidad", [4900, 200], "PUT", "=" + GHL + "/opportunities/{{ $json.oportunidadId }}",
         cuerpo="={{ JSON.stringify({ pipelineId: '" + CFG["pipelineId"] + "', pipelineStageId: $json.destino }) }}",
         onError="continueRegularOutput"),
+    si("¿Renombrar oportunidad?", [4600, 160], "={{ !!($('Plan CRM').first().json.nombreOportunidad && $('Plan CRM').first().json.oportunidadId) }}"),
+    ghl("GHL renombrar oportunidad", [4800, 60], "PUT", "=" + GHL + "/opportunities/{{ $('Plan CRM').first().json.oportunidadId }}",
+        cuerpo="={{ JSON.stringify({ name: $('Plan CRM').first().json.nombreOportunidad }) }}", onError="continueRegularOutput"),
     si("¿Atención personalizada?", [5100, 300], "={{ $('Etapa destino').first().json.atencion }}"),
     nodo("Armar aviso", "n8n-nodes-base.code", 2, [5300, 200], {"jsCode": CORREO}),
     ghl("GHL nota", [5500, 200], "POST", "=" + GHL + "/contacts/{{ $('Etapa destino').first().json.contactId }}/notes",
@@ -665,7 +672,8 @@ for a, b in [("Separar mensajes", "GHL enviar WhatsApp"), ("GHL enviar WhatsApp"
              ("Plan CRM", "¿Datos nuevos?"), ("GHL actualizar contacto", "¿Hay correo nuevo?"),
              ("GHL guardar correo", "GHL etiquetas"),
              ("GHL etiquetas", "GHL reiniciar seguimientos"), ("GHL reiniciar seguimientos", "GHL pipelines"), ("GHL pipelines", "Etapa destino"),
-             ("Etapa destino", "¿Mover oportunidad?"), ("GHL mover oportunidad", "¿Atención personalizada?"),
+             ("Etapa destino", "¿Mover oportunidad?"), ("GHL mover oportunidad", "¿Renombrar oportunidad?"),
+             ("GHL renombrar oportunidad", "¿Atención personalizada?"),
              ("Armar aviso", "GHL nota"), ("GHL nota", "Correo a xzenauto@gmail.com")]:
     une(a, b)
 une("¿Datos nuevos?", "GHL actualizar contacto", salida=0)
@@ -673,7 +681,9 @@ une("¿Datos nuevos?", "¿Hay correo nuevo?", salida=1)
 une("¿Hay correo nuevo?", "GHL guardar correo", salida=0)
 une("¿Hay correo nuevo?", "GHL etiquetas", salida=1)
 une("¿Mover oportunidad?", "GHL mover oportunidad", salida=0)
-une("¿Mover oportunidad?", "¿Atención personalizada?", salida=1)
+une("¿Mover oportunidad?", "¿Renombrar oportunidad?", salida=1)
+une("¿Renombrar oportunidad?", "GHL renombrar oportunidad", salida=0)
+une("¿Renombrar oportunidad?", "¿Atención personalizada?", salida=1)
 une("¿Atención personalizada?", "Armar aviso", salida=0)
 une("¿Atención personalizada?", "¿Cita agendada?", salida=1)
 une("¿Cita agendada?", "GHL datos cita", salida=0)

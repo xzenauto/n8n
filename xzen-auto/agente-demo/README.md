@@ -25,7 +25,8 @@ pruebas; la tiene el contacto de pruebas Carlos +34 638 76 07 11): la coexistenc
 1. Espera 12 s y junta los mensajes que el cliente mande seguidos (responde una sola vez).
 2. Si el contacto tiene la etiqueta `atencion-personalizada` o `maripino-off`, no contesta
    (`maripino-off` sirve para apagar a Maripino a mano en un contacto concreto).
-3. Primer contacto → crea la oportunidad en el pipeline **XzenAuto**, columna **Nuevo lead**, y guarda
+3. Primer contacto → crea la oportunidad (con el nombre del lead; al saber su negocio pasa a «Negocio (Nombre)»)
+   en el pipeline **XzenAuto**, columna **Nuevo lead**, y guarda
    el campo **Anuncio de origen** + etiquetas `maripino`, `demo-agencia-viajes`.
 4. Maripino (OpenAI gpt-4.1, trata de usted) conversa con el historial real de WhatsApp de GHL y pregunta:
    desde dónde contacta, si invierte en anuncios de Facebook y cuántos leads recibe por semana.
