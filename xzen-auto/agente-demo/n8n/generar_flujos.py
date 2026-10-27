@@ -95,15 +95,18 @@ NORMALIZAR = r"""// Webhook del flujo de GHL "Cliente respondió" (WhatsApp).
 const b = $json.body ?? $json;
 const contactId = b.contact_id || b.contactId || b.customData?.contact_id || b.contact?.id;
 if (!contactId) return [];
-// Solo mensajes de WhatsApp (tipo 19). "Contacto creado" no trae mensaje: lo ignoramos.
+// "Contacto creado" no trae mensaje (y en el primer mensaje GHL no dispara "Cliente respondió"):
+// en ese caso el texto se lee de la conversación de GHL. Si trae mensaje, solo WhatsApp (tipo 19).
+const contactoCreado = !b.message && b.simulacion !== true;
 const tipo = Number(b.message?.type);
-if (b.simulacion !== true && (!b.message || (tipo && tipo !== 19))) return [];
+if (!contactoCreado && tipo && tipo !== 19) return [];
 const attr = b.contact?.lastAttributionSource || b.contact?.attributionSource || b.attributionSource || {};
 return [{ json: {
   contactId: String(contactId),
   texto: String(b.message?.body ?? b.customData?.mensaje ?? '').trim(),
   adId: attr.adId || null,
   recibidoEn: new Date().toISOString(),
+  contactoCreado,
   // Pruebas: {"simulacion": true, "historial": [{"rol": "cliente"|"maripino", "texto": "..."}]}
   simulacion: b.simulacion === true,
   historialSimulado: Array.isArray(b.historial) ? b.historial : null,
@@ -158,8 +161,12 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
   msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
   // Si después de este mensaje llegó otro, lo atiende la ejecución de ese otro mensaje.
   // Si ya hubo una respuesta posterior (bot o persona), no contestamos de nuevo.
+  if (ent.contactoCreado) {
+    // Solo si el último mensaje es del cliente y nadie le ha respondido todavía.
+    if (!msgs.length || msgs[msgs.length - 1].direction !== 'inbound') return [];
+  }
   let mio = -1;
-  for (let i = msgs.length - 1; i >= 0; i--) {
+  for (let i = msgs.length - 1; ent.texto && i >= 0; i--) {
     if (msgs[i].direction === 'inbound' && limpio(msgs[i].body) === ent.texto) { mio = i; break; }
   }
   if (mio >= 0 && msgs.slice(mio + 1).length > 0) return [];
@@ -496,7 +503,7 @@ nodos = [
          webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/webhook"))),
     nodo("Normalizar entrada", "n8n-nodes-base.code", 2, [200, 300], {"jsCode": NORMALIZAR}),
     nodo("Esperar ráfaga (12 s)", "n8n-nodes-base.wait", 1.1, [400, 300],
-         {"amount": "={{ $json.simulacion ? 1 : 12 }}", "unit": "seconds"},
+         {"amount": "={{ $json.simulacion ? 1 : $json.contactoCreado ? 40 : 12 }}", "unit": "seconds"},
          webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/wait"))),
     ghl("GHL contacto", [600, 300], "GET",
         "=" + GHL + "/contacts/{{ $('Normalizar entrada').first().json.contactId }}"),
