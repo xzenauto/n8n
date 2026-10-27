@@ -96,6 +96,7 @@ rutas = json.loads(json.dumps(CONFIG))
 for v in rutas["verticales"].values():
     v["instrucciones"] = (AQUI.parent / v.pop("prompt")).read_text().strip()
 rutas.pop("_descripcion", None)
+rutas.pop("_textos_anuncio", None)
 CFG_JS = "const CFG = " + json.dumps(CFG, ensure_ascii=False) + ";\nconst RUTAS = " + json.dumps(
     rutas, ensure_ascii=False) + ";\n"
 
@@ -140,11 +141,19 @@ if (!anuncioId) {
   const texto = JSON.stringify(contacto);
   anuncioId = Object.keys(RUTAS.anuncios).find((id) => texto.includes(id)) ?? null;
 }
+// Si Meta no mandó el ID del anuncio, el mensaje predeterminado del anuncio también identifica al lead y su giro.
+const sinAcentos = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+let textosCliente = ent.texto;
+try { textosCliente += ' ' + JSON.stringify($('GHL mensajes').first().json.messages ?? ''); } catch (e) {}
+textosCliente = sinAcentos(textosCliente);
+const verticalPorTexto = Object.entries(RUTAS.verticales)
+  .find(([, v]) => v.activo && (v.textos_anuncio ?? []).some((t) => textosCliente.includes(t)))?.[0] ?? null;
+
 const esPrueba = tags.includes('test-maripino') || ent.simulacion;
-if (!anuncioId && !tags.includes('maripino') && !esPrueba) return [];
+if (!anuncioId && !verticalPorTexto && !tags.includes('maripino') && !esPrueba) return [];
 const anuncio = anuncioId ? RUTAS.anuncios[anuncioId] : null;
 
-let vertical = anuncio?.vertical ?? (esPrueba ? 'agencia_viajes' : RUTAS.vertical_por_defecto);
+let vertical = anuncio?.vertical ?? verticalPorTexto ?? (esPrueba ? 'agencia_viajes' : RUTAS.vertical_por_defecto);
 if (!RUTAS.verticales[vertical]?.activo) vertical = RUTAS.vertical_por_defecto;
 const conf = RUTAS.verticales[vertical];
 
@@ -154,7 +163,8 @@ const valor = (id) => {
   return Array.isArray(v) ? v.join(', ') : limpio(v);
 };
 const valores = Object.fromEntries(Object.entries(CFG.campos).map(([k, id]) => [k, valor(id)]));
-const anuncioTexto = anuncio ? `${anuncio.nombre} (${anuncioId})` : (valores.anuncio || 'Prueba / sin anuncio');
+const anuncioTexto = anuncio ? `${anuncio.nombre} (${anuncioId})`
+  : (valores.anuncio || (verticalPorTexto ? 'Anuncio de Meta (sin ID)' : 'Prueba / sin anuncio'));
 
 // 4. Conversación de WhatsApp y agrupado de ráfagas.
 let historial = [];

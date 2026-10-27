@@ -24,13 +24,18 @@
       "prompt": "prompts/agencia-viajes.md",
       "video_demo": "https://youtu.be/t2bvakV2WMw",
       "tag_ghl": "demo-agencia-viajes",
-      "activo": true
+      "activo": true,
+      "textos_anuncio": [
+        "me interesa el sistema de automatizacon para agencias de viajes",
+        "me interesa el sistema de automatizacion para agencias de viajes"
+      ]
     },
     "tienda_muebles": {
       "prompt": "prompts/tienda-muebles.md",
       "video_demo": "PENDIENTE",
       "tag_ghl": "demo-tienda-muebles",
-      "activo": false
+      "activo": false,
+      "textos_anuncio": []
     },
     "general": {
       "prompt": "prompts/general.md",
@@ -38,5 +43,6 @@
       "tag_ghl": "demo-general",
       "activo": true
     }
-  }
+  },
+  "_textos_anuncio": "Mensaje predeterminado del anuncio (sin acentos, minúsculas). Si Meta no manda el ID del anuncio, este texto identifica al lead y su giro."
 }
