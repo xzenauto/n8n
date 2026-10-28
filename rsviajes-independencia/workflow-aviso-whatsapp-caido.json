@@ -187,7 +187,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Detecta si el WhatsApp de alguna agencia está caído: en las últimas 3 h hay 2+ envíos fallidos y ninguno entregado.\n// No cuenta los fallos normales de \"más de 24 h sin respuesta del cliente\". Avisa al caer, recuerda cada 6 h y avisa al recuperarse.\n// También avisa: al primer error de número desconectado de Meta (p. ej. #133010 \"Account not registered\"), y si una agencia\n// que normalmente recibe mensajes lleva más de 2 h sin recibir ninguno en horario (10–21 h): suele ser que el número se desconectó de GHL.\nconst AGENCIAS = ['Independencia', 'Centro', 'Periodismo', 'Matriz', 'Hijar'];\nconst est = $getWorkflowStaticData('global');\nest.agencias = est.agencias || {};\nconst ahora = Date.now();\nconst correos = [];\nfor (const ag of AGENCIAS) {\n  let r = {};\n  try { r = $('WhatsApp ' + ag).first().json || {}; } catch (e) {}\n  const prevEst = est.agencias[ag] || { caido: false, ultimoAviso: 0 };\n  if (r.error || !Array.isArray(r.messages)) {\n    correos.push({ asunto: `⚠️ No se pudo revisar el WhatsApp de ${ag}`, cuerpo: `No se pudieron consultar los mensajes de WhatsApp de RS Viajes ${ag} en GHL.\\nDetalle: ${JSON.stringify(r.error || r).slice(0, 400)}\\n\\nPuede ser un problema temporal de GHL o de la credencial de la API.` , solo_si: !prevEst.errorApi });\n    est.agencias[ag] = { ...prevEst, errorApi: true };\n    continue;\n  }\n  const salientes = r.messages.filter(m => m.direction === 'outbound');\n  const fallidos = salientes.filter(m => m.status === 'failed' && !/24 hours/i.test(String(m.error || '')));\n  const okCount = salientes.filter(m => ['delivered', 'read', 'sent'].includes(m.status)).length;\n  const entrantes = r.messages.filter(m => m.direction === 'inbound').length;\n  const desconectado = fallidos.filter(m => /133010|133005|131031|not registered|account (is )?locked|disconnected/i.test(String(m.error || '')));\n  const ultimoOk = Math.max(0, ...salientes.filter(m => ['delivered', 'read', 'sent'].includes(m.status)).map(m => new Date(m.dateAdded).getTime()));\n  // Un error de número desconectado posterior al último mensaje entregado ya cuenta como caída\n  const caido = (fallidos.length >= 2 && okCount === 0) || desconectado.some(m => new Date(m.dateAdded).getTime() > ultimoOk);\n  const errores = [...new Set(fallidos.map(m => String(m.error || 'sin detalle').slice(0, 160)))];\n  // Silencio: sin mensajes de clientes en las últimas 2 h, en horario, en una agencia con movimiento habitual\n  const hora = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false }));\n  const ultimaEntrada = Math.max(0, ...r.messages.filter(m => m.direction === 'inbound').map(m => new Date(m.dateAdded).getTime()));\n  // Mensajes de clientes que suelen entrar cada 3 h en horario (medido el 10–13 oct); luego se ajusta solo\n  const INICIAL = { Independencia: 3, Centro: 5, Periodismo: 6, Matriz: 9, Hijar: 0 };\n  if (prevEst.versionMedia !== 2) { prevEst.mediaEntrantes = INICIAL[ag]; prevEst.versionMedia = 2; }\n  const media = prevEst.mediaEntrantes;\n  const enHorario = hora >= 10 && hora < 21;\n  // Agencias con mucho movimiento: 2 h sin mensajes ya es raro; con poco movimiento, 3 h (toda la ventana)\n  const silencio = enHorario && media >= 3 && (ahora - ultimaEntrada) > (media >= 6 ? 2 : 2.9) * 3600 * 1000;\n  if (enHorario && !silencio) prevEst.mediaEntrantes = Math.round((media * 0.9 + entrantes * 0.1) * 10) / 10;\n  else prevEst.mediaEntrantes = media;\n  if (silencio && !caido && (!prevEst.silencio || ahora - (prevEst.avisoSilencio || 0) > 6 * 3600 * 1000)) {\n    correos.push({ asunto: `🔇 RS Viajes ${ag}: no entran mensajes de WhatsApp`, cuerpo:\n      `Desde ${ultimaEntrada ? new Date(ultimaEntrada).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit' }) : 'hace más de 3 horas'} no ha entrado ningún mensaje de clientes por WhatsApp a GHL en RS Viajes ${ag}, ` +\n      `y normalmente entran unos ${Math.round(media)} cada 3 horas.\\n\\nSuele pasar cuando el número se desconecta de GHL (por ejemplo, si se abrió en otro celular o en la app de WhatsApp Business). ` +\n      `Pregunta en la agencia si les están llegando mensajes al celular que no aparecen en GHL y revisa en GHL → subcuenta ${ag} → Configuración → WhatsApp el estado del número.` });\n    prevEst.silencio = true; prevEst.avisoSilencio = ahora;\n  } else if (!silencio) { prevEst.silencio = false; }\n  if (caido && (!prevEst.caido || ahora - (prevEst.ultimoAviso || 0) > 6 * 3600 * 1000)) {\n    correos.push({ asunto: `🚨 WhatsApp caído en RS Viajes ${ag}`, cuerpo:\n      (desconectado.length ? `Meta indica que el número de WhatsApp de RS Viajes ${ag} está desconectado: fallaron ${fallidos.length} mensajes en las últimas 3 horas.\\n` : `En las últimas 3 horas fallaron ${fallidos.length} mensajes de WhatsApp de RS Viajes ${ag} y no se entregó ninguno.\\n`) +\n      `Mensajes de clientes recibidos en ese tiempo: ${entrantes}.\\n\\nError de Meta:\\n- ${errores.join('\\n- ')}\\n\\n` +\n      `Qué hacer: en GHL → subcuenta ${ag} → Configuración → WhatsApp, reconecta el número y revisa su estado en WhatsApp Manager de Meta. ` +\n      `Mientras tanto, contesten desde la app de WhatsApp Business del celular.\\n\\nTe vuelvo a avisar cada 6 horas mientras siga fallando.` });\n    est.agencias[ag] = { ...prevEst, caido: true, ultimoAviso: ahora, desde: prevEst.caido ? prevEst.desde : ahora };\n  } else if (!caido && prevEst.caido && okCount > 0) {\n    const horas = Math.round((ahora - (prevEst.desde || ahora)) / 3600000);\n    correos.push({ asunto: `✅ WhatsApp de RS Viajes ${ag} recuperado`, cuerpo:\n      `El WhatsApp de RS Viajes ${ag} vuelve a entregar mensajes (${okCount} entregados en las últimas 3 horas). Estuvo fallando unas ${horas} h.\\n\\n` +\n      `Revisa los mensajes que fallaron en ese tiempo para reenviarlos, y la app del celular por si algún cliente escribió y no entró a GHL.` });\n    est.agencias[ag] = { ...prevEst, caido: false, ultimoAviso: 0 };\n  } else {\n    est.agencias[ag] = { ...prevEst, errorApi: false, caido: caido || (prevEst.caido && okCount === 0) };\n  }\n}\nreturn correos.filter(c => c.solo_si !== false).map(c => ({ json: { asunto: c.asunto, cuerpo: c.cuerpo } }));"
+        "jsCode": "// Detecta si el WhatsApp de alguna agencia está caído: en las últimas 3 h hay 2+ envíos fallidos y ninguno entregado.\n// No cuenta los fallos normales de \"más de 24 h sin respuesta del cliente\". Avisa al caer, recuerda cada 6 h y avisa al recuperarse.\n// También avisa: al primer error de número desconectado de Meta (p. ej. #133010 \"Account not registered\"), y si una agencia\n// que normalmente recibe mensajes lleva más de 2 h sin recibir ninguno en horario (10–21 h): suele ser que el número se desconectó de GHL.\nconst AGENCIAS = ['Independencia', 'Centro', 'Periodismo', 'Matriz', 'Hijar', 'Saltillo'];\nconst est = $getWorkflowStaticData('global');\nest.agencias = est.agencias || {};\nconst ahora = Date.now();\nconst correos = [];\nfor (const ag of AGENCIAS) {\n  let r = {};\n  try { r = $('WhatsApp ' + ag).first().json || {}; } catch (e) {}\n  const prevEst = est.agencias[ag] || { caido: false, ultimoAviso: 0 };\n  if (r.error || !Array.isArray(r.messages)) {\n    correos.push({ asunto: `⚠️ No se pudo revisar el WhatsApp de ${ag}`, cuerpo: `No se pudieron consultar los mensajes de WhatsApp de RS Viajes ${ag} en GHL.\\nDetalle: ${JSON.stringify(r.error || r).slice(0, 400)}\\n\\nPuede ser un problema temporal de GHL o de la credencial de la API.` , solo_si: !prevEst.errorApi });\n    est.agencias[ag] = { ...prevEst, errorApi: true };\n    continue;\n  }\n  const salientes = r.messages.filter(m => m.direction === 'outbound');\n  const fallidos = salientes.filter(m => m.status === 'failed' && !/24 hours/i.test(String(m.error || '')));\n  const okCount = salientes.filter(m => ['delivered', 'read', 'sent'].includes(m.status)).length;\n  const entrantes = r.messages.filter(m => m.direction === 'inbound').length;\n  const desconectado = fallidos.filter(m => /133010|133005|131031|not registered|account (is )?locked|disconnected/i.test(String(m.error || '')));\n  const ultimoOk = Math.max(0, ...salientes.filter(m => ['delivered', 'read', 'sent'].includes(m.status)).map(m => new Date(m.dateAdded).getTime()));\n  // Un error de número desconectado posterior al último mensaje entregado ya cuenta como caída\n  const caido = (fallidos.length >= 2 && okCount === 0) || desconectado.some(m => new Date(m.dateAdded).getTime() > ultimoOk);\n  const errores = [...new Set(fallidos.map(m => String(m.error || 'sin detalle').slice(0, 160)))];\n  // Silencio: sin mensajes de clientes en las últimas 2 h, en horario, en una agencia con movimiento habitual\n  const hora = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false }));\n  const ultimaEntrada = Math.max(0, ...r.messages.filter(m => m.direction === 'inbound').map(m => new Date(m.dateAdded).getTime()));\n  // Mensajes de clientes que suelen entrar cada 3 h en horario (medido el 10–13 oct); luego se ajusta solo\n  const INICIAL = { Independencia: 3, Centro: 5, Periodismo: 6, Matriz: 9, Hijar: 0, Saltillo: 0 };\n  if (prevEst.versionMedia !== 2) { prevEst.mediaEntrantes = INICIAL[ag]; prevEst.versionMedia = 2; }\n  const media = prevEst.mediaEntrantes;\n  const enHorario = hora >= 10 && hora < 21;\n  // Agencias con mucho movimiento: 2 h sin mensajes ya es raro; con poco movimiento, 3 h (toda la ventana)\n  const silencio = enHorario && media >= 3 && (ahora - ultimaEntrada) > (media >= 6 ? 2 : 2.9) * 3600 * 1000;\n  if (enHorario && !silencio) prevEst.mediaEntrantes = Math.round((media * 0.9 + entrantes * 0.1) * 10) / 10;\n  else prevEst.mediaEntrantes = media;\n  if (silencio && !caido && (!prevEst.silencio || ahora - (prevEst.avisoSilencio || 0) > 6 * 3600 * 1000)) {\n    correos.push({ asunto: `🔇 RS Viajes ${ag}: no entran mensajes de WhatsApp`, cuerpo:\n      `Desde ${ultimaEntrada ? new Date(ultimaEntrada).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit' }) : 'hace más de 3 horas'} no ha entrado ningún mensaje de clientes por WhatsApp a GHL en RS Viajes ${ag}, ` +\n      `y normalmente entran unos ${Math.round(media)} cada 3 horas.\\n\\nSuele pasar cuando el número se desconecta de GHL (por ejemplo, si se abrió en otro celular o en la app de WhatsApp Business). ` +\n      `Pregunta en la agencia si les están llegando mensajes al celular que no aparecen en GHL y revisa en GHL → subcuenta ${ag} → Configuración → WhatsApp el estado del número.` });\n    prevEst.silencio = true; prevEst.avisoSilencio = ahora;\n  } else if (!silencio) { prevEst.silencio = false; }\n  if (caido && (!prevEst.caido || ahora - (prevEst.ultimoAviso || 0) > 6 * 3600 * 1000)) {\n    correos.push({ asunto: `🚨 WhatsApp caído en RS Viajes ${ag}`, cuerpo:\n      (desconectado.length ? `Meta indica que el número de WhatsApp de RS Viajes ${ag} está desconectado: fallaron ${fallidos.length} mensajes en las últimas 3 horas.\\n` : `En las últimas 3 horas fallaron ${fallidos.length} mensajes de WhatsApp de RS Viajes ${ag} y no se entregó ninguno.\\n`) +\n      `Mensajes de clientes recibidos en ese tiempo: ${entrantes}.\\n\\nError de Meta:\\n- ${errores.join('\\n- ')}\\n\\n` +\n      `Qué hacer: en GHL → subcuenta ${ag} → Configuración → WhatsApp, reconecta el número y revisa su estado en WhatsApp Manager de Meta. ` +\n      `Mientras tanto, contesten desde la app de WhatsApp Business del celular.\\n\\nTe vuelvo a avisar cada 6 horas mientras siga fallando.` });\n    est.agencias[ag] = { ...prevEst, caido: true, ultimoAviso: ahora, desde: prevEst.caido ? prevEst.desde : ahora };\n  } else if (!caido && prevEst.caido && okCount > 0) {\n    const horas = Math.round((ahora - (prevEst.desde || ahora)) / 3600000);\n    correos.push({ asunto: `✅ WhatsApp de RS Viajes ${ag} recuperado`, cuerpo:\n      `El WhatsApp de RS Viajes ${ag} vuelve a entregar mensajes (${okCount} entregados en las últimas 3 horas). Estuvo fallando unas ${horas} h.\\n\\n` +\n      `Revisa los mensajes que fallaron en ese tiempo para reenviarlos, y la app del celular por si algún cliente escribió y no entró a GHL.` });\n    est.agencias[ag] = { ...prevEst, caido: false, ultimoAviso: 0 };\n  } else {\n    est.agencias[ag] = { ...prevEst, errorApi: false, caido: caido || (prevEst.caido && okCount === 0) };\n  }\n}\nreturn correos.filter(c => c.solo_si !== false).map(c => ({ json: { asunto: c.asunto, cuerpo: c.cuerpo } }));"
       }
     },
     {
@@ -247,6 +247,45 @@
         "httpHeaderAuth": {
           "id": "aOLNoZxnstcTG6kV",
           "name": "GHL - PIT - Hijar"
+        }
+      },
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "b5945ac7-5c10-4bf5-bea9-bfc032c6b38c",
+      "name": "WhatsApp Saltillo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        0
+      ],
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/conversations/messages/export?locationId=KZbCbxCL6PH5AVNNgLQ6&channel=WhatsApp&limit=100&startDate={{ $now.minus({hours: 3}).toUTC().toISO() }}&endDate={{ $now.toUTC().toISO() }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PYYaUr4y3fcmZ8V1",
+          "name": "GHL - PIT - Saltillo"
         }
       },
       "retryOnFail": true,
@@ -323,6 +362,17 @@
       ]
     },
     "WhatsApp Hijar": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Saltillo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Saltillo": {
       "main": [
         [
           {

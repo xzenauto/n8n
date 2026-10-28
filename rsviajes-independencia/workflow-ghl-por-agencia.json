@@ -145,6 +145,30 @@
               },
               "renameOutput": true,
               "outputKey": "hijar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "886f076c-52b2-4730-a5d1-219d6fc221f2",
+                    "leftValue": "={{ $json.agencia }}",
+                    "rightValue": "saltillo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "saltillo"
             }
           ]
         },
@@ -388,6 +412,51 @@
       "parameters": {
         "jsCode": "// Devuelve la respuesta de GHL junto con el contexto que mandó el flujo que llamó\nconst entrada = $('Entrada').first().json;\nreturn [{ json: { ctx: entrada.ctx || {}, agencia: entrada.agencia, res: $input.first().json } }];"
       }
+    },
+    {
+      "id": "01e2f25a-c562-4114-92bb-63137942861f",
+      "name": "GHL saltillo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        720
+      ],
+      "parameters": {
+        "method": "={{ $json.method || 'GET' }}",
+        "url": "=https://services.leadconnectorhq.com{{ $json.path }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": "={{ !!$json.body }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body || {}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PYYaUr4y3fcmZ8V1",
+          "name": "GHL - PIT - Saltillo"
+        }
+      }
     }
   ],
   "connections": {
@@ -435,6 +504,13 @@
         [
           {
             "node": "GHL hijar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GHL saltillo",
             "type": "main",
             "index": 0
           }
@@ -486,6 +562,17 @@
       ]
     },
     "GHL hijar": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL saltillo": {
       "main": [
         [
           {
