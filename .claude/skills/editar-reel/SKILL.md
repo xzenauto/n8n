@@ -265,6 +265,10 @@ Hecho para los 4 anuncios (agencia de viajes y mueblería, corto y largo). El ma
    Las líneas de tiempo de ejemplo están en `ejemplos/anuncios_4x3/tl_*.json`.
 4. Subtítulos: `reel_subs.py rec.mkv subs.mp4 --grade --hook <fin> --center 0.85 --cuts ...`: bloque centrado abajo
    (los anuncios se ven sin sonido), gancho grande junto a la cara y palabras clave en amarillo.
+   Chat con dos lados (comparar chatbot rígido vs agente de IA): `msgs` con 4.º campo "r" (burbuja verde a la
+   derecha = cliente), `dot` ("red"/"green") y `count: false`.
+   Gancho largo en una columna estrecha: marca `"brk": true` en words.json tras la palabra donde quieres cortar
+   (frases de 3–6 palabras); si una palabra no cabe en la columna, el gancho se reduce solo.
 5. Audio: voz, `musica_motivacional.py` a volume 0.065 con ducking, `sfx_pop.py` (0.10) en cada recurso y
    `sfx_whoosh.py` (0.09) en cada B-roll, `loudnorm=I=-14`.
 

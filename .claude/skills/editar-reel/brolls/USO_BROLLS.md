@@ -9,8 +9,8 @@ Se actualiza con `brolls_db.py informe`. Más usados arriba.
 | starbucks2 | Trabajando starbuks 2 | horizontal | 6 | reel_disciplina_talento |
 | abriendo_compu | Abriendo la compu | horizontal | 5 | reel_disciplina_talento |
 | angustiado_cafe | Angustiado trabajando café | horizontal | 5 | reel_disciplina_talento |
+| chat_muebleria | Chat Mueblería | horizontal | 5 | anuncio_chatbot_vs_agente |
 | reunion2 | En reunion 2 | horizontal | 5 | reel_disciplina_talento |
-| chat_muebleria | Chat Mueblería | horizontal | 4 | anuncios_meta_muebles |
 | starbucks3 | Trabajando starbuks 3 | horizontal | 4 | reel_disciplina_talento |
 | terraza | Trabajando terraza | horizontal | 4 | reel_disciplina_talento |
 | trabajando_cafe | Trabajando cafe | horizontal | 4 | reel_disciplina_talento |

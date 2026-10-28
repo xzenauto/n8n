@@ -135,29 +135,34 @@ def paste_scaled(im, el, x, y, sc, alpha=1.0):
 
 # ---------------------------------------------------------------- tipos de tarjeta
 def card_chat(it, lt):
+    """msgs: [t, texto, hora] o [t, texto, hora, "r"] (burbuja a la derecha = respuesta propia).
+    dot: color del punto de la cabecera ("red"|"green"|"grey"); count: contador rojo de mensajes."""
     msgs = it["msgs"]; fb = font(23, 500); ft = font(16, 500)
     tmp = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
     blocks = []
-    for _, txt, hora in msgs:
-        lines = wrap(tmp, txt, fb, CARD_W - 120)
-        blocks.append((lines, hora, 22 + 30 * len(lines) + 4))
-    h = 70 + sum(b[2] + 30 for b in blocks) + 10
+    for m in msgs:
+        lines = wrap(tmp, m[1], fb, CARD_W - 130)
+        blocks.append((lines, m[2], 22 + 30 * len(lines) + 4, len(m) > 3 and m[3] == "r"))
+    h = 70 + sum(b[2] + (30 if b[1] else 12) for b in blocks) + 10
     im, d = base(h)
     n = sum(1 for m in msgs if lt >= m[0] - it["t0"])
-    y = header(d, it.get("title", "Mensajes nuevos"), dot=RED if n else GREY)
-    if n:
-        bx = 30 + text_w(d, it.get("title", "Mensajes nuevos").upper(), font(21, 600)) + 36
+    dot = {"red": RED, "green": GREEN, "grey": GREY}.get(it.get("dot"), RED if n else GREY)
+    title = it.get("title", "Mensajes nuevos")
+    y = header(d, title, dot=dot)
+    if n and it.get("count", True):
+        bx = 30 + text_w(d, title.upper(), font(21, 600)) + 36
         d.ellipse([S(bx), S(24), S(bx + 28), S(52)], fill=RED)
         s = str(n); d.text((S(bx + 14 - text_w(d, s, font(17, 700)) / 2), S(28)), s, font=font(17, 700), fill=WHITE)
-    for (t, _, _), (lines, hora, bh) in zip(msgs, blocks):
-        p = lt - (t - it["t0"])
+    for m, (lines, hora, bh, right) in zip(msgs, blocks):
+        p = lt - (m[0] - it["t0"])
         bw = max(text_w(d, l, fb) for l in lines) + 36
         el = Image.new("RGBA", (S(bw + 10), S(bh + 26)), (0, 0, 0, 0)); e = ImageDraw.Draw(el)
-        e.rounded_rectangle([0, 0, S(bw), S(bh)], S(18), fill=(236, 236, 240, 255))
-        for k, l in enumerate(lines): e.text((S(18), S(12 + 30 * k)), l, font=fb, fill=(25, 25, 30))
-        e.text((S(6), S(bh + 4)), hora, font=ft, fill=GREY)
-        paste_scaled(im, el, 30, y, pop(p), min(1, max(0, p) / 0.15))
-        y += bh + 30
+        bg, fg = ((34, 120, 84, 255), WHITE) if right else ((236, 236, 240, 255), (25, 25, 30))
+        e.rounded_rectangle([0, 0, S(bw), S(bh)], S(18), fill=bg)
+        for k, l in enumerate(lines): e.text((S(18), S(12 + 30 * k)), l, font=fb, fill=fg)
+        if hora: e.text((S(6), S(bh + 4)), hora, font=ft, fill=GREY)
+        paste_scaled(im, el, CARD_W - 30 - bw - 10 if right else 30, y, pop(p), min(1, max(0, p) / 0.15))
+        y += bh + (30 if hora else 12)
     return im
 
 

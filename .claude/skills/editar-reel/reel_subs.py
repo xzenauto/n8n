@@ -80,7 +80,8 @@ def chunks(words, cuts=(), hook_end=0.0, titles=()):
         if not cur:
             brk = False
         elif in_hook:
-            brk = len(cur) >= HOOK_MAX_WORDS or cur[-1]["w"][-1:] in ".?!" or crosses or w["s"] >= h_end
+            brk = (len(cur) >= HOOK_MAX_WORDS or cur[-1]["w"][-1:] in ".?!" or crosses or w["s"] >= h_end
+                   or cur[-1].get("brk", False))      # "brk": true en words.json → corte manual del gancho
         else:
             brk = (len(cur) >= MAX_WORDS or w["s"] - cur[-1]["e"] > MAX_GAP
                    or cur[-1]["w"][-1:] in ".?!,;:" or crosses)
@@ -288,7 +289,7 @@ class Renderer:
                 lb, rb = cx - fw * (0.5 + FACE_GAP), cx + fw * (0.5 + FACE_GAP)
             lfree = lb - margin
             rfree = s.W - margin - rb
-            if max(lfree, rfree) < s.W * 0.3:
+            if max(lfree, rfree) < s.W * 0.2:
                 x0, x1, align, yc = margin, s.W - margin, "center", s.H * 0.2
             elif rfree >= lfree:
                 x0, x1, align, yc = s.W - margin - rfree, s.W - margin, "left", max(ey, s.H * 0.32)
@@ -309,7 +310,7 @@ class Renderer:
             for i in idx:
                 pos[i] = (x, y); x += widths[i] + gap
             y += lh
-        return pos, len(lines)
+        return pos, (len(lines) if max(widths) <= x1 - x0 else 99)   # 99 = alguna palabra no cabe → reducir
 
     def frame(s, t, chunk, face, hook=False):
         canvas = Image.new("RGBA", (s.W, s.H), (0, 0, 0, 0))
