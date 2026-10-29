@@ -101,6 +101,18 @@ CFG_JS = "const CFG = " + json.dumps(CFG, ensure_ascii=False) + ";\nconst RUTAS 
     rutas, ensure_ascii=False) + ";\n"
 
 # ---------------------------------------------------------------- código
+NOMBRE_JS = r"""// Nombre para saludar: el de pila si parece de persona; vacío si el nombre del perfil parece de negocio.
+const nombreParaSaludo = (n) => {
+  const t = String(n ?? '').replace(/[^\p{L}\s'.-]/gu, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const bajo = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/\b(viaj|tour|travel|agencia|turism|bienestar|natural|grupo|servicio|tienda|mueble|hotel|vacacion|express|club|studio|estudio|consultor|empresa|negocio|store|shop|boutique|inc|sa de cv)/.test(bajo)) return '';
+  const partes = t.split(' ');
+  if (partes.length > 4 || partes[0].length < 2) return '';
+  return partes[0].charAt(0).toUpperCase() + partes[0].slice(1).toLowerCase();
+};
+"""
+
 NORMALIZAR = r"""// Webhook del flujo de GHL "Cliente respondió" (WhatsApp).
 const b = $json.body ?? $json;
 const contactId = b.contact_id || b.contactId || b.customData?.contact_id || b.contact?.id;
@@ -123,7 +135,7 @@ return [{ json: {
 } }];
 """
 
-ANALIZAR = CFG_JS + r"""
+ANALIZAR = CFG_JS + NOMBRE_JS + r"""
 const ent = $('Normalizar entrada').first().json;
 const contacto = $('GHL contacto').first().json.contact ?? {};
 const opps = $('GHL oportunidades').first().json.opportunities ?? [];
@@ -217,7 +229,7 @@ ${ahora}
 ${dias.join('\n')}
 
 # Datos del cliente en el CRM
-- Nombre: ${limpio(contacto.firstName) || 'desconocido'}${contacto.companyName ? `\n- Negocio: ${contacto.companyName}` : ''}${contacto.email ? `\n- Correo: ${contacto.email}` : ''}
+- Nombre para saludar: ${nombreParaSaludo([contacto.firstName, contacto.lastName].filter(Boolean).join(' ')) || `(ninguno: no use nombre al saludar; el perfil se llama "${limpio([contacto.firstName, contacto.lastName].filter(Boolean).join(' ')) || 'sin nombre'}" y parece de negocio o no se sabe)`}${contacto.companyName ? `\n- Negocio: ${contacto.companyName}` : ''}${contacto.email ? `\n- Correo: ${contacto.email}` : ''}
 - Anuncio de origen: ${anuncioTexto}
 - Desde dónde nos contacta: ${p(valores.ubicacion)}
 - ¿Invierte en anuncios de Facebook?: ${p(valores.inversion)}
@@ -260,6 +272,7 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 
 # Personalidad
 - Siempre trata de USTED al cliente. Amigable, cálido y profesional.
+- Para saludar use solo el "Nombre para saludar" del CRM o el nombre que el cliente le diga; si no hay, salude sin nombre (nunca use el nombre de un negocio como si fuera de persona).
 - Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.
 - Una sola pregunta por turno. Emojis con moderación (uno o dos como máximo).
 - Sea breve: normalmente 1 mensaje y como máximo 2 por turno; no repita en un mensaje lo que ya dijo en otro.
@@ -481,7 +494,7 @@ return [{ json: {
 } }];
 """
 
-RECORDATORIO = r"""// ¿Sigue sin responder desde que le mandamos el video?
+RECORDATORIO = NOMBRE_JS + r"""// ¿Sigue sin responder desde que le mandamos el video?
 const contacto = $('Recordatorio · contacto').first().json.contact ?? {};
 const tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());
 if (['atencion-personalizada', 'maripino-off', 'video-recordatorio'].some((t) => tags.includes(t))) return [];
@@ -494,7 +507,7 @@ msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => n
 let video = -1;
 msgs.forEach((m, i) => { if (m.direction === 'outbound' && /youtu\.?be/.test(m.body ?? '')) video = i; });
 if (video < 0 || msgs.slice(video + 1).some((m) => m.direction === 'inbound')) return [];
-const nombre = String(contacto.firstName ?? '').trim();
+const nombre = nombreParaSaludo([contacto.firstName, contacto.lastName].filter(Boolean).join(' '));
 return [{ json: {
   contactId: contacto.id,
   mensaje: `${nombre ? `Hola, ${nombre}. ` : 'Hola. '}¿Pudo ver el video? 😊 Nos encantaría saber qué le pareció.`,
@@ -778,10 +791,10 @@ agente = {"name": "Maripino · Agente WhatsApp xzen Auto", "nodes": nodos, "conn
 
 
 # ---------------------------------------------------------------- seguimientos (cada 15 min)
-SEG_CANDIDATOS = r"""// Leads de Maripino que pueden necesitar seguimiento.
+SEG_CANDIDATOS = NOMBRE_JS + r"""// Leads de Maripino que pueden necesitar seguimiento.
 const fuera = ['atencion-personalizada', 'maripino-off', 'cita-agendada', 'seguimiento-3'];
 return ($json.contacts ?? [])
-  .map((c) => ({ id: c.id, nombre: c.firstName || '', tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))
+  .map((c) => ({ id: c.id, nombre: nombreParaSaludo([c.firstName, c.lastName].filter(Boolean).join(' ')), tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))
   .filter((c) => c.tags.includes('maripino') && !fuera.some((t) => c.tags.includes(t)))
   .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));
 """
@@ -842,7 +855,7 @@ El cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimie
 
 SEG_CUERPO_OPENAI = ("={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: ["
                      "{ role: 'system', content: " + json.dumps(SEG_PROMPT, ensure_ascii=False) + " },"
-                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3.' + ($json.nombre ? ' Nombre del cliente: ' + $json.nombre + '.' : '')"
+                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3.' + ($json.nombre ? ' Nombre para saludar: ' + $json.nombre + '.' : ' No use nombre al saludar.')"
                      " + '\\n\\nConversación:\\n' + $json.historial } ] }) }}")
 
 SEG_MENSAJE = r"""const d = $('¿Toca seguimiento?').all();
