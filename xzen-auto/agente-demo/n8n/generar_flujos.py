@@ -101,6 +101,13 @@ CFG_JS = "const CFG = " + json.dumps(CFG, ensure_ascii=False) + ";\nconst RUTAS 
     rutas, ensure_ascii=False) + ";\n"
 
 # ---------------------------------------------------------------- código
+ROBOT_JS = r"""// Sin caritas: cualquier emoji de cara o gesto se cambia por 🤖, y solo queda un robot por mensaje.
+const soloRobots = (t) => String(t ?? '')
+  .replace(/[\u{1F600}-\u{1F64F}\u{1F910}-\u{1F92F}\u{1F970}-\u{1F97A}\u{1F9D0}\u{263A}\u{1F44D}\u{1F44F}\u{1F64C}\u{1F64F}\u{1F389}]️?/gu, '🤖')
+  .replace(/🤖/gu, ((primero) => () => (primero ? ((primero = false), '🤖') : ''))(true))
+  .replace(/[ \t]{2,}/g, ' ').replace(/ ([?.!,])/g, '$1').trim();
+"""
+
 NOMBRE_JS = r"""// Nombre para saludar: el de pila si parece de persona; vacío si el nombre del perfil parece de negocio.
 const nombreParaSaludo = (n) => {
   const t = String(n ?? '').replace(/[^\p{L}\s'.-]/gu, ' ').replace(/\s+/g, ' ').trim();
@@ -277,7 +284,7 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 - Siempre trata de USTED al cliente. Amigable, cálido y profesional.
 - Para saludar use solo el "Nombre para saludar" del CRM o el nombre que el cliente le diga; si no hay, salude sin nombre (nunca use el nombre de un negocio como si fuera de persona).
 - Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.
-- Una sola pregunta por turno. Emojis con moderación (uno o dos como máximo).
+- Una sola pregunta por turno. Emojis: NUNCA use caritas (😊, 😉, 🙌, 🙏…); si quiere poner un emoji, use el robot 🤖 (máximo uno por mensaje). Para datos prácticos puede usar 📅 o 💻.
 - Sea breve: normalmente 1 mensaje y como máximo 2 por turno; no repita en un mensaje lo que ya dijo en otro.
 - No responda "¡Perfecto!" o "¡Excelente!" a una respuesta negativa (p. ej. "no invierto"); use algo natural como "Entiendo" o "Gracias por contarme".
 - No sea insistente: si el cliente no contestó una pregunta, no la repita en cada mensaje.
@@ -378,17 +385,17 @@ SCHEMA = {
 
 FALLBACK = r"""// Maripino falló (modelo caído, límite de iteraciones…): respuesta cortés y pasa con una persona.
 return [{ json: { output: {
-  mensajes: ['Permítame un momento, en breve una persona de nuestro equipo le escribe por aquí 🙏'],
+  mensajes: ['Permítame un momento, en breve una persona de nuestro equipo le escribe por aquí 🤖'],
   datos: {}, video_enviado: false, cita_agendada: false,
   atencion_personalizada: true, motivo_atencion: 'Error del agente automático', resumen: 'Error del agente',
 } } }];
 """
 
-PREPARAR = r"""const out = $input.first().json.output ?? {};
+PREPARAR = ROBOT_JS + r"""const out = $input.first().json.output ?? {};
 const c = $('Analizar').first().json;
 let mensajes = (Array.isArray(out.mensajes) ? out.mensajes : [out.mensajes])
-  .map((m) => String(m ?? '').trim()).filter(Boolean).slice(0, 3);
-if (!mensajes.length) mensajes = ['Permítame un momento y le confirmo 🙏'];
+  .map((m) => soloRobots(m)).filter(Boolean).slice(0, 3);
+if (!mensajes.length) mensajes = ['Permítame un momento y le confirmo 🤖'];
 
 // Cita: se toma de la respuesta real de agendar_cita, no de lo que diga el modelo.
 let cita = null;
@@ -525,7 +532,7 @@ if (video < 0 || msgs.slice(video + 1).some((m) => m.direction === 'inbound')) r
 const nombre = nombreParaSaludo([contacto.firstName, contacto.lastName].filter(Boolean).join(' '));
 return [{ json: {
   contactId: contacto.id,
-  mensaje: `${nombre ? `Hola, ${nombre}. ` : 'Hola. '}¿Pudo ver el video? 😊 Nos encantaría saber qué le pareció.`,
+  mensaje: `${nombre ? `Hola, ${nombre}. ` : 'Hola. '}¿Pudo ver el video? 🤖 Nos encantaría saber qué le pareció.`,
 } }];
 """
 
@@ -869,7 +876,7 @@ return salida;
 
 SEG_PROMPT = """Eres Maripino, asistente virtual de xzen Auto (automatización con IA para negocios, ahora para agencias de viajes).
 El cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimiento (máximo 2-3 líneas) para retomar la conversación.
-- Trate de USTED al cliente; amigable y profesional; español de México; uno o dos emojis como máximo.
+- Trate de USTED al cliente; amigable y profesional; español de México; nada de caritas (😊, 😉…): como mucho un 🤖.
 - Retome la conversación con naturalidad, sin repetir textualmente mensajes anteriores.
 - NUNCA vuelva a preguntar lo mismo que el último mensaje de xzen Auto (si ya se preguntó por el video, no pregunte otra vez por el video): cambie de ángulo.
 - Tono ligero, nada insistente ni de reclamo; no diga "solo quería saber si…" ni "le escribo de nuevo".
@@ -882,10 +889,10 @@ SEG_CUERPO_OPENAI = ("={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, m
                      " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3.' + ($json.nombre ? ' Nombre para saludar: ' + $json.nombre + '.' : ' No use nombre al saludar.')"
                      " + '\\n\\nConversación:\\n' + $json.historial } ] }) }}")
 
-SEG_MENSAJE = r"""const d = $('¿Toca seguimiento?').all();
+SEG_MENSAJE = ROBOT_JS + r"""const d = $('¿Toca seguimiento?').all();
 return $input.all().map((item, i) => ({ json: {
   ...d[i].json,
-  mensaje: String(item.json.choices?.[0]?.message?.content ?? '').trim().replace(/^"|"$/g, ''),
+  mensaje: soloRobots(String(item.json.choices?.[0]?.message?.content ?? '').trim().replace(/^"|"$/g, '')),
 } })).filter((x) => x.json.mensaje);
 """
 
