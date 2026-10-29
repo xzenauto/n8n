@@ -25,6 +25,11 @@ pruebas; la tiene el contacto de pruebas Carlos +34 638 76 07 11): la coexistenc
 Anuncio de origen · Desde dónde nos contacta · Invierte en anuncios de Facebook · Leads estimados por semana ·
 Cita agendada (fecha y hora de la llamada, en hora de Ciudad de México).
 
+## Cuándo habla Maripino
+Solo con leads cuya oportunidad está en la primera columna (**Nuevo lead**) o que aún no tienen oportunidad.
+En cualquier otra columna (Contactado, Agendado, Última oportunidad, Cerrado, Atención personalizada) o si la
+oportunidad está ganada/perdida, no responde, ni manda seguimientos ni el recordatorio del video.
+
 ## Qué hace en cada mensaje
 1. Espera 12 s y junta los mensajes que el cliente mande seguidos (responde una sola vez).
 2. Si el contacto tiene la etiqueta `atencion-personalizada` o `maripino-off`, no contesta

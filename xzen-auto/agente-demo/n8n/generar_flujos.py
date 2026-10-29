@@ -145,6 +145,9 @@ const limpio = (s) => String(s ?? '').trim();
 
 // 1. Con una persona del equipo o apagado a mano (etiqueta maripino-off): Maripino no contesta.
 if (tags.includes('atencion-personalizada') || tags.includes('maripino-off')) return [];
+// Solo atiende leads en la primera columna ("Nuevo lead") o sin oportunidad todavía.
+// Si la oportunidad está en otra columna (Contactado, Agendado, Cerrado, Atención personalizada) o ya no está abierta, no habla.
+if (opp && (opp.pipelineStageId !== CFG.etapas.nuevo || (opp.status && opp.status !== 'open'))) return [];
 
 // 2. ¿Viene de un anuncio? Solo atendemos leads de anuncios (la coexistencia trae también contactos personales).
 const fuentes = [contacto.attributionSource, contacto.lastAttributionSource, ...(contacto.attributions ?? [])];
@@ -330,6 +333,7 @@ Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su 
    nombre de su negocio y correo, y agende después con el mismo horario.
    Si respondió otro error, discúlpese, consulte de nuevo la disponibilidad y ofrezca otros horarios.
 5. Si en el CRM dice "Cita ya agendada: sí", NO vuelva a agendar ni repita los datos de la cita en cada mensaje.
+   (Después de agendar, la conversación la sigue el equipo; usted solo cierra con una despedida breve.)
    Si el cliente solo agradece o se despide, responda con UN mensaje corto y cordial.
    Si quiere cambiarla o cancelarla, márquelo para atención personalizada.
 Si todavía no quiere agendar, pregúntele si le puede escribir en un par de días.
@@ -423,6 +427,15 @@ if (!c.valores.anuncio) poner('anuncio', c.anuncioTexto);
 let oportunidadNueva = null;
 try { oportunidadNueva = $('GHL crear oportunidad').first().json.opportunity?.id ?? null; } catch (e) {}
 
+// Nombre y negocio solo se guardan si aparecen en lo que escribió el cliente (la IA a veces los saca del perfil).
+const sinAc = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const lineasCliente = sinAc(c.prompt.split('# Conversación previa')[1] ?? '').split('\n')
+  .filter((l, i, a) => l.startsWith('cliente:') || a.slice(0, i).some((x) => x.startsWith('# mensaje(s) nuevo(s)')))
+  .join(' ');
+const dijo = (v) => limpio(v).length > 1 && lineasCliente.includes(sinAc(limpio(v)));
+if (!dijo(d.negocio)) d.negocio = '';
+if (!dijo(d.nombre_completo)) d.nombre_completo = '';
+
 const contacto = {};
 if (customFields.length) contacto.customFields = customFields;
 // El correo va en una petición aparte: si ya existe en otro contacto, GHL rechaza la petición entera.
@@ -496,6 +509,8 @@ return [{ json: {
 
 RECORDATORIO = NOMBRE_JS + r"""// ¿Sigue sin responder desde que le mandamos el video?
 const contacto = $('Recordatorio · contacto').first().json.contact ?? {};
+const oppRec = ($('Recordatorio · oportunidad').first().json.opportunities ?? [])[0];
+if (oppRec && (oppRec.pipelineStageId !== 'fe64e5e5-f19a-4c8a-af74-20d0d2c12868' || (oppRec.status && oppRec.status !== 'open'))) return []; // ya no está en Nuevo lead
 const tags = (contacto.tags ?? []).map((t) => String(t).toLowerCase());
 if (['atencion-personalizada', 'maripino-off', 'video-recordatorio'].some((t) => tags.includes(t))) return [];
 const horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
@@ -704,6 +719,9 @@ nodos = [
          webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/wait-video"))),
     ghl("Recordatorio · contacto", [5700, 460], "GET",
         "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}"),
+    ghl("Recordatorio · oportunidad", [5800, 560], "GET", GHL + "/opportunities/search",
+        query={"location_id": LOCATION_ID, "contact_id": "={{ $('Plan CRM').first().json.contactId }}", "pipeline_id": CFG["pipelineId"]},
+        onError="continueRegularOutput", alwaysOutputData=True),
     ghl("Recordatorio · conversación", [5900, 460], "GET", GHL + "/conversations/search",
         query={"locationId": LOCATION_ID, "contactId": "={{ $('Plan CRM').first().json.contactId }}", "limit": "1"}),
     ghl("Recordatorio · mensajes", [6100, 460], "GET",
@@ -770,7 +788,8 @@ une("Armar correo cita", "Correo cita a xzenauto@gmail.com")
 une("Correo cita a xzenauto@gmail.com", "¿Envió el video?")
 une("¿Cita agendada?", "¿Envió el video?", salida=1)
 une("¿Envió el video?", "Esperar 1 hora", salida=0)
-for a, b in [("Esperar 1 hora", "Recordatorio · contacto"), ("Recordatorio · contacto", "Recordatorio · conversación"),
+for a, b in [("Esperar 1 hora", "Recordatorio · contacto"), ("Recordatorio · contacto", "Recordatorio · oportunidad"),
+             ("Recordatorio · oportunidad", "Recordatorio · conversación"),
              ("Recordatorio · conversación", "Recordatorio · mensajes"),
              ("Recordatorio · mensajes", "¿Sin respuesta al video?"),
              ("¿Sin respuesta al video?", "GHL enviar recordatorio"),
@@ -793,7 +812,12 @@ agente = {"name": "Maripino · Agente WhatsApp xzen Auto", "nodes": nodos, "conn
 # ---------------------------------------------------------------- seguimientos (cada 15 min)
 SEG_CANDIDATOS = NOMBRE_JS + r"""// Leads de Maripino que pueden necesitar seguimiento.
 const fuera = ['atencion-personalizada', 'maripino-off', 'cita-agendada', 'seguimiento-3'];
-return ($json.contacts ?? [])
+// Solo leads cuya oportunidad sigue en la primera columna ("Nuevo lead") o que aún no tienen oportunidad.
+const opps = $('GHL oportunidades').first().json.opportunities ?? [];
+const fueraDeNuevo = new Set(opps.filter((o) => o.pipelineStageId !== 'fe64e5e5-f19a-4c8a-af74-20d0d2c12868' || (o.status && o.status !== 'open'))
+  .map((o) => o.contactId || o.contact?.id));
+return ($('GHL leads de Maripino').first().json.contacts ?? [])
+  .filter((c) => !fueraDeNuevo.has(c.id))
   .map((c) => ({ id: c.id, nombre: nombreParaSaludo([c.firstName, c.lastName].filter(Boolean).join(' ')), tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))
   .filter((c) => c.tags.includes('maripino') && !fuera.some((t) => c.tags.includes(t)))
   .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));
@@ -871,6 +895,8 @@ seg_nodos = [
     ghl("GHL leads de Maripino", [200, 0], "POST", GHL + "/contacts/search",
         cuerpo=json.dumps({"locationId": LOCATION_ID, "pageLimit": 100,
                            "filters": [{"field": "tags", "operator": "contains", "value": "maripino"}]})),
+    ghl("GHL oportunidades", [300, 0], "GET", GHL + "/opportunities/search",
+        query={"location_id": LOCATION_ID, "pipeline_id": CFG["pipelineId"], "limit": "100"}, executeOnce=True),
     nodo("Candidatos", "n8n-nodes-base.code", 2, [400, 0], {"jsCode": SEG_CANDIDATOS}),
     ghl("GHL conversación", [600, 0], "GET", GHL + "/conversations/search",
         query={"locationId": LOCATION_ID, "contactId": "={{ $json.contactId }}", "limit": "1"},

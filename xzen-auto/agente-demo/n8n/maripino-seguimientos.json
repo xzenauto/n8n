@@ -61,6 +61,60 @@
       }
     },
     {
+      "id": "8214a4c9-209b-5f82-a163-713e0d348335",
+      "name": "GHL oportunidades",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/opportunities/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "location_id",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            },
+            {
+              "name": "pipeline_id",
+              "value": "aCNhCRpOOyTfbHBPplyl"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "executeOnce": true
+    },
+    {
       "id": "f5e125d5-cdeb-5359-bbdc-fdd732f015fe",
       "name": "Candidatos",
       "type": "n8n-nodes-base.code",
@@ -70,7 +124,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Nombre para saludar: el de pila si parece de persona; vacío si el nombre del perfil parece de negocio.\nconst nombreParaSaludo = (n) => {\n  const t = String(n ?? '').replace(/[^\\p{L}\\s'.-]/gu, ' ').replace(/\\s+/g, ' ').trim();\n  if (!t) return '';\n  const bajo = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');\n  if (/\\b(viaj|tour|travel|agencia|turism|bienestar|natural|grupo|servicio|tienda|mueble|hotel|vacacion|express|club|studio|estudio|consultor|empresa|negocio|store|shop|boutique|inc|sa de cv)/.test(bajo)) return '';\n  const partes = t.split(' ');\n  if (partes.length > 4 || partes[0].length < 2) return '';\n  return partes[0].charAt(0).toUpperCase() + partes[0].slice(1).toLowerCase();\n};\n// Leads de Maripino que pueden necesitar seguimiento.\nconst fuera = ['atencion-personalizada', 'maripino-off', 'cita-agendada', 'seguimiento-3'];\nreturn ($json.contacts ?? [])\n  .map((c) => ({ id: c.id, nombre: nombreParaSaludo([c.firstName, c.lastName].filter(Boolean).join(' ')), tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))\n  .filter((c) => c.tags.includes('maripino') && !fuera.some((t) => c.tags.includes(t)))\n  .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));\n"
+        "jsCode": "// Nombre para saludar: el de pila si parece de persona; vacío si el nombre del perfil parece de negocio.\nconst nombreParaSaludo = (n) => {\n  const t = String(n ?? '').replace(/[^\\p{L}\\s'.-]/gu, ' ').replace(/\\s+/g, ' ').trim();\n  if (!t) return '';\n  const bajo = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');\n  if (/\\b(viaj|tour|travel|agencia|turism|bienestar|natural|grupo|servicio|tienda|mueble|hotel|vacacion|express|club|studio|estudio|consultor|empresa|negocio|store|shop|boutique|inc|sa de cv)/.test(bajo)) return '';\n  const partes = t.split(' ');\n  if (partes.length > 4 || partes[0].length < 2) return '';\n  return partes[0].charAt(0).toUpperCase() + partes[0].slice(1).toLowerCase();\n};\n// Leads de Maripino que pueden necesitar seguimiento.\nconst fuera = ['atencion-personalizada', 'maripino-off', 'cita-agendada', 'seguimiento-3'];\n// Solo leads cuya oportunidad sigue en la primera columna (\"Nuevo lead\") o que aún no tienen oportunidad.\nconst opps = $('GHL oportunidades').first().json.opportunities ?? [];\nconst fueraDeNuevo = new Set(opps.filter((o) => o.pipelineStageId !== 'fe64e5e5-f19a-4c8a-af74-20d0d2c12868' || (o.status && o.status !== 'open'))\n  .map((o) => o.contactId || o.contact?.id));\nreturn ($('GHL leads de Maripino').first().json.contacts ?? [])\n  .filter((c) => !fueraDeNuevo.has(c.id))\n  .map((c) => ({ id: c.id, nombre: nombreParaSaludo([c.firstName, c.lastName].filter(Boolean).join(' ')), tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))\n  .filter((c) => c.tags.includes('maripino') && !fuera.some((t) => c.tags.includes(t)))\n  .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));\n"
       }
     },
     {
@@ -322,6 +376,17 @@
       ]
     },
     "GHL leads de Maripino": {
+      "main": [
+        [
+          {
+            "node": "GHL oportunidades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL oportunidades": {
       "main": [
         [
           {
