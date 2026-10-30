@@ -15,7 +15,14 @@ Flujo en n8n: **Maripino · Agente WhatsApp xzen Auto** (`ukexs4vDn2P6XA4Q`), we
 | 52613807534997 | Agencia Xime | agencia_viajes |
 | 52613807845997 | Agencia Carlos1 | agencia_viajes |
 | 52613808070397 | Agencia Carlos2 | agencia_viajes |
+| 52614782625197 | Agencia Xime (conjunto «Copia», desde 30-oct) | agencia_viajes |
+| 52614782625397 | Agencia Carlos1 (conjunto «Copia») | agencia_viajes |
+| 52614782625797 | Agencia Carlos2 (conjunto «Copia») | agencia_viajes |
+| 52614782624997 | Agencia Flyer (conjunto «Copia») | agencia_viajes |
 | _(próximamente)_ | Muebles | tienda_muebles (preparado, inactivo) |
+
+Si Meta cambia los IDs, se añaden los nuevos con el mismo nombre y se conservan los antiguos: el reporte
+agrupa leads y gasto por nombre de anuncio.
 
 GHL guarda el ID del anuncio en el contacto (`attributionSource.adId`); el flujo lo lee de ahí.
 **Solo responde a contactos que vienen de un anuncio** (o con la etiqueta `test-maripino` para

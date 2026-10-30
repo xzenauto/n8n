@@ -1009,7 +1009,16 @@ for (const [clave, nodo] of [['ayer', 'Meta ayer'], ['semana', 'Meta 7 días'], 
       alcance: Number(x.reach || 0), clics: Number(x.clicks || 0),
       conversaciones: acc('onsite_conversion.messaging_conversation_started_7d') };
   });
+  // Mismo anuncio con varios IDs (p. ej. conjunto duplicado): se suma por nombre.
+  meta[clave] = Object.values(meta[clave].reduce((m, x) => {
+    const a = m[x.nombre] ??= { id: x.nombre, nombre: x.nombre, gasto: 0, impresiones: 0, alcance: 0, clics: 0, conversaciones: 0 };
+    for (const k of ['gasto', 'impresiones', 'alcance', 'clics', 'conversaciones']) a[k] += x[k];
+    return m;
+  }, {}));
 }
+const NOMBRES_AD = [...new Set(Object.values(NOMBRE_AD))];
+const SIN_ID = 'Anuncio de Meta (sin ID)';
+const anuncioDe = (l) => NOMBRE_AD[l.adId] || (/anuncio de meta/i.test(l.anuncioCampo || '') ? SIN_ID : null);
 const sum = (arr, k) => (arr ?? []).reduce((s, x) => s + x[k], 0);
 
 // ---------- GHL
@@ -1036,7 +1045,7 @@ const leads = contactos.map((c) => {
   const o = opps.find((x) => (x.contactId || x.contact?.id) === c.id);
   const adId = adDe(c);
   return { c, o, tags: tagsDe(c), adId, alta: new Date(c.dateAdded).getTime(),
-    ciudad: campo(c, 'ubicacion'), inversion: campo(c, 'inversion'), leadsSemana: campo(c, 'leads') };
+    ciudad: campo(c, 'ubicacion'), inversion: campo(c, 'inversion'), leadsSemana: campo(c, 'leads'), anuncioCampo: campo(c, 'anuncio') };
 });
 const deAyer = leads.filter((l) => dia(l.alta) === ayer);
 const deSemana = leads.filter((l) => l.alta >= hace7);
@@ -1074,12 +1083,12 @@ ${filas.map((f) => `<tr>${f.map((v, i) => `<td style="text-align:${i ? 'right' :
 const h2 = (t) => `<h2 style="color:#1f3b73;font-size:17px;margin:22px 0 6px">${t}</h2>`;
 const kpi = (t, v) => `<td style="padding:10px;background:#f2f5fb;border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:bold;color:#1f3b73">${v}</div><div style="font-size:12px;color:#555">${t}</div></td>`;
 
-const leadsPorAd = (arr) => contar(arr, (l) => l.adId);
+const leadsPorAd = (arr) => contar(arr, (l) => anuncioDe(l));
 const filasMeta = (datos, arrLeads) => {
   const la = leadsPorAd(arrLeads);
   const filas = (datos ?? []).map((x) => [esc(x.nombre), money(x.gasto), num(x.impresiones), num(x.clics), num(x.conversaciones), num(la[x.id] || 0),
     la[x.id] ? money(x.gasto / la[x.id]) : '-']);
-  const g = sum(datos, 'gasto'); const tl = arrLeads.filter((l) => l.adId).length;
+  const g = sum(datos, 'gasto'); const tl = arrLeads.filter((l) => NOMBRE_AD[l.adId]).length;
   filas.push(['<b>Total</b>', `<b>${money(g)}</b>`, `<b>${num(sum(datos, 'impresiones'))}</b>`, `<b>${num(sum(datos, 'clics'))}</b>`,
     `<b>${num(sum(datos, 'conversaciones'))}</b>`, `<b>${num(tl)}</b>`, `<b>${tl ? money(g / tl) : '-'}</b>`]);
   return filas;
@@ -1092,10 +1101,10 @@ const tasa = leads.length ? Math.round(100 * agendadosTotal / leads.length) + '%
 const html = `<div style="font-family:Arial,sans-serif;max-width:760px;color:#222">
 <h1 style="color:#1f3b73;font-size:21px">Reporte diario xzen Auto · ${ayer}</h1>
 <table style="width:100%;border-spacing:8px"><tr>${kpi('Leads ayer', deAyer.length)}${kpi('Leads 7 días', deSemana.length)}${kpi('Leads totales', leads.length)}${kpi('Agendados', agendadosTotal)}${kpi('Perdidos', perdidosTotal)}${kpi('Tasa de agenda', tasa)}</tr></table>
-${h2('Leads por anuncio (GHL)')}${tabla(['Anuncio', 'Ayer', '7 días', 'Total'], [...Object.keys(NOMBRE_AD), null].map((id) => {
-  const n = (arr) => arr.filter((l) => l.adId === id).length;
-  return [id ? esc(NOMBRE_AD[id]) : 'Sin anuncio identificado (orgánico)', num(n(deAyer)), num(n(deSemana)), num(n(leads))];
-}).filter((f, i, a) => f[3] !== '0' || i < a.length - 1))}
+${h2('Leads por anuncio (GHL)')}${tabla(['Anuncio', 'Ayer', '7 días', 'Total'], [...NOMBRES_AD, SIN_ID, null].map((nombre) => {
+  const n = (arr) => arr.filter((l) => anuncioDe(l) === nombre).length;
+  return [nombre ? esc(nombre) : 'Sin anuncio identificado (orgánico)', num(n(deAyer)), num(n(deSemana)), num(n(leads)), nombre];
+}).filter((f) => f[3] !== '0' || NOMBRES_AD.includes(f[4])).map((f) => f.slice(0, 4)))}
 ${h2('Anuncios · ayer')}${meta.ayer ? tabla(cabMeta, filasMeta(meta.ayer, deAyer)) : `<p style="color:#b00">⚠️ Sin datos de Meta (${esc(metaError)}). Revisa la credencial «Meta Ads XzenAuto» en n8n.</p>`}
 ${meta.semana ? h2('Anuncios · últimos 7 días') + tabla(cabMeta, filasMeta(meta.semana, deSemana)) : ''}
 ${meta.total ? h2('Anuncios · desde el inicio') + tabla(cabMeta, filasMeta(meta.total, leads)) : ''}
@@ -1105,7 +1114,7 @@ ${h2('Ciudades que más nos contactan')}${ciudades.length ? tabla(['Ciudad', 'Le
 ${h2('¿Invierten en anuncios de Facebook?')}${tabla(['Respuesta', 'Leads'], ['Sí invierte', 'No invierte', 'Sin dato'].map((k) => [k, num(inversion[k] || 0)]))}
 <p style="font-size:14px">Volumen medio que declaran: <b>${volumenMedio ? num(volumenMedio) + ' leads por semana' : 'sin datos'}</b>${volumenes.length ? ` (${volumenes.length} respuestas)` : ''}.</p>
 ${h2('Próximas llamadas agendadas')}${eventos.length ? tabla(['Cuándo', 'Cita'], eventos.slice(0, 15).map((e) => [esc(f(e.startTime)), esc(e.title)])) : '<p>No hay llamadas agendadas en los próximos 7 días.</p>'}
-${h2('Leads de los últimos 7 días')}${deSemana.length ? tabla(['Fecha', 'Lead', 'Anuncio', 'Ciudad', 'Estado'], [...deSemana].sort((a, b) => b.alta - a.alta).map((l) => [esc(new Date(l.alta).toLocaleString('es-MX', { timeZone: tz, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })), esc([l.c.firstName, l.c.lastName].filter(Boolean).join(' ') || l.c.phone), esc(NOMBRE_AD[l.adId] || 'Sin anuncio (orgánico)'), esc(l.ciudad || '-'), estado(l)])) : '<p>No entraron leads en los últimos 7 días.</p>'}
+${h2('Leads de los últimos 7 días')}${deSemana.length ? tabla(['Fecha', 'Lead', 'Anuncio', 'Ciudad', 'Estado'], [...deSemana].sort((a, b) => b.alta - a.alta).map((l) => [esc(new Date(l.alta).toLocaleString('es-MX', { timeZone: tz, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })), esc([l.c.firstName, l.c.lastName].filter(Boolean).join(' ') || l.c.phone), esc(anuncioDe(l) || 'Sin anuncio (orgánico)'), esc(l.ciudad || '-'), estado(l)])) : '<p>No entraron leads en los últimos 7 días.</p>'}
 <p style="font-size:12px;color:#777;margin-top:24px">Leads = contactos nuevos desde el ${INICIO} que vienen de nuestros anuncios, tienen oportunidad en XzenAuto o los atiende Maripino (sin contactos de prueba). Conversaciones = conversaciones de mensajería iniciadas según Meta. Perdidos = oportunidades marcadas como perdidas en GHL más leads sin respuesta tras los 3 seguimientos.</p>
 </div>`;
 

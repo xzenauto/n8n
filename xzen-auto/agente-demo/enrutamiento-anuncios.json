@@ -1,5 +1,5 @@
 {
-  "_descripcion": "Mapa ID de anuncio de Meta (referral.source_id del primer mensaje de WhatsApp) -> vertical del agente. Para añadir muebles basta con agregar sus IDs aquí.",
+  "_descripcion": "Mapa ID de anuncio de Meta (referral.source_id del primer mensaje de WhatsApp) -> vertical del agente. Para añadir muebles basta con agregar sus IDs aquí. Si Meta cambia los IDs (p. ej. al duplicar el conjunto), se añaden los nuevos con el MISMO nombre y se conservan los antiguos; el reporte agrupa por nombre.",
   "vertical_por_defecto": "general",
   "anuncios": {
     "52613806312397": {
@@ -17,6 +17,22 @@
     "52613808070397": {
       "vertical": "agencia_viajes",
       "nombre": "Agencia Carlos2"
+    },
+    "52614782625197": {
+      "vertical": "agencia_viajes",
+      "nombre": "Agencia Xime"
+    },
+    "52614782625397": {
+      "vertical": "agencia_viajes",
+      "nombre": "Agencia Carlos1"
+    },
+    "52614782625797": {
+      "vertical": "agencia_viajes",
+      "nombre": "Agencia Carlos2"
+    },
+    "52614782624997": {
+      "vertical": "agencia_viajes",
+      "nombre": "Agencia Flyer"
     }
   },
   "verticales": {
