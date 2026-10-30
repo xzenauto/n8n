@@ -30,6 +30,12 @@ Solo con leads cuya oportunidad está en la primera columna (**Nuevo lead**) o q
 En cualquier otra columna (Contactado, Agendado, Última oportunidad, Cerrado, Atención personalizada) o si la
 oportunidad está ganada/perdida, no responde, ni manda seguimientos ni el recordatorio del video.
 
+## Clientes que no se presentan a la llamada
+Marcar la cita como *no show*, devolver la oportunidad a **Nuevo lead**, quitar `cita-agendada` y poner la
+etiqueta `no-asistio`. Maripino no le escribe por su cuenta (sin seguimientos), pero si el cliente vuelve a
+escribir le pregunta con amabilidad si sigue interesado y le ofrece reagendar. La etiqueta se quita sola
+cuando el cliente escribe.
+
 ## Qué hace en cada mensaje
 1. Espera 12 s y junta los mensajes que el cliente mande seguidos (responde una sola vez).
 2. Si el contacto tiene la etiqueta `atencion-personalizada` o `maripino-off`, no contesta

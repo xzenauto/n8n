@@ -245,7 +245,7 @@ ${dias.join('\n')}
 - ¿Invierte en anuncios de Facebook?: ${p(valores.inversion)}
 - Leads estimados por semana: ${p(valores.leads)}
 - Video ya enviado: ${tags.includes('video-enviado') ? 'sí' : 'no'}
-- Cita ya agendada: ${tags.includes('cita-agendada') ? 'sí' + (valores.cita ? ` (${valores.cita})` : '') : 'no'}
+- Cita ya agendada: ${tags.includes('cita-agendada') ? 'sí' + (valores.cita ? ` (${valores.cita})` : '') : 'no'}${tags.includes('no-asistio') ? `\n- IMPORTANTE: el cliente NO se presentó a su llamada anterior${valores.cita ? ` (${valores.cita})` : ''}. Salúdelo con amabilidad, sin reproches, pregúntele si sigue interesado y, si es así, ofrézcale reagendar la llamada.` : ''}
 
 ${conf.instrucciones}
 
@@ -684,7 +684,7 @@ nodos = [
         executeOnce=True),
     ghl("GHL reiniciar seguimientos", [4200, 160], "DELETE",
         "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}/tags",
-        cuerpo='{"tags": ["seguimiento-1", "seguimiento-2", "seguimiento-3"]}', onError="continueRegularOutput",
+        cuerpo='{"tags": ["seguimiento-1", "seguimiento-2", "seguimiento-3", "no-asistio"]}', onError="continueRegularOutput",
         executeOnce=True),
     ghl("GHL pipelines", [4300, 300], "GET", GHL + "/opportunities/pipelines", query={"locationId": LOCATION_ID},
         onError="continueRegularOutput", alwaysOutputData=True),
@@ -818,7 +818,7 @@ agente = {"name": "Maripino · Agente WhatsApp xzen Auto", "nodes": nodos, "conn
 
 # ---------------------------------------------------------------- seguimientos (cada 15 min)
 SEG_CANDIDATOS = NOMBRE_JS + r"""// Leads de Maripino que pueden necesitar seguimiento.
-const fuera = ['atencion-personalizada', 'maripino-off', 'cita-agendada', 'seguimiento-3'];
+const fuera = ['atencion-personalizada', 'maripino-off', 'cita-agendada', 'seguimiento-3', 'no-asistio'];
 // Solo leads cuya oportunidad sigue en la primera columna ("Nuevo lead") o que aún no tienen oportunidad.
 const opps = $('GHL oportunidades').first().json.opportunities ?? [];
 const fueraDeNuevo = new Set(opps.filter((o) => o.pipelineStageId !== 'fe64e5e5-f19a-4c8a-af74-20d0d2c12868' || (o.status && o.status !== 'open'))
@@ -1044,6 +1044,7 @@ const deSemana = leads.filter((l) => l.alta >= hace7);
 const estado = (l) => {
   if (l.o?.status === 'won') return 'Ganado';
   if (l.o?.status === 'lost' || l.o?.status === 'abandoned') return 'Perdido';
+  if (l.tags.includes('no-asistio')) return 'No asistió a la llamada (reagendar)';
   if (l.tags.includes('cita-agendada') || etapaNombre[l.o?.pipelineStageId] === 'Agendado') return 'Agendado';
   if (l.tags.includes('atencion-personalizada')) return 'Atención personalizada';
   if (l.tags.includes('maripino-off')) return 'Lo atiende el equipo (Maripino apagado)';
