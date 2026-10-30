@@ -230,12 +230,17 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
 
 const ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' });
 const p = (v) => v || 'PENDIENTE';
-const dias = Array.from({ length: 14 }, (_, i) => new Date(Date.now() + i * 864e5).toLocaleDateString('es-MX',
-  { timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+// Calendario con fecha ISO (para cruzar con los horarios del calendario) y "hoy" / "mañana" marcados.
+const dias = Array.from({ length: 14 }, (_, i) => {
+  const t = new Date(Date.now() + i * 864e5);
+  const iso = t.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+  const largo = t.toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return `${iso} = ${largo}${i === 0 ? ' (HOY)' : i === 1 ? ' (MAÑANA)' : ''}`;
+});
 const prompt = `# Fecha y hora actual (Ciudad de México)
 ${ahora}
 
-# Calendario (úselo siempre para nombrar los días; no calcule días de la semana)
+# Calendario (úselo siempre para nombrar los días; no calcule días de la semana; cruce la fecha ISO de cada horario con esta lista)
 ${dias.join('\n')}
 
 # Datos del cliente en el CRM
@@ -332,6 +337,9 @@ Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su 
 
 # Cómo agendar
 1. Use consultar_disponibilidad y ofrezca 2 o 3 horarios concretos en hora de Ciudad de México (si el cliente está en otra zona horaria, aclárelo). Nunca invente horarios.
+   Nombre cada horario con el día de la semana y la fecha que le corresponden en el Calendario (p. ej. "lunes 2 de noviembre").
+   Diga "hoy" o "mañana" SOLO si esa fecha está marcada (HOY) o (MAÑANA) en el Calendario.
+   Si el cliente pide un día sin horarios disponibles (p. ej. "mañana"), dígaselo claramente ("mañana ya no tengo espacios") y ofrezca los más cercanos con su día y fecha.
 2. Cuando elija horario, pida en un solo mensaje lo que falte: nombre completo, nombre de su negocio y correo.
    NO llame a agendar_cita hasta tener los tres datos dichos por el cliente.
 3. Agende con agendar_cita usando EXACTAMENTE el inicio de un horario devuelto por consultar_disponibilidad.
