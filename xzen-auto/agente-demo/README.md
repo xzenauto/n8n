@@ -71,6 +71,10 @@ cuando el cliente escribe.
   instrucción en los prompts, `sinNombre()` quita el nombre del perfil si la IA lo pone tras un saludo o como vocativo.
 - El curso se presenta como «el curso formativo del sistema», que ya va incluido (incluye el módulo de pauta en Facebook).
 - Solo emojis de robot 🤖 (📅 💻 para datos prácticos).
+- Mensajes cortos y naturales: no repite lo que dijo el cliente, no justifica las preguntas y cada beneficio lo dice una sola vez.
+- La pregunta siempre va al final del último mensaje del turno.
+- Si el cliente muestra interés, ofrece 2-3 horarios en ese mismo mensaje (sin preguntar antes "¿le comparto opciones?").
+- Si el video se mandó y el recordatorio de 1 h cayó en horario de silencio, el primer seguimiento hace de recordatorio del video.
 
 ## Preguntas frecuentes (solo si el cliente pregunta)
 Agentes y cuentas sin límite (un solo agente de IA adaptado al negocio) · WhatsApp Business, varias cuentas posibles

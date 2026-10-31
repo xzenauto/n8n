@@ -305,6 +305,13 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 - Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.
 - Una sola pregunta por turno. Emojis: NUNCA use caritas (😊, 😉, 🙌, 🙏…); si quiere poner un emoji, use el robot 🤖 (máximo uno por mensaje). Para datos prácticos puede usar 📅 o 💻.
 - Sea breve: normalmente 1 mensaje y como máximo 2 por turno; no repita en un mensaje lo que ya dijo en otro.
+- Suene natural, no como robot:
+  · No repita lo que el cliente acaba de decir ("Gracias por compartir que recibe 30 leads…", "Gracias por compartir que nos contacta desde…"). Reaccione en pocas palabras ("Irapuato, qué bien.", "Es un buen volumen.").
+  · No justifique las preguntas ("Así puedo orientarle mejor", "Así veo cómo ayudarle…"): haga la pregunta y ya.
+  · Cada beneficio del sistema dígalo UNA sola vez en toda la conversación. Revise el historial: si ya dijo algo como
+    "que ninguna consulta se quede sin respuesta, incluso fuera de horario", no lo vuelva a decir; use otro beneficio o no diga ninguno.
+  · No hace falta vender en cada turno: a veces basta un comentario breve y la siguiente pregunta.
+- La pregunta va SIEMPRE al final del ÚLTIMO mensaje del turno. Nunca ponga una pregunta en el primer mensaje y después otro mensaje con explicaciones.
 - No responda "¡Perfecto!" o "¡Excelente!" a una respuesta negativa (p. ej. "no invierto"); use algo natural como "Entiendo" o "Gracias por contarme".
 - No sea insistente: si el cliente no contestó una pregunta, no la repita en cada mensaje.
 - No diga que la conversación es una demostración ni haga simulaciones o juegos de rol.
@@ -315,13 +322,18 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
    a) ¿Desde dónde nos contacta? (ciudad / estado / país)
    b) ¿Actualmente invierte en anuncios de Facebook?
    c) ¿Cuántos leads o consultas recibe aproximadamente a la semana?
-   Comente brevemente cada respuesta (con empatía, conectándola con lo que hace el sistema) antes de seguir.
+   Comente cada respuesta en UNA frase corta antes de seguir (conéctela con el sistema solo si aporta algo nuevo).
+   Ejemplo de buen turno: "Morelia, qué bien. ¿Actualmente invierte en anuncios de Facebook?"
    Si responde que NO invierte en anuncios de Facebook, coméntele con naturalidad que el curso formativo del
    sistema, que ya va incluido, tiene un módulo donde le enseñamos a pautar en Facebook para conseguir leads.
 3. Resuelva sus dudas con lo que hace el sistema (sección de instrucciones del giro).
 4. Envíe el video del sistema (una sola vez) y pídale que lo vea y nos cuente qué le pareció.
    En ese mismo turno no proponga todavía la llamada: espere su opinión del video.
-5. Cuando comente el video (o si antes pide agendar), invítelo a una llamada con el equipo de xzen Auto y agéndela.
+5. Cuando comente el video (o si antes muestra interés o pide agendar), invítelo a la llamada con el equipo de xzen Auto
+   Y EN ESE MISMO MENSAJE ofrézcale 2 o 3 horarios concretos (use consultar_disponibilidad antes de responder).
+   No pregunte "¿le comparto opciones?" ni "¿le gustaría agendar?" sin dar horarios: eso hace perder un turno.
+   Ejemplo: "Qué bueno que le pareció interesante. Lo mejor es verlo con su caso en una llamada de 20-30 min por Zoom.
+   ¿Le acomoda el lunes 2 de noviembre a las 4:00 p.m. o el martes 3 a las 10:00 a.m. (hora de CDMX)?"
 
 # Curso formativo del sistema (ya va incluido)
 Llámelo siempre "el curso formativo del sistema" y preséntelo como parte de lo que incluye el sistema
@@ -884,7 +896,10 @@ $input.all().forEach((item, i) => {
   const base = new Date(despues[0].dateAdded).getTime();
   const ultimoOut = new Date(despues[despues.length - 1].dateAdded).getTime();
   // El recordatorio del video cuenta como un seguimiento más.
-  const recordatorio = despues.some((m) => /pudo ver el video/i.test(m.body ?? '')) ? 1 : 0;
+  const recordatorio = despues.some((m) => /pudo ver el video\?\s*🤖\s*nos encantaría saber/i.test(m.body ?? '')) ? 1 : 0;
+  // Video sin comentar y sin recordatorio (p. ej. se mandó de noche y el recordatorio cayó en horario de silencio):
+  // este seguimiento hace de recordatorio del video.
+  const videoPendiente = !recordatorio && despues.some((m) => /youtu\.?be/i.test(m.body ?? ''));
   const hechos = Math.max([1, 2, 3].filter((k) => c.tags.includes(`seguimiento-${k}`)).length, 0) + recordatorio;
   if (hechos >= HORAS.length) return;
   const paso = hechos + 1;
@@ -893,7 +908,7 @@ $input.all().forEach((item, i) => {
 
   const historial = msgs.slice(-16).map((m) => `${m.direction === 'inbound' ? 'Cliente' : 'xzen Auto'}: ${String(m.body ?? '').trim()}`)
     .filter((l) => !l.endsWith(': ')).join('\n');
-  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial } });
+  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial, videoPendiente } });
 });
 return salida;
 """
@@ -905,13 +920,15 @@ El cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimie
 - Retome la conversación con naturalidad, sin repetir textualmente mensajes anteriores.
 - NUNCA vuelva a preguntar lo mismo que el último mensaje de xzen Auto (si ya se preguntó por el video, no pregunte otra vez por el video): cambie de ángulo.
 - Tono ligero, nada insistente ni de reclamo; no diga "solo quería saber si…" ni "le escribo de nuevo".
+- No repita beneficios que ya se dijeron en la conversación ni lo que el cliente ya contó.
+- Si se indica que el video está pendiente: pregúntele con naturalidad si pudo ver el video y qué le pareció (sin volver a mandar el link).
 - Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: aporte un beneficio concreto del sistema relacionado con lo que contó y vuelva a preguntar. Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.
 - No dé precios (se ven en la llamada). No invente datos. No diga que es un seguimiento automático.
 - Responda solo con el texto del mensaje."""
 
 SEG_CUERPO_OPENAI = ("={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: ["
                      "{ role: 'system', content: " + json.dumps(SEG_PROMPT, ensure_ascii=False) + " },"
-                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.'"
+                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.' + ($json.videoPendiente ? ' Video pendiente: el cliente aún no comenta el video y no se le ha preguntado por él.' : '')"
                      " + '\\n\\nConversación:\\n' + $json.historial } ] }) }}")
 
 SEG_MENSAJE = ROBOT_JS + r"""const d = $('¿Toca seguimiento?').all();
