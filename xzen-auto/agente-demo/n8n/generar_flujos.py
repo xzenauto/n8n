@@ -106,6 +106,20 @@ const soloRobots = (t) => String(t ?? '')
   .replace(/[\u{1F600}-\u{1F64F}\u{1F910}-\u{1F92F}\u{1F970}-\u{1F97A}\u{1F9D0}\u{263A}\u{1F44D}\u{1F44F}\u{1F64C}\u{1F64F}\u{1F389}]️?/gu, '🤖')
   .replace(/🤖/gu, ((primero) => () => (primero ? ((primero = false), '🤖') : ''))(true))
   .replace(/[ \t]{2,}/g, ' ').replace(/ ([?.!,])/g, '$1').trim();
+// Nunca se escribe el nombre del cliente: se quita si aparece tras un saludo o como vocativo ("Hola Dios," / ", Ana.").
+const sinNombre = (t, nombres) => {
+  let s = String(t ?? '');
+  const lista = [...new Set((nombres ?? []).flatMap((n) => [String(n ?? '').trim(), ...String(n ?? '').trim().split(/\s+/)]))]
+    .filter((n) => n.length >= 2).sort((a, b) => b.length - a.length);
+  for (const n of lista) {
+    const e = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    s = s.replace(new RegExp(`(^|[\\s¡¿])(hola|buen[oa]s(?: días| dias| tardes| noches)?|gracias|qué tal|que tal)[ ,]+${e}(?=[\\s,.!?;:]|$)`, 'giu'), '$1$2')
+      .replace(new RegExp(`,\\s*${e}(?=\\s*[.!?,;:]|\\s*$)`, 'giu'), '')
+      .replace(new RegExp(`^([¡¿]?)\\s*${e}\\s*[,!.]\\s*`, 'iu'), '$1');
+  }
+  s = s.replace(/[ \t]{2,}/g, ' ').replace(/ ([?.!,])/g, '$1').trim();
+  return s.replace(/^([¡¿]?)(\p{Ll})/u, (m, a, b) => a + b.toUpperCase());
+};
 """
 
 NOMBRE_JS = r"""// Nombre para saludar: el de pila si parece de persona; vacío si el nombre del perfil parece de negocio.
@@ -244,7 +258,7 @@ ${ahora}
 ${dias.join('\n')}
 
 # Datos del cliente en el CRM
-- Nombre para saludar: ${nombreParaSaludo([contacto.firstName, contacto.lastName].filter(Boolean).join(' ')) || `(ninguno: no use nombre al saludar; el perfil se llama "${limpio([contacto.firstName, contacto.lastName].filter(Boolean).join(' ')) || 'sin nombre'}" y parece de negocio o no se sabe)`}${contacto.companyName ? `\n- Negocio: ${contacto.companyName}` : ''}${contacto.email ? `\n- Correo: ${contacto.email}` : ''}
+- Nombre del cliente: no lo use nunca en los mensajes (diríjase a él sin nombre)${contacto.companyName ? `\n- Negocio: ${contacto.companyName}` : ''}${contacto.email ? `\n- Correo: ${contacto.email}` : ''}
 - Anuncio de origen: ${anuncioTexto}
 - Desde dónde nos contacta: ${p(valores.ubicacion)}
 - ¿Invierte en anuncios de Facebook?: ${p(valores.inversion)}
@@ -287,7 +301,7 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 
 # Personalidad
 - Siempre trata de USTED al cliente. Amigable, cálido y profesional.
-- Para saludar use solo el "Nombre para saludar" del CRM o el nombre que el cliente le diga; si no hay, salude sin nombre (nunca use el nombre de un negocio como si fuera de persona).
+- NUNCA escriba el nombre del cliente en los mensajes: ni al saludar ni después, aunque lo conozca por el perfil o él se lo diga. Diríjase a él sin nombre (p. ej. "Hola, ¿cómo está?").
 - Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.
 - Una sola pregunta por turno. Emojis: NUNCA use caritas (😊, 😉, 🙌, 🙏…); si quiere poner un emoji, use el robot 🤖 (máximo uno por mensaje). Para datos prácticos puede usar 📅 o 💻.
 - Sea breve: normalmente 1 mensaje y como máximo 2 por turno; no repita en un mensaje lo que ya dijo en otro.
@@ -296,25 +310,28 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 - No diga que la conversación es una demostración ni haga simulaciones o juegos de rol.
 
 # Objetivo de la conversación
-1. Salude con calidez, preséntese como Maripino de xzen Auto y pregunte su nombre si no lo tiene.
+1. Salude con calidez (sin nombre) y preséntese como Maripino de xzen Auto. No pregunte su nombre al inicio: solo se pide al agendar.
 2. Conózcalo con estas preguntas, de forma natural y una por turno, solo las que sigan PENDIENTES en el CRM:
    a) ¿Desde dónde nos contacta? (ciudad / estado / país)
    b) ¿Actualmente invierte en anuncios de Facebook?
    c) ¿Cuántos leads o consultas recibe aproximadamente a la semana?
    Comente brevemente cada respuesta (con empatía, conectándola con lo que hace el sistema) antes de seguir.
-   Si responde que NO invierte en anuncios de Facebook, coméntele con naturalidad que en nuestro curso tenemos
-   un apartado donde enseñamos a pautar en Facebook para conseguir leads.
+   Si responde que NO invierte en anuncios de Facebook, coméntele con naturalidad que el curso formativo del
+   sistema, que ya va incluido, tiene un módulo donde le enseñamos a pautar en Facebook para conseguir leads.
 3. Resuelva sus dudas con lo que hace el sistema (sección de instrucciones del giro).
 4. Envíe el video del sistema (una sola vez) y pídale que lo vea y nos cuente qué le pareció.
    En ese mismo turno no proponga todavía la llamada: espere su opinión del video.
 5. Cuando comente el video (o si antes pide agendar), invítelo a una llamada con el equipo de xzen Auto y agéndela.
 
-# Curso de xzen Auto (lo que incluye)
+# Curso formativo del sistema (ya va incluido)
+Llámelo siempre "el curso formativo del sistema" y preséntelo como parte de lo que incluye el sistema
+(p. ej. "dentro del curso formativo del sistema, que ya va incluido, le enseñamos…"); nunca como un producto aparte.
+Incluye:
 - Cómo pautar en Facebook para conseguir leads.
 - Formación para el dueño y sus agentes de venta: cómo usar el sistema, cómo funciona el agente virtual
   y cómo opera todo lo que implementemos en su negocio.
 Menciónelo cuando venga al caso (si no invierte en anuncios, si le preocupa que su equipo no sepa usar el
-sistema, o si pregunta por capacitación). No invente precio, duración, modalidad ni otros detalles del curso;
+sistema, o si pregunta por capacitación). No invente duración, modalidad ni otros detalles del curso;
 si pregunta más, dígale que se lo explican en la llamada.
 
 # Preguntas frecuentes
@@ -402,7 +419,7 @@ return [{ json: { output: {
 PREPARAR = ROBOT_JS + r"""const out = $input.first().json.output ?? {};
 const c = $('Analizar').first().json;
 let mensajes = (Array.isArray(out.mensajes) ? out.mensajes : [out.mensajes])
-  .map((m) => soloRobots(m)).filter(Boolean).slice(0, 3);
+  .map((m) => soloRobots(sinNombre(m, [c.nombre, c.nombreCompleto]))).filter(Boolean).slice(0, 3);
 if (!mensajes.length) mensajes = ['Permítame un momento y le confirmo 🤖'];
 
 // Cita: se toma de la respuesta real de agendar_cita, no de lo que diga el modelo.
@@ -537,10 +554,9 @@ msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => n
 let video = -1;
 msgs.forEach((m, i) => { if (m.direction === 'outbound' && /youtu\.?be/.test(m.body ?? '')) video = i; });
 if (video < 0 || msgs.slice(video + 1).some((m) => m.direction === 'inbound')) return [];
-const nombre = nombreParaSaludo([contacto.firstName, contacto.lastName].filter(Boolean).join(' '));
 return [{ json: {
   contactId: contacto.id,
-  mensaje: `${nombre ? `Hola, ${nombre}. ` : 'Hola. '}¿Pudo ver el video? 🤖 Nos encantaría saber qué le pareció.`,
+  mensaje: 'Hola, ¿pudo ver el video? 🤖 Nos encantaría saber qué le pareció.',
 } }];
 """
 
@@ -833,7 +849,7 @@ const fueraDeNuevo = new Set(opps.filter((o) => o.pipelineStageId !== 'fe64e5e5-
   .map((o) => o.contactId || o.contact?.id));
 return ($('GHL leads de Maripino').first().json.contacts ?? [])
   .filter((c) => !fueraDeNuevo.has(c.id))
-  .map((c) => ({ id: c.id, nombre: nombreParaSaludo([c.firstName, c.lastName].filter(Boolean).join(' ')), tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))
+  .map((c) => ({ id: c.id, nombre: [c.firstName, c.lastName].filter(Boolean).join(' '), tags: (c.tags ?? []).map((t) => String(t).toLowerCase()) }))
   .filter((c) => c.tags.includes('maripino') && !fuera.some((t) => c.tags.includes(t)))
   .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));
 """
@@ -884,6 +900,7 @@ return salida;
 
 SEG_PROMPT = """Eres Maripino, asistente virtual de xzen Auto (automatización con IA para negocios, ahora para agencias de viajes).
 El cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimiento (máximo 2-3 líneas) para retomar la conversación.
+- NUNCA escriba el nombre del cliente: diríjase a él sin nombre.
 - Trate de USTED al cliente; amigable y profesional; español de México; nada de caritas (😊, 😉…): como mucho un 🤖.
 - Retome la conversación con naturalidad, sin repetir textualmente mensajes anteriores.
 - NUNCA vuelva a preguntar lo mismo que el último mensaje de xzen Auto (si ya se preguntó por el video, no pregunte otra vez por el video): cambie de ángulo.
@@ -894,13 +911,13 @@ El cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimie
 
 SEG_CUERPO_OPENAI = ("={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: ["
                      "{ role: 'system', content: " + json.dumps(SEG_PROMPT, ensure_ascii=False) + " },"
-                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3.' + ($json.nombre ? ' Nombre para saludar: ' + $json.nombre + '.' : ' No use nombre al saludar.')"
+                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.'"
                      " + '\\n\\nConversación:\\n' + $json.historial } ] }) }}")
 
 SEG_MENSAJE = ROBOT_JS + r"""const d = $('¿Toca seguimiento?').all();
 return $input.all().map((item, i) => ({ json: {
   ...d[i].json,
-  mensaje: soloRobots(String(item.json.choices?.[0]?.message?.content ?? '').trim().replace(/^"|"$/g, '')),
+  mensaje: soloRobots(sinNombre(String(item.json.choices?.[0]?.message?.content ?? '').trim().replace(/^"|"$/g, ''), [d[i].json.nombre])),
 } })).filter((x) => x.json.mensaje);
 """
 

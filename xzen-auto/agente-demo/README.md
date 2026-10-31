@@ -65,6 +65,13 @@ cuando el cliente escribe.
    y correo a xzenauto@gmail.com (Gmail Xzen). Desde ahí el bot deja de responder a ese contacto.
 8. Si OpenAI falla → mensaje cortés al cliente y pasa a atención personalizada.
 
+## Estilo de los mensajes
+
+- Nunca escribe el nombre del cliente (ni al saludar ni en seguimientos o recordatorios). Además de la
+  instrucción en los prompts, `sinNombre()` quita el nombre del perfil si la IA lo pone tras un saludo o como vocativo.
+- El curso se presenta como «el curso formativo del sistema», que ya va incluido (incluye el módulo de pauta en Facebook).
+- Solo emojis de robot 🤖 (📅 💻 para datos prácticos).
+
 ## Preguntas frecuentes (solo si el cliente pregunta)
 Agentes y cuentas sin límite (un solo agente de IA adaptado al negocio) · WhatsApp Business, varias cuentas posibles
 (ideal un número oficial) y se sigue usando en el celular · app de celular y computadora · WhatsApp, Instagram,
