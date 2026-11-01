@@ -810,6 +810,24 @@
      "fecha": "2026-10-15"
     }
    ]
+  },
+  "padre_perros": {
+   "drive_id": "1kRI0Kafm89H78p1_hw32BSG8yxbaeaUX",
+   "titulo": "Padre paseando perros",
+   "orientacion": "v",
+   "temas": [
+    "familia",
+    "padre",
+    "perros",
+    "Manada"
+   ],
+   "nota": "",
+   "usos": [
+    {
+     "reel": "anuncio_app_gestion_padre",
+     "fecha": "2026-11-01"
+    }
+   ]
   }
  }
 }

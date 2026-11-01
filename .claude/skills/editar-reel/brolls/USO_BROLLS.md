@@ -34,6 +34,7 @@ Se actualiza con `brolls_db.py informe`. Más usados arriba.
 | eeuu3 | EEUU 3 | horizontal | 1 | reel_pov_negocio_v2 |
 | eeuu4 | EEUU 4 | horizontal | 1 | reel_pov_negocio_v2 |
 | familia | Familia | vertical | 1 | reel_pov_negocio_v2 |
+| padre_perros | Padre paseando perros | vertical | 1 | anuncio_app_gestion_padre |
 | paseando | Paseando | vertical | 1 | reel_pov_negocio_v2 |
 | trabajando_aeropuerto | Trabajando aeropuerto | vertical | 1 | reel_pov_negocio_v2 |
 | viajando2 | Viajando 2 | vertical | 1 | reel_pov_negocio_v2 |

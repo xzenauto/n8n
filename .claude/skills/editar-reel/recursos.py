@@ -11,6 +11,7 @@ Cada item: {"type": ..., "t0": seg, "t1": seg, ...}. Tipos:
   flow      title, steps: [[t, texto], ...]                    pasos con flecha; el último en verde
   bars      title, rows: [[etiqueta, valor], ...], tag         barras que crecen (tag "EJEMPLO")
   cta       pre, word, post                                    llamada a la acción con palabra clave
+  audio     name, label, dur                                   nota de voz de WhatsApp reproduciéndose
 Las tarjetas entran con un pop suave (0,4 s) y salen con fundido (0,25 s)."""
 import json, math, subprocess, sys, os
 import numpy as np
@@ -333,9 +334,49 @@ def card_cta(it, lt):
     return im
 
 
+def card_audio(it, lt):
+    """Nota de voz de WhatsApp que se reproduce: avatar, play/pausa, onda que avanza y duración.
+    name, dur (s de audio), label (texto bajo el nombre)."""
+    h = 170
+    im, d = base(h)
+    dur = it.get("dur", it["t1"] - it["t0"]); p = min(1.0, max(0.0, (lt - 0.3) / dur))
+    # cabecera: avatar + nombre
+    d.ellipse([S(28), S(22), S(76), S(70)], fill=(120, 140, 160))
+    ini = it.get("name", "Papá")[0]
+    d.text((S(52 - text_w(d, ini, font(24, 700)) / 2), S(30)), ini, font=font(24, 700), fill=WHITE)
+    d.text((S(90), S(24)), it.get("name", "Papá"), font=font(23, 700), fill=WHITE)
+    d.text((S(90), S(52)), it.get("label", "Nota de voz"), font=font(17, 500), fill=GREEN)
+    # burbuja verde con play, onda y tiempo
+    bx, by, bw, bh = 28, 88, CARD_W - 56, 62
+    d.rounded_rectangle([S(bx), S(by), S(bx + bw), S(by + bh)], S(20), fill=(0, 92, 75))
+    cx, cy = bx + 34, by + bh / 2
+    if p < 1 and lt > 0.3:      # pausa mientras suena
+        d.rectangle([S(cx - 9), S(cy - 11), S(cx - 3), S(cy + 11)], fill=WHITE)
+        d.rectangle([S(cx + 3), S(cy - 11), S(cx + 9), S(cy + 11)], fill=WHITE)
+    else:
+        d.polygon([(S(cx - 8), S(cy - 12)), (S(cx - 8), S(cy + 12)), (S(cx + 12), S(cy))], fill=WHITE)
+    rng = np.random.default_rng(5); n = 34; x0, x1 = bx + 66, bx + bw - 80
+    amp = 0.25 + 0.75 * np.abs(np.sin(np.arange(n) * 0.7)) * rng.uniform(0.4, 1.0, n)
+    for k in range(n):
+        x = x0 + (x1 - x0) * k / (n - 1); a = amp[k] * 18
+        col = (160, 230, 205) if k / (n - 1) <= p else (90, 150, 135)
+        d.rounded_rectangle([S(x - 2), S(cy - a), S(x + 2), S(cy + a)], S(2), fill=col)
+    xd = x0 + (x1 - x0) * p
+    d.ellipse([S(xd - 8), S(cy - 8), S(xd + 8), S(cy + 8)], fill=(79, 220, 170))
+    sec = int(round(dur * p)) if lt > 0.3 else int(round(dur))
+    d.text((S(x1 + 14), S(cy - 12)), f"0:{sec:02d}", font=font(19, 600), fill=WHITE)
+    return im
+
+
 KIND = {"chat": card_chat, "comments": card_comments, "timer": card_timer, "alert": card_alert, "badge": card_badge,
-        "checklist": card_checklist, "flow": card_flow, "bars": card_bars, "cta": card_cta}
+        "checklist": card_checklist, "flow": card_flow, "bars": card_bars, "cta": card_cta, "audio": card_audio}
 ANIMATED = {"timer", "bars", "cta", "flow", "chat", "comments", "checklist", "alert", "badge"}
+
+
+def last_ev(it):
+    """Último instante en que algo cambia dentro de la tarjeta (entrada o aparición de un elemento)."""
+    ts = [it["t0"]] + [e[0] for k in ("msgs", "items", "steps") for e in it.get(k, []) if isinstance(e, list)]
+    return max(ts) + (1.2 if it["type"] == "bars" else 0)
 
 
 def main():
@@ -362,7 +403,7 @@ def main():
         if not act:
             key = "g"
         else:
-            key = tuple((id(it), round(t, 3) if (it["type"] in ("cta", "timer") or t - it["t0"] < 4.0 or t > it["t1"] - 0.3) else "s") for it in act)
+            key = tuple((id(it), round(t, 3) if (it["type"] in ("cta", "timer", "audio") or t - last_ev(it) < 1.2 or t > it["t1"] - 0.3) else "s") for it in act)
         if key != last_key:
             canvas = gimg.copy()
             for it in act:

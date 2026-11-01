@@ -269,6 +269,9 @@ Hecho para los 4 anuncios (agencia de viajes y mueblería, corto y largo). El ma
    derecha = cliente), `dot` ("red"/"green") y `count: false`.
    Gancho largo en una columna estrecha: marca `"brk": true` en words.json tras la palabra donde quieres cortar
    (frases de 3–6 palabras); si una palabra no cabe en la columna, el gancho se reduce solo.
+   Nota de voz reproducida en el vídeo (audio de WhatsApp de otra persona): tarjeta `audio` (name, label, dur) con
+   play/pausa, onda que avanza y contador, colocada donde señala el usuario (`x`, `y` por item); sin pop encima.
+   Si el entorno se reinició: `python3 -m pip install openai-whisper "mediapipe==0.10.14" "opencv-python-headless<5" pillow-heif`.
 5. Audio: voz, `musica_motivacional.py` a volume 0.065 con ducking, `sfx_pop.py` (0.10) en cada recurso y
    `sfx_whoosh.py` (0.09) en cada B-roll, `loudnorm=I=-14`.
 
