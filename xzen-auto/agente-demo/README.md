@@ -56,9 +56,9 @@ cuando el cliente escribe.
    - Campos: *Desde dónde nos contacta*, *Invierte en anuncios de Facebook*, *Leads estimados por semana*.
    - Nombre, negocio y correo cuando los da.
    - Etiquetas: `video-enviado`, `cita-agendada`, `atencion-personalizada`.
-   Al enviar el video le pide que lo vea y nos cuente qué le pareció; si en **1 hora** no responde,
+   Al enviar el video le pide que lo vea y nos cuente qué le pareció; si en **30 minutos** no responde,
    le escribe una sola vez: «¿Pudo ver el video? Nos encantaría saber qué le pareció» (etiqueta `video-recordatorio`).
-   En contactos de prueba (`test-maripino`) espera 1 minuto en lugar de 1 hora.
+   En contactos de prueba (`test-maripino`) espera 1 minuto en lugar de 30.
 6. Cita agendada (herramientas `consultar_disponibilidad` / `agendar_cita`, verificada con la respuesta real
    del calendario) → oportunidad a **Agendado** y correo a xzenauto@gmail.com con fecha y hora y los datos del lead.
 7. Atención personalizada → oportunidad a la columna **Atención personalizada**, nota en el contacto

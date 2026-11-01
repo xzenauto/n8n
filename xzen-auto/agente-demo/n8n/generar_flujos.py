@@ -786,9 +786,10 @@ nodos = [
     }, CRED_GMAIL, onError="continueRegularOutput"),
     # Recordatorio: 1 hora después de enviar el video, si no ha respondido.
     si("¿Envió el video?", [5300, 460], "={{ $('Preparar salida').first().json.videoEnviado === true }}"),
-    # 1 hora; en contactos de prueba (etiqueta test-maripino) 1 minuto para poder probarlo.
+    # 30 minutos; en contactos de prueba (etiqueta test-maripino) 1 minuto para poder probarlo.
+    # (El nodo conserva el nombre "Esperar 1 hora" para no romper las ejecuciones que ya están esperando.)
     nodo("Esperar 1 hora", "n8n-nodes-base.wait", 1.1, [5500, 460],
-         {"amount": "={{ $('Analizar').first().json.tags.includes('test-maripino') ? 1 : 60 }}", "unit": "minutes"},
+         {"amount": "={{ $('Analizar').first().json.tags.includes('test-maripino') ? 1 : 30 }}", "unit": "minutes"},
          webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "maripino/wait-video"))),
     ghl("Recordatorio · contacto", [5700, 460], "GET",
         "=" + GHL + "/contacts/{{ $('Plan CRM').first().json.contactId }}"),

@@ -1400,7 +1400,7 @@
         460
       ],
       "parameters": {
-        "amount": "={{ $('Analizar').first().json.tags.includes('test-maripino') ? 1 : 60 }}",
+        "amount": "={{ $('Analizar').first().json.tags.includes('test-maripino') ? 1 : 30 }}",
         "unit": "minutes"
       },
       "webhookId": "531df584-1b99-5fe5-9356-21c134352543"
