@@ -306,7 +306,7 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 # Personalidad
 - Siempre trata de USTED al cliente. Amigable, cálido y profesional.
 - NUNCA escriba el nombre del cliente en los mensajes: ni al saludar ni después, aunque lo conozca por el perfil o él se lo diga. Diríjase a él sin nombre (p. ej. "Hola, ¿cómo está?").
-- Español de México. Mensajes cortos (máximo 3-4 líneas cada uno), como en WhatsApp.
+- Español de México. Mensajes MUY cortos, como en WhatsApp: 1 o 2 frases (máximo unas 30 palabras por mensaje).
 - Una sola pregunta por turno. Emojis: NUNCA use caritas (😊, 😉, 🙌, 🙏…); si quiere poner un emoji, use el robot 🤖 (máximo uno por mensaje). Para datos prácticos puede usar 📅 o 💻.
 - Sea breve: normalmente 1 mensaje y como máximo 2 por turno; no repita en un mensaje lo que ya dijo en otro.
 - Suene natural, no como robot:
@@ -932,6 +932,8 @@ $input.all().forEach((item, i) => {
   // Video sin comentar y sin recordatorio (p. ej. se mandó de noche y el recordatorio cayó en horario de silencio):
   // este seguimiento hace de recordatorio del video.
   const videoPendiente = !recordatorio && despues.some((m) => /youtu\.?be/i.test(m.body ?? ''));
+  // Si aún no se le ha mandado el video, el seguimiento cambia de acercamiento y se lo comparte.
+  const enviarVideo = !msgs.some((m) => m.direction === 'outbound' && /youtu\.?be/i.test(m.body ?? ''));
   const hechos = Math.max([1, 2, 3].filter((k) => c.tags.includes(`seguimiento-${k}`)).length, 0) + recordatorio;
   if (hechos >= HORAS.length) return;
   const paso = hechos + 1;
@@ -940,33 +942,38 @@ $input.all().forEach((item, i) => {
 
   const historial = msgs.slice(-16).map((m) => `${m.direction === 'inbound' ? 'Cliente' : 'xzen Auto'}: ${String(m.body ?? '').trim()}`)
     .filter((l) => !l.endsWith(': ')).join('\n');
-  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial, videoPendiente } });
+  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial, videoPendiente, enviarVideo } });
 });
 return salida;
 """
 
 SEG_PROMPT = """Eres Maripino, asistente virtual de xzen Auto (automatización con IA para negocios, ahora para agencias de viajes).
-El cliente dejó de responder por WhatsApp. Escribe UN mensaje corto de seguimiento (máximo 2-3 líneas) para retomar la conversación.
+El cliente dejó de responder por WhatsApp. Escribe UN mensaje MUY corto de seguimiento: 1 o 2 frases, máximo 25 palabras.
+Debe sentirse ligero y nada invasivo: sin presión, sin explicar de más, sin listas de beneficios.
 - NUNCA escriba el nombre del cliente: diríjase a él sin nombre.
 - Trate de USTED al cliente; amigable y profesional; español de México; nada de caritas (😊, 😉…): como mucho un 🤖.
 - Retome la conversación con naturalidad, sin repetir textualmente mensajes anteriores.
 - NUNCA vuelva a preguntar lo mismo que el último mensaje de xzen Auto (si ya se preguntó por el video, no pregunte otra vez por el video): cambie de ángulo.
 - Tono ligero, nada insistente ni de reclamo; no diga "solo quería saber si…" ni "le escribo de nuevo".
 - No repita beneficios que ya se dijeron en la conversación ni lo que el cliente ya contó.
+- Si se indica "Enviar video": NO retome la pregunta pendiente (eso se siente insistente). Cambie de acercamiento:
+  comparta el video con una frase breve e invítelo a verlo cuando pueda. Incluya el link exacto https://youtu.be/t2bvakV2WMw
+  Ejemplo: "Le dejo este video corto donde se ve cómo funciona el sistema en una agencia de viajes 🤖 https://youtu.be/t2bvakV2WMw"
 - Si se indica que el video está pendiente: pregúntele con naturalidad si pudo ver el video y qué le pareció (sin volver a mandar el link).
-- Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: aporte un beneficio concreto del sistema relacionado con lo que contó y vuelva a preguntar. Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.
+- Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: una sola idea concreta del sistema relacionada con lo que contó (sin volver a preguntar lo mismo). Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.
 - No dé precios (se ven en la llamada). No invente datos. No diga que es un seguimiento automático.
 - Responda solo con el texto del mensaje."""
 
 SEG_CUERPO_OPENAI = ("={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: ["
                      "{ role: 'system', content: " + json.dumps(SEG_PROMPT, ensure_ascii=False) + " },"
-                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.' + ($json.videoPendiente ? ' Video pendiente: el cliente aún no comenta el video y no se le ha preguntado por él.' : '')"
+                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.' + ($json.enviarVideo ? ' Enviar video: aún no se le ha mandado el video.' : '') + ($json.videoPendiente ? ' Video pendiente: el cliente aún no comenta el video y no se le ha preguntado por él.' : '')"
                      " + '\\n\\nConversación:\\n' + $json.historial } ] }) }}")
 
 SEG_MENSAJE = ROBOT_JS + r"""const d = $('¿Toca seguimiento?').all();
 return $input.all().map((item, i) => ({ json: {
   ...d[i].json,
-  mensaje: soloRobots(sinNombre(String(item.json.choices?.[0]?.message?.content ?? '').trim().replace(/^"|"$/g, ''), [d[i].json.nombre])),
+  mensaje: ((m) => (m && d[i].json.enviarVideo && !/youtu\.?be/i.test(m) ? m + ' https://youtu.be/t2bvakV2WMw' : m))(
+    soloRobots(sinNombre(String(item.json.choices?.[0]?.message?.content ?? '').trim().replace(/^"|"$/g, ''), [d[i].json.nombre]))),
 } })).filter((x) => x.json.mensaje);
 """
 
@@ -997,7 +1004,7 @@ seg_nodos = [
         onError="continueRegularOutput"),
     ghl("GHL etiqueta seguimiento", [1800, 0], "POST",
         "=" + GHL + "/contacts/{{ $('Preparar mensaje').all()[$itemIndex].json.contactId }}/tags",
-        cuerpo="={{ JSON.stringify({ tags: ['seguimiento-' + $('Preparar mensaje').all()[$itemIndex].json.paso] }) }}",
+        cuerpo="={{ JSON.stringify({ tags: ['seguimiento-' + $('Preparar mensaje').all()[$itemIndex].json.paso].concat($('Preparar mensaje').all()[$itemIndex].json.enviarVideo ? ['video-enviado'] : []) }) }}",
         onError="continueRegularOutput"),
 ]
 seg_con = {}

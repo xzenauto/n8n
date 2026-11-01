@@ -92,6 +92,8 @@ proyecto XzenAuto, poner `USAR_BUFFER = True`, regenerar y subir el flujo.
 
 ## Seguimientos (flujo «Maripino · Seguimientos», cada 15 min)
 
+Mensajes de 1-2 frases. Si el lead dejó de contestar antes de recibir el video, el seguimiento no repite la pregunta pendiente: le comparte el video (cambio de acercamiento) y el siguiente seguimiento le pregunta qué le pareció.
+
 Fin de semana: del sábado a las 17:00 al domingo a medianoche no se mandan seguimientos ni el recordatorio del video,
 salvo que el cliente haya escrito en las últimas 3 horas. Maripino sí contesta siempre que el cliente escriba.
 
