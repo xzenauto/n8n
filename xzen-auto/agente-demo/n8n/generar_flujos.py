@@ -317,7 +317,9 @@ SYSTEM = """Eres Maripino, asistente virtual de xzen Auto. Atiendes por WhatsApp
 - No diga que la conversación es una demostración ni haga simulaciones o juegos de rol.
 
 # Objetivo de la conversación
-1. Salude con calidez (sin nombre) y preséntese como Maripino de xzen Auto. No pregunte su nombre al inicio: solo se pide al agendar.
+1. Primer mensaje: corto. Solo saludo (sin nombre), preséntese como Maripino de xzen Auto y haga la primera pregunta.
+   NO explique el sistema ni sus beneficios en el saludo. Un solo mensaje. No pregunte su nombre: solo se pide al agendar.
+   Ejemplo: "Hola, ¿cómo está? Soy Maripino, de xzen Auto 🤖 Gracias por escribirnos. ¿Desde dónde nos contacta?"
 2. Conózcalo con estas preguntas, de forma natural y una por turno, solo las que sigan PENDIENTES en el CRM:
    a) ¿Desde dónde nos contacta? (ciudad / estado / país)
    b) ¿Actualmente invierte en anuncios de Facebook?
@@ -551,7 +553,19 @@ return [{ json: {
 } }];
 """
 
-RECORDATORIO = NOMBRE_JS + r"""// ¿Sigue sin responder desde que le mandamos el video?
+FDS_JS = r"""// Fin de semana: del sábado a las 17:00 al domingo a medianoche no hay seguimientos,
+// salvo que el cliente haya escrito ese mismo día (está activo en la conversación).
+const diaMx = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+const pausaFinDeSemana = (ultimoInbound) => {
+  const ahoraMx = new Date();
+  const dia = ahoraMx.toLocaleString('en-US', { timeZone: 'America/Mexico_City', weekday: 'short' });
+  const hora = Number(ahoraMx.toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
+  const pausa = (dia === 'Sat' && hora >= 17) || dia === 'Sun';
+  return pausa && !(ultimoInbound && diaMx(ultimoInbound) === diaMx(ahoraMx));
+};
+"""
+
+RECORDATORIO = NOMBRE_JS + FDS_JS + r"""// ¿Sigue sin responder desde que le mandamos el video?
 const contacto = $('Recordatorio · contacto').first().json.contact ?? {};
 const oppRec = ($('Recordatorio · oportunidad').first().json.opportunities ?? [])[0];
 if (oppRec && (oppRec.pipelineStageId !== 'fe64e5e5-f19a-4c8a-af74-20d0d2c12868' || (oppRec.status && oppRec.status !== 'open'))) return []; // ya no está en Nuevo lead
@@ -566,6 +580,8 @@ msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => n
 let video = -1;
 msgs.forEach((m, i) => { if (m.direction === 'outbound' && /youtu\.?be/.test(m.body ?? '')) video = i; });
 if (video < 0 || msgs.slice(video + 1).some((m) => m.direction === 'inbound')) return [];
+const ultimoInRec = [...msgs].reverse().find((m) => m.direction === 'inbound');
+if (pausaFinDeSemana(ultimoInRec?.dateAdded) && !tags.includes('test-maripino')) return [];
 return [{ json: {
   contactId: contacto.id,
   mensaje: 'Hola, ¿pudo ver el video? 🤖 Nos encantaría saber qué le pareció.',
@@ -866,7 +882,7 @@ return ($('GHL leads de Maripino').first().json.contacts ?? [])
   .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));
 """
 
-SEG_DECIDIR = r"""// ¿A quién le toca seguimiento ahora? Horas desde el último mensaje de Maripino sin respuesta: 5, 7 y 12.
+SEG_DECIDIR = FDS_JS + r"""// ¿A quién le toca seguimiento ahora? Horas desde el último mensaje de Maripino sin respuesta: 5, 7 y 12.
 const HORAS = [5, 7, 12];
 const H = 3600e3;
 const candidatos = $('Candidatos').all();
@@ -892,6 +908,7 @@ $input.all().forEach((item, i) => {
   const despues = msgs.filter((m) => m.direction === 'outbound' && new Date(m.dateAdded).getTime() > tIn);
   if (!despues.length) return; // aún no le hemos respondido
   if (ahora - tIn > 23.5 * H) return; // fuera de la ventana de 24 h de WhatsApp
+  if (!prueba && pausaFinDeSemana(ultimoIn.dateAdded)) return;
 
   const base = new Date(despues[0].dateAdded).getTime();
   const ultimoOut = new Date(despues[despues.length - 1].dateAdded).getTime();

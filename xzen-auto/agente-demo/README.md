@@ -73,6 +73,7 @@ cuando el cliente escribe.
 - Solo emojis de robot 🤖 (📅 💻 para datos prácticos).
 - Mensajes cortos y naturales: no repite lo que dijo el cliente, no justifica las preguntas y cada beneficio lo dice una sola vez.
 - La pregunta siempre va al final del último mensaje del turno.
+- Saludo de entrada corto: saludo, presentación y primera pregunta, sin explicar el sistema.
 - Si el cliente muestra interés, ofrece 2-3 horarios en ese mismo mensaje (sin preguntar antes "¿le comparto opciones?").
 - Si el video se mandó y el recordatorio de 1 h cayó en horario de silencio, el primer seguimiento hace de recordatorio del video.
 
@@ -89,6 +90,10 @@ Lo que no está en la lista (p. ej. integraciones) no lo afirma ni lo niega: lo 
 proyecto XzenAuto, poner `USAR_BUFFER = True`, regenerar y subir el flujo.
 
 ## Seguimientos (flujo «Maripino · Seguimientos», cada 15 min)
+
+Fin de semana: del sábado a las 17:00 al domingo a medianoche no se mandan seguimientos ni el recordatorio del video,
+salvo que el cliente haya escrito ese mismo día. Maripino sí contesta siempre que el cliente escriba.
+
 Si el lead no responde al último mensaje de Maripino, le escribe a las **5 h, 7 h y 12 h** un mensaje
 redactado por la IA según la conversación (el 3.º es una despedida amable). Reglas:
 - Nunca entre las 23:00 y las 08:00 (hora de México); lo pendiente sale a partir de las 8:00, uno a la vez.
