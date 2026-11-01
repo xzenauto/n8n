@@ -93,7 +93,7 @@ proyecto XzenAuto, poner `USAR_BUFFER = True`, regenerar y subir el flujo.
 ## Seguimientos (flujo «Maripino · Seguimientos», cada 15 min)
 
 Fin de semana: del sábado a las 17:00 al domingo a medianoche no se mandan seguimientos ni el recordatorio del video,
-salvo que el cliente haya escrito ese mismo día. Maripino sí contesta siempre que el cliente escriba.
+salvo que el cliente haya escrito en las últimas 3 horas. Maripino sí contesta siempre que el cliente escriba.
 
 Si el lead no responde al último mensaje de Maripino, le escribe a las **5 h, 7 h y 12 h** un mensaje
 redactado por la IA según la conversación (el 3.º es una despedida amable). Reglas:

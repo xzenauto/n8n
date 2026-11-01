@@ -569,14 +569,13 @@ return [{ json: {
 """
 
 FDS_JS = r"""// Fin de semana: del sábado a las 17:00 al domingo a medianoche no hay seguimientos,
-// salvo que el cliente haya escrito ese mismo día (está activo en la conversación).
-const diaMx = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+// salvo que el cliente haya escrito en las últimas 3 horas (está activo en la conversación).
 const pausaFinDeSemana = (ultimoInbound) => {
   const ahoraMx = new Date();
   const dia = ahoraMx.toLocaleString('en-US', { timeZone: 'America/Mexico_City', weekday: 'short' });
   const hora = Number(ahoraMx.toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
   const pausa = (dia === 'Sat' && hora >= 17) || dia === 'Sun';
-  return pausa && !(ultimoInbound && diaMx(ultimoInbound) === diaMx(ahoraMx));
+  return pausa && !(ultimoInbound && Date.now() - new Date(ultimoInbound).getTime() < 3 * 3600e3);
 };
 """
 
