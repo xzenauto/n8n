@@ -240,6 +240,10 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
     .map((m) => ({ rol: m.direction === 'inbound' ? 'Cliente' : 'xzen Auto', texto: limpio(m.body) }))
     .filter((m) => m.texto);
   if (!nuevos.length) nuevos = [ent.texto || '[mensaje sin texto]'];
+  // Respuestas automáticas del cliente ("en este momento no podemos atenderte…"): si el mismo texto ya llegó
+  // antes, ya se le contestó una vez; no volvemos a responder para no entrar en un bucle bot ↔ bot.
+  const anteriores = new Set(msgs.slice(0, corte).filter((m) => m.direction === 'inbound').map((m) => limpio(m.body)));
+  if (nuevos.every((t) => t.length > 30 && anteriores.has(t))) return [];
 }
 
 const ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' });
@@ -383,6 +387,17 @@ Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su 
    Si el cliente solo agradece o se despide, responda con UN mensaje corto y cordial.
    Si quiere cambiarla o cancelarla, márquelo para atención personalizada.
 Si todavía no quiere agendar, pregúntele si le puede escribir en un par de días.
+
+# Respuestas automáticas del cliente
+Si el mensaje del cliente es claramente una respuesta automática de su negocio (p. ej. "Gracias por contactar a …,
+en este momento no podemos atenderte, cuanto antes un agente se pondrá en contacto contigo"), no lo trate como
+si él hubiera escrito. Responda con UN solo mensaje breve y en buen tono, sin burlarse, que conecte con el sistema:
+justo para eso es nuestro sistema, para que sus clientes reciban atención real y al momento aunque sea fuera de horario,
+en lugar de un mensaje de espera. Ejemplo: "Por cierto, vi que nos respondió su mensaje automático 🤖 Justo para eso
+es nuestro sistema: que sus viajeros reciban atención real al momento, aunque sea fuera de horario, y no solo un
+mensaje de espera. Cuando pueda, me cuenta qué le pareció el video." No haga preguntas nuevas del cuestionario
+ni proponga horarios en ese mensaje (quien lo leerá después es el dueño); deje la conversación abierta.
+No lo marque como atención personalizada ni guarde nada de ese texto en datos.
 
 # Atención personalizada
 Si el cliente pide hablar con una persona, está molesto, o pregunta algo que no puede responder con certeza, marque atencion_personalizada = true, explique el motivo y dígale que alguien del equipo le escribirá en breve.
