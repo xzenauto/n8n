@@ -105,6 +105,13 @@ redactado por la IA según la conversación (el 3.º es una despedida amable). R
 - Etiquetas `seguimiento-1/2/3`; se borran cuando el cliente vuelve a escribir.
 - Contactos `test-maripino`: 5, 7 y 12 minutos, sin horario silencioso.
 
+## Última oportunidad y Perdidos (flujo «Maripino · Última oportunidad y perdidos», cada hora)
+
+- Nuevo lead con los 3 seguimientos hechos (el recordatorio del video cuenta como uno) y sin respuesta 6 h después
+  del último → columna **Última oportunidad**. Las respuestas automáticas del cliente no cuentan como respuesta.
+- Más de 7 días en Última oportunidad → columna **Perdidos** con estado *lost*.
+- Si un lead de Última oportunidad o Perdidos vuelve a escribir, Maripino lo atiende y lo regresa a Nuevo lead (estado abierto).
+
 ## Rescate de leads sin respuesta (flujo «Maripino · Rescate de leads sin respuesta», cada 2 h)
 Busca en GHL conversaciones de WhatsApp cuyo último mensaje es del cliente (de hace más de 10 min y menos de
 23 h) y se las pasa a Maripino, que contesta si es un lead suyo. Entre las 23:00 y las 08:00 no rescata: lo

@@ -79,6 +79,8 @@ CFG = {
         "nuevo": "fe64e5e5-f19a-4c8a-af74-20d0d2c12868",  # Nuevo lead (primera columna)
         "agendado": "467bd371-b731-4bf6-892d-da5d4c2f31d0",  # Agendado
         "atencion": "e5701f60-f46f-4a9f-a64b-590068028c12",  # Atención personalizada
+        "ultima": "9802f463-91ad-4dca-a5f6-49f616329aac",  # Última oportunidad (3 seguimientos sin respuesta)
+        "perdidos": "ea40b47b-9ef3-4ab5-935a-1d40a7836ac1",  # Perdidos (más de 7 días en Última oportunidad; estado lost)
     },
     "etapaAtencion": "atencion personalizada",  # se busca por nombre en el pipeline
     "campos": {
@@ -168,7 +170,9 @@ const limpio = (s) => String(s ?? '').trim();
 if (tags.includes('atencion-personalizada') || tags.includes('maripino-off')) return [];
 // Solo atiende leads en la primera columna ("Nuevo lead") o sin oportunidad todavía.
 // Si la oportunidad está en otra columna (Contactado, Agendado, Cerrado, Atención personalizada) o ya no está abierta, no habla.
-if (opp && (opp.pipelineStageId !== CFG.etapas.nuevo || (opp.status && opp.status !== 'open'))) return [];
+// Excepción: si un lead de "Última oportunidad" o "Perdidos" vuelve a escribir, Maripino lo atiende y regresa a Nuevo lead.
+const revivir = !!opp && [CFG.etapas.ultima, CFG.etapas.perdidos].includes(opp.pipelineStageId) && opp.status !== 'won';
+if (opp && !revivir && (opp.pipelineStageId !== CFG.etapas.nuevo || (opp.status && opp.status !== 'open'))) return [];
 
 // 2. ¿Viene de un anuncio? Solo atendemos leads de anuncios (la coexistencia trae también contactos personales).
 const fuentes = [contacto.attributionSource, contacto.lastAttributionSource, ...(contacto.attributions ?? [])];
@@ -296,6 +300,7 @@ return [{ json: {
   valores,
   oportunidadId: opp?.id ?? null,
   etapaActual: opp?.pipelineStageId ?? null,
+  revivir,
   crearOportunidad: !opp && !ent.simulacion,
   prompt,
 } }];
@@ -537,6 +542,7 @@ const atencion = pipe?.stages?.find((s) => norm(s.name).includes(CFG.etapaAtenci
 let destino = null;
 if (plan.atencion) destino = atencion;
 else if (plan.citaAgendada) destino = CFG.etapas.agendado;
+else if ($('Analizar').first().json.revivir) destino = CFG.etapas.nuevo; // volvió a escribir: de vuelta a Nuevo lead
 return [{ json: { ...plan, destino, moverOportunidad: !!(destino && plan.oportunidadId && destino !== plan.etapaActual),
   faltaColumnaAtencion: plan.atencion && !atencion } }];
 """
@@ -757,7 +763,7 @@ nodos = [
     nodo("Etapa destino", "n8n-nodes-base.code", 2, [4500, 300], {"jsCode": ETAPA}),
     si("¿Mover oportunidad?", [4700, 300], "={{ $json.moverOportunidad }}"),
     ghl("GHL mover oportunidad", [4900, 200], "PUT", "=" + GHL + "/opportunities/{{ $json.oportunidadId }}",
-        cuerpo="={{ JSON.stringify({ pipelineId: '" + CFG["pipelineId"] + "', pipelineStageId: $json.destino }) }}",
+        cuerpo="={{ JSON.stringify({ pipelineId: '" + CFG["pipelineId"] + "', pipelineStageId: $json.destino, status: 'open' }) }}",
         onError="continueRegularOutput"),
     si("¿Renombrar oportunidad?", [4600, 160], "={{ !!($('Plan CRM').first().json.nombreOportunidad && $('Plan CRM').first().json.oportunidadId) }}"),
     ghl("GHL renombrar oportunidad", [4800, 60], "PUT", "=" + GHL + "/opportunities/{{ $('Plan CRM').first().json.oportunidadId }}",
@@ -1061,6 +1067,70 @@ res_con = {a["name"]: {"main": [[{"node": b["name"], "type": "main", "index": 0}
 rescate = {"name": "Maripino · Rescate de leads sin respuesta", "nodes": res_nodos, "connections": res_con,
            "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
 
+# ---------------------------------------------------------------- pipeline: última oportunidad y perdidos (cada hora)
+PIPE_CLASIFICAR = CFG_JS + r"""// Nuevo lead con los 3 seguimientos hechos → revisar si contestó. Última oportunidad > 7 días → Perdidos.
+const DIA = 864e5;
+const salida = [];
+for (const o of $json.opportunities ?? []) {
+  const tags = (o.contact?.tags ?? []).map((t) => String(t).toLowerCase());
+  if (tags.includes('test-maripino') || o.status !== 'open') continue;
+  if (o.pipelineStageId === CFG.etapas.nuevo) {
+    // El recordatorio del video cuenta como un seguimiento.
+    const hechos = tags.includes('seguimiento-3') ? 3
+      : [1, 2].filter((k) => tags.includes(`seguimiento-${k}`)).length + (tags.includes('video-recordatorio') ? 1 : 0);
+    if (hechos >= 3) salida.push({ json: { accion: 'revisar', oppId: o.id, contactId: o.contactId || o.contact?.id, nombre: o.name } });
+  } else if (o.pipelineStageId === CFG.etapas.ultima) {
+    const desde = new Date(o.lastStageChangeAt || o.updatedAt || o.createdAt).getTime();
+    if (Date.now() - desde > 7 * DIA) salida.push({ json: { accion: 'perdido', oppId: o.id, contactId: o.contactId || o.contact?.id, nombre: o.name } });
+  }
+}
+return salida;
+"""
+
+PIPE_DECIDIR = CFG_JS + r"""// ¿Siguió sin contestar después del último seguimiento? (las respuestas automáticas no cuentan)
+const AUTO = /(no podemos atender|lo antes posible|en breve (le|te) |gracias por (contactar|comunicarte|escribir|tu mensaje|su mensaje)|fuera de(l)? horario|mensaje autom|horario de atenci)/i;
+const cand = $('Clasificar').all();
+const salida = [];
+$input.all().forEach((item, i) => {
+  const c = cand[i]?.json;
+  if (!c) return;
+  if (c.accion === 'perdido') { salida.push({ json: { ...c, etapa: CFG.etapas.perdidos, estado: 'lost' } }); return; }
+  let msgs = [];
+  try { const m = item.json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}
+  if (!Array.isArray(msgs)) msgs = [];
+  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+  const ultOut = [...msgs].reverse().find((m) => m.direction === 'outbound');
+  if (!ultOut) return;
+  const tOut = new Date(ultOut.dateAdded).getTime();
+  const contesto = msgs.some((m) => m.direction === 'inbound' && new Date(m.dateAdded).getTime() > tOut && !AUTO.test(m.body ?? ''));
+  if (contesto) return;
+  if (Date.now() - tOut < 6 * 3600e3) return; // le damos 6 h después del último seguimiento
+  salida.push({ json: { ...c, etapa: CFG.etapas.ultima, estado: 'open' } });
+});
+return salida;
+"""
+
+pipe_nodos = [
+    nodo("Cada hora", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 0],
+         {"rule": {"interval": [{"field": "cronExpression", "expression": "20 * * * *"}]}}),
+    ghl("GHL oportunidades del pipeline", [200, 0], "GET", GHL + "/opportunities/search",
+        query={"location_id": LOCATION_ID, "pipeline_id": CFG["pipelineId"], "limit": "100"}),
+    nodo("Clasificar", "n8n-nodes-base.code", 2, [400, 0], {"jsCode": PIPE_CLASIFICAR}),
+    ghl("GHL conversación del lead", [600, 0], "GET", GHL + "/conversations/search",
+        query={"locationId": LOCATION_ID, "contactId": "={{ $json.contactId }}", "limit": "1"},
+        onError="continueRegularOutput", alwaysOutputData=True),
+    ghl("GHL mensajes del lead", [800, 0], "GET",
+        "=" + GHL + "/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        query={"limit": "40"}, onError="continueRegularOutput", alwaysOutputData=True),
+    nodo("Decidir columna", "n8n-nodes-base.code", 2, [1000, 0], {"jsCode": PIPE_DECIDIR}),
+    ghl("GHL mover a columna", [1200, 0], "PUT", "=" + GHL + "/opportunities/{{ $json.oppId }}",
+        cuerpo="={{ JSON.stringify({ pipelineId: '" + CFG["pipelineId"] + "', pipelineStageId: $json.etapa, status: $json.estado }) }}",
+        onError="continueRegularOutput"),
+]
+pipe_con = {a["name"]: {"main": [[{"node": b["name"], "type": "main", "index": 0}]]} for a, b in zip(pipe_nodos, pipe_nodos[1:])}
+pipeline = {"name": "Maripino · Última oportunidad y perdidos", "nodes": pipe_nodos, "connections": pipe_con,
+            "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
+
 # ---------------------------------------------------------------- reporte diario (8:00)
 IDS_ANUNCIOS = list(CONFIG["anuncios"].keys())
 META_CAMPOS = "ad_id,ad_name,spend,impressions,reach,clicks,actions"
@@ -1138,7 +1208,8 @@ const estado = (l) => {
   if (l.tags.includes('cita-agendada') || etapaNombre[l.o?.pipelineStageId] === 'Agendado') return 'Agendado';
   if (l.tags.includes('atencion-personalizada')) return 'Atención personalizada';
   if (l.tags.includes('maripino-off')) return 'Lo atiende el equipo (Maripino apagado)';
-  if (l.tags.includes('seguimiento-3')) return 'Perdido (sin respuesta tras 3 seguimientos)';
+  if (etapaNombre[l.o?.pipelineStageId] === 'Perdidos') return 'Perdido';
+  if (etapaNombre[l.o?.pipelineStageId] === 'Última oportunidad') return 'Última oportunidad (sin respuesta tras 3 seguimientos)';
   if (l.tags.some((t) => t.startsWith('seguimiento-'))) return 'En seguimiento';
   return 'En conversación';
 };
@@ -1176,7 +1247,7 @@ const filasMeta = (datos, arrLeads) => {
 };
 const cabMeta = ['Anuncio', 'Gasto', 'Impresiones', 'Clics', 'Conversaciones', 'Leads (CRM)', 'Costo por lead'];
 const agendadosTotal = (porEstado['Agendado'] || 0) + (porEstado['Ganado'] || 0);
-const perdidosTotal = (porEstado['Perdido'] || 0) + (porEstado['Perdido (sin respuesta tras 3 seguimientos)'] || 0);
+const perdidosTotal = porEstado['Perdido'] || 0;
 const tasa = leads.length ? Math.round(100 * agendadosTotal / leads.length) + '%' : '-';
 
 const html = `<div style="font-family:Arial,sans-serif;max-width:760px;color:#222">
@@ -1196,7 +1267,7 @@ ${h2('¿Invierten en anuncios de Facebook?')}${tabla(['Respuesta', 'Leads'], ['S
 <p style="font-size:14px">Volumen medio que declaran: <b>${volumenMedio ? num(volumenMedio) + ' leads por semana' : 'sin datos'}</b>${volumenes.length ? ` (${volumenes.length} respuestas)` : ''}.</p>
 ${h2('Próximas llamadas agendadas')}${eventos.length ? tabla(['Cuándo', 'Cita'], eventos.slice(0, 15).map((e) => [esc(f(e.startTime)), esc(e.title)])) : '<p>No hay llamadas agendadas en los próximos 7 días.</p>'}
 ${h2('Leads de los últimos 7 días')}${deSemana.length ? tabla(['Fecha', 'Lead', 'Anuncio', 'Ciudad', 'Estado'], [...deSemana].sort((a, b) => b.alta - a.alta).map((l) => [esc(new Date(l.alta).toLocaleString('es-MX', { timeZone: tz, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })), esc([l.c.firstName, l.c.lastName].filter(Boolean).join(' ') || l.c.phone), esc(anuncioDe(l) || 'Sin anuncio (orgánico)'), esc(l.ciudad || '-'), estado(l)])) : '<p>No entraron leads en los últimos 7 días.</p>'}
-<p style="font-size:12px;color:#777;margin-top:24px">Leads = contactos nuevos desde el ${INICIO} que vienen de nuestros anuncios, tienen oportunidad en XzenAuto o los atiende Maripino (sin contactos de prueba). Conversaciones = conversaciones de mensajería iniciadas según Meta. Perdidos = oportunidades marcadas como perdidas en GHL más leads sin respuesta tras los 3 seguimientos.</p>
+<p style="font-size:12px;color:#777;margin-top:24px">Leads = contactos nuevos desde el ${INICIO} que vienen de nuestros anuncios, tienen oportunidad en XzenAuto o los atiende Maripino (sin contactos de prueba). Conversaciones = conversaciones de mensajería iniciadas según Meta. Perdidos = oportunidades marcadas como perdidas o en la columna Perdidos (más de 7 días en Última oportunidad sin responder).</p>
 </div>`;
 
 return [{ json: { asunto: `📊 xzen Auto · ${ayer}: ${deAyer.length} leads, ${agendadosTotal} agendados en total${meta.ayer ? ', gasto ' + money(sum(meta.ayer, 'gasto')) : ''}`, html } }];
@@ -1267,6 +1338,6 @@ configuracion = {"name": "Maripino · Configuración GHL", "nodes": cfg_nodos, "
 
 for nombre, wf in [("maripino-agente.json", agente), ("maripino-seguimientos.json", seguimientos),
                    ("maripino-rescate.json", rescate), ("maripino-reporte.json", reporte),
-                   ("maripino-configuracion.json", configuracion)]:
+                   ("maripino-configuracion.json", configuracion), ("maripino-pipeline.json", pipeline)]:
     (AQUI / nombre).write_text(json.dumps(wf, ensure_ascii=False, indent=2) + "\n")
     print("escrito", nombre, len(wf["nodes"]), "nodos")

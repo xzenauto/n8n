@@ -1,0 +1,318 @@
+{
+  "name": "Maripino · Última oportunidad y perdidos",
+  "nodes": [
+    {
+      "id": "09b40506-5d34-5ab9-9c4c-ffaa080324f4",
+      "name": "Cada hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "20 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "8e13106d-68df-5e24-91a7-d13dadc81ffc",
+      "name": "GHL oportunidades del pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/opportunities/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "location_id",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            },
+            {
+              "name": "pipeline_id",
+              "value": "aCNhCRpOOyTfbHBPplyl"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      }
+    },
+    {
+      "id": "0bb757e0-0049-5d07-b717-245c00e2b6db",
+      "name": "Clasificar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\", \"atencion\": \"e5701f60-f46f-4a9f-a64b-590068028c12\", \"ultima\": \"9802f463-91ad-4dca-a5f6-49f616329aac\", \"perdidos\": \"ea40b47b-9ef3-4ab5-935a-1d40a7836ac1\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\", \"cita\": \"KZIraI4WWxYrTv7FaRql\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}, \"52614782625197\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52614782625397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52614782625797\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}, \"52614782624997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"textos_anuncio\": [\"me interesa el sistema de automatizacon para agencias de viajes\", \"me interesa el sistema de automatizacion para agencias de viajes\"], \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"textos_anuncio\": [], \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n// Nuevo lead con los 3 seguimientos hechos → revisar si contestó. Última oportunidad > 7 días → Perdidos.\nconst DIA = 864e5;\nconst salida = [];\nfor (const o of $json.opportunities ?? []) {\n  const tags = (o.contact?.tags ?? []).map((t) => String(t).toLowerCase());\n  if (tags.includes('test-maripino') || o.status !== 'open') continue;\n  if (o.pipelineStageId === CFG.etapas.nuevo) {\n    // El recordatorio del video cuenta como un seguimiento.\n    const hechos = tags.includes('seguimiento-3') ? 3\n      : [1, 2].filter((k) => tags.includes(`seguimiento-${k}`)).length + (tags.includes('video-recordatorio') ? 1 : 0);\n    if (hechos >= 3) salida.push({ json: { accion: 'revisar', oppId: o.id, contactId: o.contactId || o.contact?.id, nombre: o.name } });\n  } else if (o.pipelineStageId === CFG.etapas.ultima) {\n    const desde = new Date(o.lastStageChangeAt || o.updatedAt || o.createdAt).getTime();\n    if (Date.now() - desde > 7 * DIA) salida.push({ json: { accion: 'perdido', oppId: o.id, contactId: o.contactId || o.contact?.id, nombre: o.name } });\n  }\n}\nreturn salida;\n"
+      }
+    },
+    {
+      "id": "10cc36a2-0a1e-5dfa-9fd3-89df7a8f1d10",
+      "name": "GHL conversación del lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/conversations/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "8SiKgyVuy9KVUIx1Y1RT"
+            },
+            {
+              "name": "contactId",
+              "value": "={{ $json.contactId }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "49b16274-7a00-5d2b-8e0c-1c13777c5c50",
+      "name": "GHL mensajes del lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "40"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "51313b5e-4fd3-5ab5-b7ac-95060bec62aa",
+      "name": "Decidir columna",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const CFG = {\"locationId\": \"8SiKgyVuy9KVUIx1Y1RT\", \"calendarId\": \"0YwJGtf0m8eI5hEacRMb\", \"pipelineId\": \"aCNhCRpOOyTfbHBPplyl\", \"etapas\": {\"nuevo\": \"fe64e5e5-f19a-4c8a-af74-20d0d2c12868\", \"agendado\": \"467bd371-b731-4bf6-892d-da5d4c2f31d0\", \"atencion\": \"e5701f60-f46f-4a9f-a64b-590068028c12\", \"ultima\": \"9802f463-91ad-4dca-a5f6-49f616329aac\", \"perdidos\": \"ea40b47b-9ef3-4ab5-935a-1d40a7836ac1\"}, \"etapaAtencion\": \"atencion personalizada\", \"campos\": {\"anuncio\": \"hKffpuqKs9ks9zY54O4a\", \"ubicacion\": \"KT0jJ23FRgNojKiQ88YG\", \"inversion\": \"FI2NXz4DYljZ0RhkCqmf\", \"leads\": \"Pu2Gi0cSBV3gdMGKpWZr\", \"cita\": \"KZIraI4WWxYrTv7FaRql\"}, \"correoAviso\": \"xzenauto@gmail.com\"};\nconst RUTAS = {\"vertical_por_defecto\": \"general\", \"anuncios\": {\"52613806312397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}, \"52613807534997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52613807845997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52613808070397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}, \"52614782625197\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Xime\"}, \"52614782625397\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos1\"}, \"52614782625797\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Carlos2\"}, \"52614782624997\": {\"vertical\": \"agencia_viajes\", \"nombre\": \"Agencia Flyer\"}}, \"verticales\": {\"agencia_viajes\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-agencia-viajes\", \"activo\": true, \"textos_anuncio\": [\"me interesa el sistema de automatizacon para agencias de viajes\", \"me interesa el sistema de automatizacion para agencias de viajes\"], \"instrucciones\": \"# Giro del cliente: agencia de viajes\\nEl cliente llegó desde un anuncio para agencias de viajes. Hable de su agencia y de sus viajeros.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Clientes que preguntan por un paquete de noche o en fin de semana y nadie les responde.\\n- Cotizaciones que se quedan sin seguimiento.\\n- El equipo de ventas saturado contestando lo mismo una y otra vez.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: recoge destino, fechas, número de viajeros y presupuesto para cotizar.\\n- Seguimiento organizado para que ninguna cotización quede olvidada.\\n- Estadísticas del equipo: tiempos de respuesta y desempeño de cada vendedor.\\n- Así el equipo se concentra en asesorar a los viajeros y cerrar ventas.\"}, \"tienda_muebles\": {\"video_demo\": \"PENDIENTE\", \"tag_ghl\": \"demo-tienda-muebles\", \"activo\": false, \"textos_anuncio\": [], \"instrucciones\": \"# Giro del cliente: tienda de muebles\\nEl cliente llegó desde un anuncio para tiendas de muebles. Hable de su tienda y de sus compradores.\\n\\nDolores típicos que puede mencionar con empatía:\\n- Muchas preguntas repetidas por WhatsApp: precio, medidas, colores, disponibilidad, envíos.\\n- Clientes que preguntan y no regresan porque nadie les dio seguimiento.\\n- Vendedores ocupados en piso que no alcanzan a contestar los mensajes.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de la tienda.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos: qué mueble busca, medidas, presupuesto y zona de entrega.\\n- Seguimiento automático para que nadie se quede sin respuesta.\\n- Estadísticas del equipo de ventas.\"}, \"general\": {\"video_demo\": \"https://youtu.be/t2bvakV2WMw\", \"tag_ghl\": \"demo-general\", \"activo\": true, \"instrucciones\": \"# Giro del cliente: desconocido\\nNo sabemos desde qué anuncio llegó. En su primera respuesta pregunte amablemente a qué se dedica su negocio y adapte la conversación a su giro.\\n\\nLo que hace el sistema (lo único que puede prometer):\\n- Atención automática de las consultas iniciales, incluso fuera del horario de trabajo.\\n- Todos los mensajes de WhatsApp, Facebook e Instagram en un solo lugar.\\n- Califica prospectos y recoge los datos que el negocio necesita.\\n- Seguimiento organizado para que ningún prospecto quede olvidado.\\n- Estadísticas del desempeño del equipo.\"}}};\n// ¿Siguió sin contestar después del último seguimiento? (las respuestas automáticas no cuentan)\nconst AUTO = /(no podemos atender|lo antes posible|en breve (le|te) |gracias por (contactar|comunicarte|escribir|tu mensaje|su mensaje)|fuera de(l)? horario|mensaje autom|horario de atenci)/i;\nconst cand = $('Clasificar').all();\nconst salida = [];\n$input.all().forEach((item, i) => {\n  const c = cand[i]?.json;\n  if (!c) return;\n  if (c.accion === 'perdido') { salida.push({ json: { ...c, etapa: CFG.etapas.perdidos, estado: 'lost' } }); return; }\n  let msgs = [];\n  try { const m = item.json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\n  if (!Array.isArray(msgs)) msgs = [];\n  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));\n  const ultOut = [...msgs].reverse().find((m) => m.direction === 'outbound');\n  if (!ultOut) return;\n  const tOut = new Date(ultOut.dateAdded).getTime();\n  const contesto = msgs.some((m) => m.direction === 'inbound' && new Date(m.dateAdded).getTime() > tOut && !AUTO.test(m.body ?? ''));\n  if (contesto) return;\n  if (Date.now() - tOut < 6 * 3600e3) return; // le damos 6 h después del último seguimiento\n  salida.push({ json: { ...c, etapa: CFG.etapas.ultima, estado: 'open' } });\n});\nreturn salida;\n"
+      }
+    },
+    {
+      "id": "1e6d0364-681b-50e8-a1ec-9b09fe490278",
+      "name": "GHL mover a columna",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/opportunities/{{ $json.oppId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pipelineId: 'aCNhCRpOOyTfbHBPplyl', pipelineStageId: $json.etapa, status: $json.estado }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Cada hora": {
+      "main": [
+        [
+          {
+            "node": "GHL oportunidades del pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL oportunidades del pipeline": {
+      "main": [
+        [
+          {
+            "node": "Clasificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar": {
+      "main": [
+        [
+          {
+            "node": "GHL conversación del lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL conversación del lead": {
+      "main": [
+        [
+          {
+            "node": "GHL mensajes del lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL mensajes del lead": {
+      "main": [
+        [
+          {
+            "node": "Decidir columna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decidir columna": {
+      "main": [
+        [
+          {
+            "node": "GHL mover a columna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  }
+}
