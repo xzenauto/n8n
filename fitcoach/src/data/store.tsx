@@ -220,9 +220,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 		const remoteHabits = !h.error;
 		setHabitsLocal(!remoteHabits || !hasHabitsCol.current);
 
-		const plans = planRows.map(toPlan).map((plan) =>
-			hasHabitsCol.current ? plan : { ...plan, habits: lsGet<Habits | null>(LOCAL_HABITS + plan.userId, null) ?? DEFAULT_HABITS },
-		);
+		const plans = planRows.map(toPlan).map((plan) => {
+			const localHabits = lsGet<Habits | null>(LOCAL_HABITS + plan.userId, null);
+			if (!hasHabitsCol.current) return { ...plan, habits: localHabits ?? DEFAULT_HABITS };
+			if (localHabits) {
+				// Hábitos editados en el móvil antes de existir la columna: se suben al servidor.
+				enqueue({ key: `gym_plans:${plan.userId}`, table: 'gym_plans', kind: 'upsert', row: { user_id: plan.userId, program: plan.program, diet: plan.diet, habits: localHabits, updated_at: new Date().toISOString() } });
+				lsSet(LOCAL_HABITS + plan.userId, null);
+				return { ...plan, habits: localHabits };
+			}
+			return plan;
+		});
 		let habitLogs: HabitLog[] = remoteHabits ? (h.data ?? []).map((r) => ({ userId: r.user_id, date: r.date, done: r.done ?? [] })) : lsGet<HabitLog[]>(LOCAL_LOGS, []);
 
 		// Cuando Supabase ya tiene la tabla, se suben las marcas que se hicieron en el móvil.
