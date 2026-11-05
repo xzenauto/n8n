@@ -3368,6 +3368,86 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Datos1').item.json.contact_id }}/workflow/a1447a6d-76c5-4a0e-979b-f00761b72939",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -560,
+        800
+      ],
+      "id": "6b699871-9803-44cc-853d-ec097f5efc69",
+      "name": "Sacar de Seg_entrante",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rWAEGS39h2YWXLc7",
+          "name": "GHL - PIT - Independencia"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "notes": "Saca al contacto del seguimiento automático de GHL; si sigue en esa etapa, la etiqueta que se agrega después lo vuelve a meter."
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Datos1').item.json.contact_id }}/workflow/830b3900-1dfc-491f-8342-b2dbbdb6d3f0",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -340,
+        800
+      ],
+      "id": "cf6c95d1-a326-40df-a71a-fa29e5c3512e",
+      "name": "Sacar de Seg_explorando",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rWAEGS39h2YWXLc7",
+          "name": "GHL - PIT - Independencia"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "notes": "Saca al contacto del seguimiento automático de GHL; si sigue en esa etapa, la etiqueta que se agrega después lo vuelve a meter."
     }
   ],
   "connections": {
@@ -3408,7 +3488,7 @@
       "main": [
         [
           {
-            "node": "AñadirColumna",
+            "node": "Sacar de Seg_entrante",
             "type": "main",
             "index": 0
           }
@@ -4276,6 +4356,28 @@
         [
           {
             "node": "CRM Sin IA (fila arriba)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sacar de Seg_entrante": {
+      "main": [
+        [
+          {
+            "node": "Sacar de Seg_explorando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sacar de Seg_explorando": {
+      "main": [
+        [
+          {
+            "node": "AñadirColumna",
             "type": "main",
             "index": 0
           }

@@ -3362,6 +3362,86 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Datos1').item.json.contact_id }}/workflow/28e3518a-6c30-4ecf-b316-5f008ad4d1e7",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -560,
+        800
+      ],
+      "id": "df858204-09b8-4fc8-b831-87d2094d308d",
+      "name": "Sacar de Seg_entrante",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PYYaUr4y3fcmZ8V1",
+          "name": "GHL - PIT - Saltillo"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "notes": "Saca al contacto del seguimiento automático de GHL; si sigue en esa etapa, la etiqueta que se agrega después lo vuelve a meter."
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('Datos1').item.json.contact_id }}/workflow/eb0aba0c-c6e9-48b2-aaa5-28edc26c8547",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -340,
+        800
+      ],
+      "id": "68d985a9-0423-4d09-bea5-504634db3fbd",
+      "name": "Sacar de Seg_explorando",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PYYaUr4y3fcmZ8V1",
+          "name": "GHL - PIT - Saltillo"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "notes": "Saca al contacto del seguimiento automático de GHL; si sigue en esa etapa, la etiqueta que se agrega después lo vuelve a meter."
     }
   ],
   "connections": {
@@ -3402,7 +3482,7 @@
       "main": [
         [
           {
-            "node": "AñadirColumna",
+            "node": "Sacar de Seg_entrante",
             "type": "main",
             "index": 0
           }
@@ -4270,6 +4350,28 @@
         [
           {
             "node": "CRM Sin IA (fila arriba)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sacar de Seg_entrante": {
+      "main": [
+        [
+          {
+            "node": "Sacar de Seg_explorando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sacar de Seg_explorando": {
+      "main": [
+        [
+          {
+            "node": "AñadirColumna",
             "type": "main",
             "index": 0
           }
