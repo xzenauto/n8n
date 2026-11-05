@@ -410,7 +410,9 @@ export function HabitsEditor({ value, onChange }: { value: Habits; onChange: (h:
 						<div className="editor-ex" key={h.id} style={{ borderLeft: `6px solid ${HABIT_COLORS[i % HABIT_COLORS.length]}` }}>
 							<div className="head">
 								<input value={h.emoji} onChange={(e) => set(h.id, { emoji: e.target.value })} style={{ flex: 'none', width: 52, textAlign: 'center' }} aria-label="Emoji" />
-								<input value={h.name} onChange={(e) => set(h.id, { name: e.target.value })} placeholder="Nombre del hábito" />
+								<span style={{ flex: 1 }} className="muted">
+									Hábito {i + 1}
+								</span>
 								<button className="icon-btn" onClick={() => onChange({ ...value, items: move(value.items, i, -1) })} aria-label="Subir">
 									↑
 								</button>
@@ -421,6 +423,13 @@ export function HabitsEditor({ value, onChange }: { value: Habits; onChange: (h:
 									✕
 								</button>
 							</div>
+							<textarea
+								rows={2}
+								value={h.name}
+								onChange={(e) => set(h.id, { name: e.target.value.replace(/\n/g, ' ') })}
+								placeholder="Nombre del hábito"
+								style={{ width: '100%', marginTop: 6, border: '1px solid var(--line)', borderRadius: 8, padding: 8, fontWeight: 700, resize: 'none', background: '#fff', color: 'var(--ink)' }}
+							/>
 						</div>
 					))}
 					{value.items.length < 5 && (

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { EditHabitsButton } from '../components/EditHabits';
 import { HabitWheel, MONTHS, monthStats } from '../components/Habits';
 import { ask, LineChart, Sheet, TopBar } from '../components/ui';
 import { useStore } from '../data/store';
@@ -251,7 +252,12 @@ function HabitsProgress({ userId, editable }: { userId: string; editable: boolea
 	if (!habits.length)
 		return (
 			<div className="card">
-				<div className="empty">Todavía no hay hábitos asignados. El entrenador los añade en Admin › Hábitos.</div>
+				<div className="empty">
+					Todavía no hay hábitos asignados.
+					<div style={{ marginTop: 10 }}>
+						<EditHabitsButton userId={userId} />
+					</div>
+				</div>
 			</div>
 		);
 
@@ -270,8 +276,11 @@ function HabitsProgress({ userId, editable }: { userId: string; editable: boolea
 			<div className="card">
 				<div className="card-head">
 					Rueda de hábitos
-					<span className="pill yellow">
-						{totalDone}/{totalPossible}
+					<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+						<span className="pill yellow">
+							{totalDone}/{totalPossible}
+						</span>
+						<EditHabitsButton userId={userId} />
 					</span>
 				</div>
 				<div className="month-nav">

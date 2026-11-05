@@ -1,4 +1,5 @@
 import type { Tab } from '../App';
+import { EditHabitsButton } from '../components/EditHabits';
 import { HabitRings, MONTHS, monthStats } from '../components/Habits';
 import { useStore } from '../data/store';
 import { dayFor, formatLong, getFood, macrosOf, nextMeal, nextTrainingFrom, sessionsFor, toISO, WEEKDAYS, WEEKDAYS_SHORT, weekdayIndex } from '../data/util';
@@ -193,8 +194,11 @@ function HabitsWidget({ onGo }: { onGo: (t: Tab) => void }) {
 		<div className="rings-card">
 			<div className="head">
 				<b>Hábitos · {MONTHS[now.getMonth()]}</b>
-				<span className="dark-muted">
-					Hoy {countToday}/{habits.length}
+				<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+					<span className="dark-muted">
+						Hoy {countToday}/{habits.length}
+					</span>
+					<EditHabitsButton userId={me!.id} dark />
 				</span>
 			</div>
 			<div className="rings-top" onClick={() => onGo('progress')} style={{ cursor: 'pointer' }}>
