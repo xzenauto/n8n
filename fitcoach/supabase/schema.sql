@@ -109,3 +109,18 @@ create policy gym_equivalences_admin_update on public.gym_equivalences for updat
   using (public.gym_is_admin()) with check (public.gym_is_admin());
 create policy gym_equivalences_admin_delete on public.gym_equivalences for delete to authenticated
   using (public.gym_is_admin());
+
+-- ---------- Hábitos (migración gym_habits) ----------
+alter table public.gym_plans add column habits jsonb not null default '{"goal":"","items":[]}'::jsonb;
+
+create table public.gym_habit_logs (
+  user_id uuid not null references public.gym_profiles on delete cascade,
+  date date not null,
+  done text[] not null default '{}',
+  updated_at timestamptz not null default now(),
+  primary key (user_id, date)
+);
+alter table public.gym_habit_logs enable row level security;
+create policy gym_habit_logs_own on public.gym_habit_logs for all to authenticated
+  using (user_id = (select auth.uid()) or public.gym_is_admin())
+  with check (user_id = (select auth.uid()) or public.gym_is_admin());

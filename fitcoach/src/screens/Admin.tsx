@@ -2,9 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ask, Sheet, TopBar, useToast } from '../components/ui';
 import { emptyPlan } from '../data/seed';
 import { useStore } from '../data/store';
-import type { Diet, EquivalenceGroup, Program, User } from '../data/types';
+import type { Diet, EquivalenceGroup, Habits, Program, User } from '../data/types';
 import { formatShort, sessionsFor } from '../data/util';
-import { DietEditor, EquivalencesEditor, ProgramEditor } from './AdminEditors';
+import { DietEditor, EquivalencesEditor, HabitsEditor, ProgramEditor } from './AdminEditors';
 import Progress from './Progress';
 
 type View = { kind: 'list' } | { kind: 'user'; id: string } | { kind: 'equiv' };
@@ -133,7 +133,7 @@ function CreateUser({ onClose, onCreated }: { onClose: () => void; onCreated: ()
 function UserDetail({ id, onBack }: { id: string; onBack: () => void }) {
 	const store = useStore();
 	const user = store.db.users.find((u) => u.id === id);
-	const [tab, setTab] = useState<'data' | 'train' | 'diet' | 'history' | 'progress'>('data');
+	const [tab, setTab] = useState<'data' | 'train' | 'diet' | 'habits' | 'history' | 'progress'>('data');
 	if (!user) return null;
 	const plan = store.planOf(id);
 
@@ -146,6 +146,7 @@ function UserDetail({ id, onBack }: { id: string; onBack: () => void }) {
 						['data', 'Datos'],
 						['train', 'Entreno'],
 						['diet', 'Dieta'],
+						['habits', 'Hábitos'],
 						['history', 'Historial'],
 						['progress', 'Progreso'],
 					] as const
@@ -156,9 +157,11 @@ function UserDetail({ id, onBack }: { id: string; onBack: () => void }) {
 				))}
 			</div>
 			{tab === 'data' && <UserData user={user} onDeleted={onBack} />}
-			{(tab === 'train' || tab === 'diet') &&
+			{(tab === 'train' || tab === 'diet' || tab === 'habits') &&
 				(plan ? (
-					tab === 'train' ? (
+					tab === 'habits' ? (
+						<PlanPart<Habits> key={`h${id}`} initial={plan.habits ?? { goal: '', items: [] }} onSave={(habits) => store.savePlan({ ...store.planOf(id)!, habits })} Editor={HabitsEditor} />
+					) : tab === 'train' ? (
 						<PlanPart<Program> key={`t${id}`} initial={plan.program} onSave={(program) => store.savePlan({ ...store.planOf(id)!, program })} Editor={ProgramEditor} />
 					) : (
 						<PlanPart<Diet> key={`d${id}`} initial={plan.diet} onSave={(diet) => store.savePlan({ ...store.planOf(id)!, diet })} Editor={DietEditor} />

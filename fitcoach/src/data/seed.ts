@@ -87,6 +87,7 @@ const days: TrainingDay[] = [
 
 export const carlosPlan: Plan = {
 	userId: CARLOS_ID,
+	habits: { goal: '', items: [] },
 	program: {
 		name: 'Reset metabólico',
 		days,
@@ -289,6 +290,7 @@ export function emptyPlan(userId: string): Plan {
 			cardio: [],
 		},
 		diet: { kcal: 0, protein: 0, carbs: 0, fat: 0, meals: [] },
+		habits: { goal: '', items: [] },
 	};
 }
 

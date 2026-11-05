@@ -68,10 +68,28 @@ export interface Diet {
 	meals: Meal[];
 }
 
+export interface Habit {
+	id: string;
+	emoji: string;
+	name: string;
+}
+
+export interface Habits {
+	goal: string;
+	items: Habit[]; // máximo 5
+}
+
 export interface Plan {
 	userId: string;
 	program: Program;
 	diet: Diet;
+	habits: Habits;
+}
+
+export interface HabitLog {
+	userId: string;
+	date: string; // yyyy-mm-dd
+	done: string[]; // ids de hábitos cumplidos
 }
 
 export interface SetLog {
@@ -122,4 +140,5 @@ export interface DB {
 	sessions: Session[];
 	measurements: Measurement[];
 	equivalences: EquivalenceGroup[];
+	habitLogs: HabitLog[];
 }

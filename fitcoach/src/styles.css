@@ -877,3 +877,153 @@ input[type='time']::-webkit-date-and-time-value {
 	z-index: 60;
 	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
+
+/* ---------- Hábitos ---------- */
+.wheel {
+	width: 100%;
+	max-width: 420px;
+	height: auto;
+	display: block;
+	margin: 0 auto;
+	touch-action: manipulation;
+}
+.rings-card {
+	background: #111;
+	color: var(--on-dark);
+	border-radius: var(--radius);
+	padding: 16px;
+	margin-bottom: 14px;
+	border: 1px solid #2a2a2a;
+}
+.rings-card .head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+.rings-card .head b {
+	font-size: 13px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+.rings-top {
+	display: flex;
+	gap: 14px;
+	align-items: center;
+}
+.rings-top svg {
+	flex: none;
+}
+.rings-legend {
+	flex: 1;
+	min-width: 0;
+	display: grid;
+	gap: 6px;
+}
+.rings-legend div {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	min-width: 0;
+}
+.rings-legend .dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	flex: none;
+}
+.rings-legend .lbl {
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--on-dark-2);
+}
+.rings-legend .val {
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+}
+.habit-today {
+	display: grid;
+	gap: 6px;
+	margin-top: 14px;
+}
+.habit-btn {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	text-align: left;
+	background: #1d1d1d;
+	border: 1.5px solid #2e2e2e;
+	border-radius: 12px;
+	padding: 10px 12px;
+	color: var(--on-dark);
+	cursor: pointer;
+	font-weight: 600;
+	font-size: 14px;
+}
+.habit-btn .check {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	border: 2px solid var(--c);
+	display: grid;
+	place-items: center;
+	flex: none;
+	font-size: 13px;
+	color: #111;
+	padding: 0;
+}
+.habit-btn.on {
+	border-color: var(--c);
+}
+.habit-btn.on .check {
+	background: var(--c);
+}
+.habit-btn .txt {
+	flex: 1;
+	min-width: 0;
+}
+.habit-row {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	gap: 10px;
+	align-items: center;
+	padding: 12px 14px;
+	border-top: 1px solid var(--line);
+}
+.habit-row:first-child {
+	border-top: 0;
+}
+.habit-row .bar {
+	height: 6px;
+	border-radius: 6px;
+	background: var(--cell);
+	overflow: hidden;
+	margin-top: 6px;
+}
+.habit-row .bar > div {
+	height: 100%;
+}
+.month-nav {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px;
+}
+.month-nav button {
+	background: none;
+	border: 0;
+	font-size: 22px;
+	font-weight: 800;
+	cursor: pointer;
+	color: var(--ink);
+	padding: 2px 10px;
+}
+.month-nav button:disabled {
+	opacity: 0.25;
+}

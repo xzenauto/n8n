@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { DB, EquivalenceGroup, Measurement, Plan, Session, User } from './types';
+import type { DB, EquivalenceGroup, HabitLog, Measurement, Plan, Session, User } from './types';
 
 /**
  * Capa de datos sobre Supabase (proyecto "Guarderia Fito&Friends", tablas gym_*).
@@ -17,7 +17,7 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 	auth: { persistSession: true, autoRefreshToken: true, storageKey: 'gym-auth' },
 });
 
-const EMPTY: DB = { users: [], plans: [], sessions: [], measurements: [], equivalences: [] };
+const EMPTY: DB = { users: [], plans: [], sessions: [], measurements: [], equivalences: [], habitLogs: [] };
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -30,7 +30,7 @@ const toUser = (r: Row): User => ({
 	isAthlete: r.is_athlete,
 	createdAt: String(r.created_at).slice(0, 10),
 });
-const toPlan = (r: Row): Plan => ({ userId: r.user_id, program: r.program, diet: r.diet });
+const toPlan = (r: Row): Plan => ({ userId: r.user_id, program: r.program, diet: r.diet, habits: r.habits ?? { goal: '', items: [] } });
 const toSession = (r: Row): Session => ({
 	id: r.id,
 	userId: r.user_id,
@@ -109,6 +109,8 @@ interface Store {
 	addMeasurement(m: Omit<Measurement, 'id'>): void;
 	deleteMeasurement(id: string): void;
 	saveEquivalences(groups: EquivalenceGroup[]): void;
+	habitLogOf(userId: string, date: string): HabitLog | undefined;
+	toggleHabit(userId: string, date: string, habitId: string): void;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -121,12 +123,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 	const loadedFor = useRef<string | null>(null);
 
 	const load = useCallback(async (userId: string) => {
-		const [p, pl, s, m, e] = await Promise.all([
+		const [p, pl, s, m, e, h] = await Promise.all([
 			sb.from('gym_profiles').select('*'),
 			sb.from('gym_plans').select('*'),
 			sb.from('gym_sessions').select('*').order('date', { ascending: false }),
 			sb.from('gym_measurements').select('*').order('date'),
 			sb.from('gym_equivalences').select('*').order('created_at'),
+			sb.from('gym_habit_logs').select('user_id,date,done'),
 		]);
 		const users = (p.data ?? []).map(toUser);
 		if (!users.some((u) => u.id === userId)) {
@@ -140,6 +143,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 			sessions: (s.data ?? []).map(toSession),
 			measurements: (m.data ?? []).map(toMeasurement),
 			equivalences: (e.data ?? []).map((r) => ({ id: r.id, name: r.name, items: r.items ?? [] })),
+			habitLogs: (h.data ?? []).map((r) => ({ userId: r.user_id, date: r.date, done: r.done ?? [] })),
 		});
 		setMeId(userId);
 		setStatus('ready');
@@ -222,10 +226,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 				const src = copyFrom ? db.plans.find((p) => p.userId === copyFrom) : undefined;
 				const plan = isAthlete
 					? src
-						? { program: src.program, diet: src.diet }
+						? { program: src.program, diet: src.diet, habits: src.habits }
 						: {
 								program: { name: 'Nuevo programa', days: [], schedule: [null, null, null, null, null, null, null], cardio: [] },
 								diet: { kcal: 0, protein: 0, carbs: 0, fat: 0, meals: [] },
+								habits: { goal: '', items: [] },
 							}
 					: null;
 				const err = await adminCall({ action: 'create', name, email, phone, password, isAdmin, isAthlete, plan });
@@ -251,7 +256,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 						else d.plans.push(plan);
 						return d;
 					},
-					() => must(sb.from('gym_plans').upsert({ user_id: plan.userId, program: plan.program, diet: plan.diet, updated_at: new Date().toISOString() })),
+					() => must(sb.from('gym_plans').upsert({ user_id: plan.userId, program: plan.program, diet: plan.diet, habits: plan.habits, updated_at: new Date().toISOString() })),
 				);
 			},
 			addSession(s) {
@@ -304,6 +309,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 						return d;
 					},
 					() => must(sb.from('gym_measurements').delete().eq('id', id)),
+				);
+			},
+			habitLogOf(userId, date) {
+				return db.habitLogs.find((l) => l.userId === userId && l.date === date);
+			},
+			toggleHabit(userId, date, habitId) {
+				const cur = db.habitLogs.find((l) => l.userId === userId && l.date === date)?.done ?? [];
+				const done = cur.includes(habitId) ? cur.filter((x) => x !== habitId) : [...cur, habitId];
+				apply(
+					(d) => {
+						const l = d.habitLogs.find((x) => x.userId === userId && x.date === date);
+						if (l) l.done = done;
+						else d.habitLogs.push({ userId, date, done });
+						return d;
+					},
+					() => must(sb.from('gym_habit_logs').upsert({ user_id: userId, date, done, updated_at: new Date().toISOString() })),
 				);
 			},
 			saveEquivalences(groups) {

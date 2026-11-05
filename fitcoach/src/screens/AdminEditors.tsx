@@ -1,7 +1,8 @@
 import { ask } from '../components/ui';
 import { useState } from 'react';
 import { FOODS, GROUP_LABEL, type FoodGroup } from '../data/foods';
-import type { Diet, EquivalenceGroup, Exercise, MealItem, Program, TrainingDay } from '../data/types';
+import { HABIT_COLORS } from '../components/Habits';
+import type { Diet, EquivalenceGroup, Exercise, Habit, Habits, MealItem, Program, TrainingDay } from '../data/types';
 import { getFood, macrosOf, uid, WEEKDAYS_SHORT } from '../data/util';
 
 function move<T>(arr: T[], i: number, d: number): T[] {
@@ -380,6 +381,58 @@ export function EquivalencesEditor({ value, onChange }: { value: EquivalenceGrou
 			<button className="btn secondary" onClick={() => onChange([...value, { id: uid('q'), name: `Grupo ${value.length + 1}`, items: [] }])}>
 				+ Nuevo grupo de equivalencias
 			</button>
+		</>
+	);
+}
+
+// ---------------- Hábitos ----------------
+
+export function HabitsEditor({ value, onChange }: { value: Habits; onChange: (h: Habits) => void }) {
+	const set = (id: string, patch: Partial<Habit>) => onChange({ ...value, items: value.items.map((h) => (h.id === id ? { ...h, ...patch } : h)) });
+	return (
+		<>
+			<div className="card">
+				<div className="card-head">Objetivo</div>
+				<div className="card-body">
+					<label className="field" style={{ margin: 0 }}>
+						<span>Lo que persigue el atleta con estos hábitos</span>
+						<input value={value.goal} onChange={(e) => onChange({ ...value, goal: e.target.value })} placeholder="Ej.: dormir mejor y reducir el móvil" />
+					</label>
+				</div>
+			</div>
+			<div className="card">
+				<div className="card-head">
+					Hábitos diarios
+					<span className="pill">{value.items.length}/5</span>
+				</div>
+				<div className="card-body">
+					{value.items.map((h, i) => (
+						<div className="editor-ex" key={h.id} style={{ borderLeft: `6px solid ${HABIT_COLORS[i % HABIT_COLORS.length]}` }}>
+							<div className="head">
+								<input value={h.emoji} onChange={(e) => set(h.id, { emoji: e.target.value })} style={{ flex: 'none', width: 52, textAlign: 'center' }} aria-label="Emoji" />
+								<input value={h.name} onChange={(e) => set(h.id, { name: e.target.value })} placeholder="Nombre del hábito" />
+								<button className="icon-btn" onClick={() => onChange({ ...value, items: move(value.items, i, -1) })} aria-label="Subir">
+									↑
+								</button>
+								<button className="icon-btn" onClick={() => onChange({ ...value, items: move(value.items, i, 1) })} aria-label="Bajar">
+									↓
+								</button>
+								<button className="icon-btn" onClick={async () => (await ask('¿Quitar este hábito? Sus marcas antiguas dejarán de contar.')) && onChange({ ...value, items: value.items.filter((x) => x.id !== h.id) })} aria-label="Quitar">
+									✕
+								</button>
+							</div>
+						</div>
+					))}
+					{value.items.length < 5 && (
+						<button className="btn ghost sm" onClick={() => onChange({ ...value, items: [...value.items, { id: uid('h'), emoji: '✅', name: '' }] })}>
+							+ Hábito
+						</button>
+					)}
+					<p className="muted" style={{ marginBottom: 0 }}>
+						El orden decide el color y el anillo: el primero va por fuera.
+					</p>
+				</div>
+			</div>
 		</>
 	);
 }

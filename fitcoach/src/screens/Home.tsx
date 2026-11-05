@@ -1,4 +1,5 @@
 import type { Tab } from '../App';
+import { HabitRings, MONTHS, monthStats } from '../components/Habits';
 import { useStore } from '../data/store';
 import { dayFor, formatLong, getFood, macrosOf, nextMeal, nextTrainingFrom, sessionsFor, toISO, WEEKDAYS, WEEKDAYS_SHORT, weekdayIndex } from '../data/util';
 
@@ -93,6 +94,8 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 				</div>
 			</div>
 
+			{myPlan.habits?.items.length > 0 && <HabitsWidget onGo={onGo} />}
+
 			{meal && option && (
 				<div className="card">
 					<div className="card-head">
@@ -171,6 +174,67 @@ function Header({ name, now }: { name: string; now: Date }) {
 			<div>
 				<div className="sub">{formatLong(now)}</div>
 				<h1>Hola, {name}</h1>
+			</div>
+		</div>
+	);
+}
+
+function HabitsWidget({ onGo }: { onGo: (t: Tab) => void }) {
+	const { me, myPlan, db, toggleHabit } = useStore();
+	const now = new Date();
+	const today = toISO(now);
+	const habits = myPlan!.habits.items;
+	const logs = db.habitLogs.filter((l) => l.userId === me!.id);
+	const stats = monthStats(habits, logs, now.getFullYear(), now.getMonth(), now);
+	const doneToday = logs.find((l) => l.date === today)?.done ?? [];
+	const countToday = habits.filter((h) => doneToday.includes(h.id)).length;
+
+	return (
+		<div className="rings-card">
+			<div className="head">
+				<b>Hábitos · {MONTHS[now.getMonth()]}</b>
+				<span className="dark-muted">
+					Hoy {countToday}/{habits.length}
+				</span>
+			</div>
+			<div className="rings-top" onClick={() => onGo('progress')} style={{ cursor: 'pointer' }}>
+				<HabitRings stats={stats} size={150} />
+				<div className="rings-legend">
+					{stats.map((st) => (
+						<div key={st.habit.id}>
+							<span className="dot" style={{ background: st.color }} />
+							<span className="lbl">{st.habit.name}</span>
+							<span className="val" style={{ color: st.color }}>
+								{st.done}/{st.elapsed}
+							</span>
+						</div>
+					))}
+				</div>
+			</div>
+			{myPlan!.habits.goal && (
+				<p className="dark-muted" style={{ margin: '12px 0 0' }}>
+					🎯 {myPlan!.habits.goal}
+				</p>
+			)}
+			<div className="habit-today">
+				{stats.map((st) => {
+					const on = doneToday.includes(st.habit.id);
+					return (
+						<button
+							key={st.habit.id}
+							className={`habit-btn ${on ? 'on' : ''}`}
+							style={{ ['--c' as string]: st.color }}
+							onClick={() => toggleHabit(me!.id, today, st.habit.id)}
+							aria-pressed={on}
+						>
+							<span className="check">{on ? '✓' : ''}</span>
+							<span className="txt">
+								{st.habit.emoji} {st.habit.name}
+							</span>
+							{st.streak > 1 && <span style={{ fontSize: 12, color: st.color, fontWeight: 800 }}>🔥 {st.streak}</span>}
+						</button>
+					);
+				})}
 			</div>
 		</div>
 	);

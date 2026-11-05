@@ -64,8 +64,8 @@ Deno.serve(async (req) => {
 				});
 				if (pErr) return json({ error: pErr.message }, 400);
 				if (body.isAthlete && body.plan && typeof body.plan === 'object') {
-					const plan = body.plan as { program: unknown; diet: unknown };
-					const { error: plErr } = await admin.from('gym_plans').insert({ user_id: userId, program: plan.program, diet: plan.diet });
+					const plan = body.plan as { program: unknown; diet: unknown; habits?: unknown };
+					const { error: plErr } = await admin.from('gym_plans').insert({ user_id: userId, program: plan.program, diet: plan.diet, habits: plan.habits ?? { goal: '', items: [] } });
 					if (plErr) return json({ error: plErr.message }, 400);
 				}
 				return json({ id: userId });

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { HabitWheel, MONTHS, monthStats } from '../components/Habits';
 import { ask, LineChart, Sheet, TopBar } from '../components/ui';
 import { useStore } from '../data/store';
 import type { Measurement } from '../data/types';
@@ -15,12 +16,15 @@ const MEASURES: { key: keyof Measurement; label: string; unit: string }[] = [
 
 export default function Progress({ userId }: { userId?: string }) {
 	const { me } = useStore();
-	const [tab, setTab] = useState<'weight' | 'measures' | 'training'>('weight');
+	const [tab, setTab] = useState<'habits' | 'weight' | 'measures' | 'training'>('habits');
 	const uid = userId ?? me!.id;
 	return (
 		<>
 			{!userId && <TopBar title="Progreso" />}
 			<div className="tabs">
+				<button className={tab === 'habits' ? 'on' : ''} onClick={() => setTab('habits')}>
+					Hábitos
+				</button>
 				<button className={tab === 'weight' ? 'on' : ''} onClick={() => setTab('weight')}>
 					Peso
 				</button>
@@ -31,6 +35,7 @@ export default function Progress({ userId }: { userId?: string }) {
 					Por ejercicio
 				</button>
 			</div>
+			{tab === 'habits' && <HabitsProgress userId={uid} editable={!userId || userId === me!.id} />}
 			{tab === 'weight' && <Metric userId={uid} only="weight" />}
 			{tab === 'measures' && <Metric userId={uid} />}
 			{tab === 'training' && <ExerciseProgress userId={uid} />}
@@ -233,5 +238,90 @@ function ExerciseProgress({ userId }: { userId: string }) {
 				);
 			})}
 		</div>
+	);
+}
+
+function HabitsProgress({ userId, editable }: { userId: string; editable: boolean }) {
+	const { db, planOf, toggleHabit } = useStore();
+	const now = new Date();
+	const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() });
+	const plan = planOf(userId);
+	const habits = plan?.habits?.items ?? [];
+	const logs = db.habitLogs.filter((l) => l.userId === userId);
+	if (!habits.length)
+		return (
+			<div className="card">
+				<div className="empty">Todavía no hay hábitos asignados. El entrenador los añade en Admin › Hábitos.</div>
+			</div>
+		);
+
+	const stats = monthStats(habits, logs, ym.y, ym.m, now);
+	const isCurrent = ym.y === now.getFullYear() && ym.m === now.getMonth();
+	const move = (d: number) =>
+		setYm(({ y, m }) => {
+			const t = new Date(y, m + d, 1);
+			return { y: t.getFullYear(), m: t.getMonth() };
+		});
+	const totalDone = stats.reduce((a, s) => a + s.done, 0);
+	const totalPossible = stats.reduce((a, s) => a + s.elapsed, 0);
+
+	return (
+		<>
+			<div className="card">
+				<div className="card-head">
+					Rueda de hábitos
+					<span className="pill yellow">
+						{totalDone}/{totalPossible}
+					</span>
+				</div>
+				<div className="month-nav">
+					<button onClick={() => move(-1)} aria-label="Mes anterior">
+						‹
+					</button>
+					<b style={{ textTransform: 'capitalize' }}>
+						{MONTHS[ym.m]} {ym.y}
+					</b>
+					<button onClick={() => move(1)} disabled={isCurrent} aria-label="Mes siguiente">
+						›
+					</button>
+				</div>
+				<div style={{ padding: '0 8px 8px' }}>
+					<HabitWheel habits={habits} logs={logs} year={ym.y} month={ym.m} onToggle={editable ? (date, id) => toggleHabit(userId, date, id) : undefined} />
+				</div>
+				<p className="muted" style={{ textAlign: 'center', margin: '0 14px 14px' }}>
+					Cada anillo es un hábito (el 1º por fuera) y cada casilla un día.{editable ? ' Toca una casilla para marcarla o desmarcarla.' : ''}
+				</p>
+			</div>
+
+			{plan?.habits.goal && (
+				<div className="card">
+					<div className="card-body">
+						<div className="muted" style={{ textTransform: 'uppercase', fontWeight: 800, fontSize: 11, letterSpacing: '0.06em' }}>
+							Objetivo
+						</div>
+						<div style={{ fontWeight: 800, fontSize: 16 }}>{plan.habits.goal}</div>
+					</div>
+				</div>
+			)}
+
+			<div className="card">
+				<div className="card-head">Detalle del mes</div>
+				{stats.map((st) => (
+					<div className="habit-row" key={st.habit.id}>
+						<span style={{ fontSize: 22 }}>{st.habit.emoji || '•'}</span>
+						<div style={{ minWidth: 0 }}>
+							<div style={{ fontWeight: 700 }}>{st.habit.name}</div>
+							<div className="muted">
+								{st.done} de {st.elapsed} días · racha {st.streak} · mejor {st.best}
+							</div>
+							<div className="bar">
+								<div style={{ width: `${Math.round(st.pct * 100)}%`, background: st.color }} />
+							</div>
+						</div>
+						<b style={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{Math.round(st.pct * 100)}%</b>
+					</div>
+				))}
+			</div>
+		</>
 	);
 }
