@@ -1,0 +1,9 @@
+{
+  "name": "FitCoach",
+  "short_name": "FitCoach",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1c1c1c",
+  "theme_color": "#1c1c1c",
+  "lang": "es"
+}
