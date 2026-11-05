@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ask, Scale } from '../components/ui';
 import { useStore } from '../data/store';
 import type { SetLog } from '../data/types';
-import { bestSet, formatShort, lastLogOf, parseKg, toISO } from '../data/util';
+import { bestSet, formatShort, lastLogOf, parseKg, setTarget, toISO } from '../data/util';
 
 type Step = { kind: 'readiness' } | { kind: 'set'; ex: number; set: number } | { kind: 'fatigue' } | { kind: 'done' };
 
@@ -164,6 +164,7 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 					onNext={() => go(1)}
 					isLastSet={step.set === Math.max(1, day.exercises[step.ex].sets) - 1}
 					isLastExercise={step.ex === day.exercises.length - 1}
+					nextExercise={day.exercises[step.ex + 1] ?? null}
 				/>
 			)}
 
@@ -219,12 +220,14 @@ interface SetProps {
 	onNext: () => void;
 	isLastSet: boolean;
 	isLastExercise: boolean;
+	nextExercise: { name: string; sets: number; reps: string } | null;
 }
 
-function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, onChange, onPrev, onNext, isLastSet, isLastExercise }: SetProps) {
+function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, onChange, onPrev, onNext, isLastSet, isLastExercise, nextExercise }: SetProps) {
 	const n = Math.max(1, exercise.sets);
 	const prev = last?.entry.sets[setIndex] ?? last?.entry.sets[last.entry.sets.length - 1];
 	const set = (k: keyof SetLog, v: string) => onChange({ ...value, [k]: v });
+	const target = setTarget(exercise.reps, prev);
 	const nextLabel = !isLastSet ? 'Siguiente serie' : isLastExercise ? 'Terminar' : 'Próximo ejercicio';
 
 	return (
@@ -275,17 +278,26 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 						<h4>Esta semana · objetivo</h4>
 						<div className="kv">
 							<span>Reps</span>
-							<b>{exercise.reps}</b>
+							<b>{target.reps}</b>
 						</div>
 						<div className="kv">
 							<span>Kg</span>
-							<b>{prev?.kg ? `≥ ${prev.kg}` : '–'}</b>
+							<b style={target.kind === 'up' ? { color: 'var(--green)' } : undefined}>{target.kind === 'up' ? `↑ ${target.kg}` : target.kg}</b>
 						</div>
 						<div className="kv">
 							<span>RIR</span>
 							<b>{exercise.rir}</b>
 						</div>
 					</div>
+				</div>
+				<div className={`target-tip ${target.kind}`}>
+					<span>{target.kind === 'up' ? '⬆️' : '🎯'}</span>
+					<span>
+						{target.tip}
+						<small>
+							Rango {exercise.reps} · RIR {exercise.rir}
+						</small>
+					</span>
 				</div>
 				<div className="big-inputs">
 					<label>
@@ -294,14 +306,14 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 					</label>
 					<label>
 						<span>Reps</span>
-						<input inputMode="numeric" value={value.reps} placeholder={prev?.reps || '0'} onChange={(e) => set('reps', e.target.value.replace(/[^\d]/g, ''))} />
+						<input inputMode="numeric" value={value.reps} placeholder={target.kind === 'new' ? prev?.reps || '0' : target.reps} onChange={(e) => set('reps', e.target.value.replace(/[^\d]/g, ''))} />
 					</label>
 					<label>
 						<span>RIR</span>
 						<input value={value.rir} placeholder={exercise.rir.split('-')[0].trim() || '0'} onChange={(e) => set('rir', e.target.value.toUpperCase())} />
 					</label>
 				</div>
-				{prev?.kg && !value.kg && (
+				{prev?.kg && !value.kg && target.kind !== 'up' && (
 					<div style={{ padding: '0 14px 14px' }}>
 						<button className="btn ghost sm" style={{ width: '100%' }} onClick={() => onChange({ ...value, kg: prev.kg })}>
 							Usar mismo peso ({prev.kg} kg)
@@ -319,6 +331,15 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 					{nextLabel} ›
 				</button>
 			</div>
+			<p className="next-ex">
+				{nextExercise ? (
+					<>
+						A continuación: <b>{nextExercise.name}</b> · {nextExercise.sets} × {nextExercise.reps}
+					</>
+				) : (
+					'Último ejercicio del día'
+				)}
+			</p>
 		</>
 	);
 }

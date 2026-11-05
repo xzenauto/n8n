@@ -171,3 +171,34 @@ export function nextMeal(meals: Meal[], now: Date): { meal: Meal; tomorrow: bool
 	const next = sorted.find((m) => m.time >= hm);
 	return next ? { meal: next, tomorrow: false } : { meal: sorted[0], tomorrow: true };
 }
+
+// ---------- Objetivo de la serie (doble progresión) ----------
+
+export function parseRange(reps: string): { min: number; max: number } | null {
+	const nums = (reps.match(/\d+/g) ?? []).map(Number);
+	if (!nums.length) return null;
+	return { min: Math.min(...nums), max: Math.max(...nums) };
+}
+
+export interface SetTarget {
+	kind: 'new' | 'reach' | 'more' | 'up';
+	reps: string; // repeticiones objetivo para mostrar
+	kg: string; // peso objetivo para mostrar
+	tip: string; // frase corta para el atleta
+}
+
+/**
+ * Trabajamos con rangos (p. ej. 6-8): si la semana pasada hiciste menos del tope,
+ * el objetivo es hacer una repetición más con el mismo peso; si llegaste al tope,
+ * toca subir el peso y volver a la parte baja del rango.
+ */
+export function setTarget(range: string, prev?: { reps: string; kg: string } | null): SetTarget {
+	const r = parseRange(range);
+	const reps = Number(prev?.reps);
+	const kg = prev?.kg?.trim() || '';
+	if (!r || !prev || !reps) return { kind: 'new', reps: range, kg: kg || '–', tip: `Elige un peso con el que hagas ${range} reps` };
+	if (reps >= r.max)
+		return { kind: 'up', reps: `${r.min}`, kg: kg ? `> ${kg}` : '↑', tip: `Llegaste al tope (${reps}). Sube el peso y busca ${r.min} reps` };
+	if (reps < r.min) return { kind: 'reach', reps: `${r.min}`, kg: kg || '–', tip: `Mismo peso: llega a ${r.min} reps para entrar en el rango` };
+	return { kind: 'more', reps: `${reps + 1}`, kg: kg || '–', tip: `Mismo peso y haz una más: ${reps + 1} reps` };
+}
