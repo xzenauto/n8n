@@ -73,9 +73,12 @@ function CreateUser({ onClose, onCreated }: { onClose: () => void; onCreated: ()
 	const athletesWithPlan = db.users.filter((u) => db.plans.some((p) => p.userId === u.id));
 	const [f, setF] = useState({ name: '', email: '', phone: '', password: '', isAdmin: false, isAthlete: true, copyFrom: '' });
 	const [error, setError] = useState<string | null>(null);
+	const [busy, setBusy] = useState(false);
 
 	async function submit() {
+		setBusy(true);
 		const err = await createUser({ ...f, copyFrom: f.copyFrom || undefined });
+		setBusy(false);
 		if (err) setError(err);
 		else onCreated();
 	}
@@ -120,8 +123,8 @@ function CreateUser({ onClose, onCreated }: { onClose: () => void; onCreated: ()
 					</select>
 				</label>
 			)}
-			<button className="btn" onClick={submit}>
-				Crear usuario
+			<button className="btn" onClick={submit} disabled={busy}>
+				{busy ? 'Creando…' : 'Crear usuario'}
 			</button>
 		</Sheet>
 	);
@@ -217,6 +220,7 @@ function UserData({ user, onDeleted }: { user: User; onDeleted: () => void }) {
 	const { updateUser, setUserPassword, deleteUser, me } = useStore();
 	const [f, setF] = useState(user);
 	const [pw, setPw] = useState('');
+	const [msg, setMsg] = useState<string | null>(null);
 	const [toast, show] = useToast();
 	useEffect(() => {
 		setF(user);
@@ -224,6 +228,7 @@ function UserData({ user, onDeleted }: { user: User; onDeleted: () => void }) {
 
 	return (
 		<>
+			{msg && <div className="error">{msg}</div>}
 			<div className="card">
 				<div className="card-head">Datos</div>
 				<div className="card-body">
@@ -268,7 +273,9 @@ function UserData({ user, onDeleted }: { user: User; onDeleted: () => void }) {
 						className="btn dark"
 						disabled={pw.length < 6}
 						onClick={async () => {
-							await setUserPassword(user.id, pw);
+							const err = await setUserPassword(user.id, pw);
+							if (err) return setMsg(err);
+							setMsg(null);
 							setPw('');
 							show('Contraseña cambiada');
 						}}
@@ -282,8 +289,9 @@ function UserData({ user, onDeleted }: { user: User; onDeleted: () => void }) {
 					className="btn danger"
 					onClick={async () => {
 						if (await ask(`¿Eliminar a ${user.name} y todos sus datos?`)) {
-							deleteUser(user.id);
-							onDeleted();
+							const err = await deleteUser(user.id);
+							if (err) setMsg(err);
+							else onDeleted();
 						}
 					}}
 				>

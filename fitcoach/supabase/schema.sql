@@ -1,83 +1,111 @@
--- FitCoach · esquema para Supabase (preparado, aún NO aplicado).
--- Ejecutar en un proyecto Supabase dedicado a la app.
--- Los usuarios se crean en auth.users (Supabase Auth); aquí guardamos el perfil.
+-- FitCoach (xzenstudio.com/app/appgym) · tablas gym_* en el proyecto Supabase
+-- "Guarderia Fito&Friends", que comparte con la guardería, merch y pádel.
+-- Los usuarios son de Supabase Auth; un usuario solo entra en FitCoach si tiene fila en gym_profiles.
 
-create table public.profiles (
+create table public.gym_profiles (
   id uuid primary key references auth.users on delete cascade,
+  email text not null,
   name text not null,
-  phone text default '',
+  phone text not null default '',
   is_admin boolean not null default false,
   is_athlete boolean not null default true,
   created_at timestamptz not null default now()
 );
 
--- Programa de entreno y dieta como JSON (misma forma que src/data/types.ts)
-create table public.plans (
-  user_id uuid primary key references public.profiles on delete cascade,
+-- Programa de entreno y dieta en JSON (misma forma que src/data/types.ts)
+create table public.gym_plans (
+  user_id uuid primary key references public.gym_profiles on delete cascade,
   program jsonb not null,
   diet jsonb not null,
   updated_at timestamptz not null default now()
 );
 
-create table public.sessions (
+create table public.gym_sessions (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles on delete cascade,
+  user_id uuid not null references public.gym_profiles on delete cascade,
   day_id text not null,
   day_name text not null,
   date date not null,
   readiness smallint check (readiness between 0 and 10),
   fatigue smallint check (fatigue between 0 and 10),
-  note text default '',
-  entries jsonb not null default '[]'
+  note text not null default '',
+  entries jsonb not null default '[]',
+  created_at timestamptz not null default now()
 );
-create index on public.sessions (user_id, date desc);
+create index gym_sessions_user_date on public.gym_sessions (user_id, date desc);
 
-create table public.measurements (
+create table public.gym_measurements (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles on delete cascade,
+  user_id uuid not null references public.gym_profiles on delete cascade,
   date date not null,
   weight numeric, chest numeric, arm numeric,
   abs_high numeric, abs_low numeric, leg numeric
 );
-create index on public.measurements (user_id, date);
+create index gym_measurements_user_date on public.gym_measurements (user_id, date);
 
-create table public.equivalences (
+create table public.gym_equivalences (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  items jsonb not null default '[]'
+  items jsonb not null default '[]',
+  created_at timestamptz not null default now()
 );
 
--- ---------- Seguridad (RLS) ----------
-create or replace function public.is_admin() returns boolean
+-- ---------- Seguridad ----------
+create or replace function public.gym_is_admin() returns boolean
 language sql stable security definer set search_path = public as $$
-  select coalesce((select is_admin from public.profiles where id = auth.uid()), false)
+  select coalesce((select is_admin from public.gym_profiles where id = auth.uid()), false)
 $$;
+revoke execute on function public.gym_is_admin() from anon;
 
-alter table public.profiles enable row level security;
-alter table public.plans enable row level security;
-alter table public.sessions enable row level security;
-alter table public.measurements enable row level security;
-alter table public.equivalences enable row level security;
+-- Un atleta puede cambiar su nombre y teléfono, pero no su email ni sus roles.
+create or replace function public.gym_profiles_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if coalesce(auth.role(), '') <> 'service_role' and not public.gym_is_admin() then
+    new.is_admin := old.is_admin;
+    new.is_athlete := old.is_athlete;
+    new.email := old.email;
+  end if;
+  new.id := old.id;
+  return new;
+end $$;
+create trigger gym_profiles_guard before update on public.gym_profiles
+  for each row execute function public.gym_profiles_guard();
 
--- Perfil: cada uno ve/edita el suyo (sin poder hacerse admin); el admin todo.
-create policy "perfil propio" on public.profiles for select using (id = auth.uid() or public.is_admin());
-create policy "editar perfil propio" on public.profiles for update using (id = auth.uid())
-  with check (id = auth.uid() and is_admin = (select is_admin from public.profiles where id = auth.uid()));
-create policy "admin gestiona perfiles" on public.profiles for all using (public.is_admin()) with check (public.is_admin());
+alter table public.gym_profiles enable row level security;
+alter table public.gym_plans enable row level security;
+alter table public.gym_sessions enable row level security;
+alter table public.gym_measurements enable row level security;
+alter table public.gym_equivalences enable row level security;
 
--- Plan: el atleta lo lee; solo el admin lo modifica.
-create policy "leer plan propio" on public.plans for select using (user_id = auth.uid() or public.is_admin());
-create policy "admin gestiona planes" on public.plans for all using (public.is_admin()) with check (public.is_admin());
+create policy gym_profiles_select on public.gym_profiles for select to authenticated
+  using (id = (select auth.uid()) or public.gym_is_admin());
+create policy gym_profiles_update on public.gym_profiles for update to authenticated
+  using (id = (select auth.uid()) or public.gym_is_admin());
+-- Altas y bajas solo desde la Edge Function gym-admin (service role).
 
--- Entrenos y medidas: el atleta gestiona los suyos; el admin todos.
-create policy "sesiones propias" on public.sessions for all
-  using (user_id = auth.uid() or public.is_admin()) with check (user_id = auth.uid() or public.is_admin());
-create policy "medidas propias" on public.measurements for all
-  using (user_id = auth.uid() or public.is_admin()) with check (user_id = auth.uid() or public.is_admin());
+create policy gym_plans_select on public.gym_plans for select to authenticated
+  using (user_id = (select auth.uid()) or public.gym_is_admin());
+create policy gym_plans_admin_insert on public.gym_plans for insert to authenticated
+  with check (public.gym_is_admin());
+create policy gym_plans_admin_update on public.gym_plans for update to authenticated
+  using (public.gym_is_admin()) with check (public.gym_is_admin());
+create policy gym_plans_admin_delete on public.gym_plans for delete to authenticated
+  using (public.gym_is_admin());
 
--- Equivalencias: todos los usuarios con sesión las leen; solo admin edita.
-create policy "leer equivalencias" on public.equivalences for select using (auth.uid() is not null);
-create policy "admin equivalencias" on public.equivalences for all using (public.is_admin()) with check (public.is_admin());
+create policy gym_sessions_own on public.gym_sessions for all to authenticated
+  using (user_id = (select auth.uid()) or public.gym_is_admin())
+  with check (user_id = (select auth.uid()) or public.gym_is_admin());
 
--- Alta de usuarios por el admin: se hace con una Edge Function que usa la
--- service_role key (auth.admin.createUser) y después inserta en profiles/plans.
+create policy gym_measurements_own on public.gym_measurements for all to authenticated
+  using (user_id = (select auth.uid()) or public.gym_is_admin())
+  with check (user_id = (select auth.uid()) or public.gym_is_admin());
+
+create policy gym_equivalences_select on public.gym_equivalences for select to authenticated
+  using (exists (select 1 from public.gym_profiles where id = (select auth.uid())));
+create policy gym_equivalences_admin_insert on public.gym_equivalences for insert to authenticated
+  with check (public.gym_is_admin());
+create policy gym_equivalences_admin_update on public.gym_equivalences for update to authenticated
+  using (public.gym_is_admin()) with check (public.gym_is_admin());
+create policy gym_equivalences_admin_delete on public.gym_equivalences for delete to authenticated
+  using (public.gym_is_admin());

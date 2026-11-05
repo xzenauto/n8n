@@ -3,7 +3,6 @@ export interface User {
 	email: string;
 	name: string;
 	phone: string;
-	passHash: string;
 	isAdmin: boolean;
 	isAthlete: boolean;
 	createdAt: string;
@@ -118,7 +117,6 @@ export interface EquivalenceGroup {
 }
 
 export interface DB {
-	version: 1;
 	users: User[];
 	plans: Plan[];
 	sessions: Session[];

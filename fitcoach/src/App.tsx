@@ -13,16 +13,52 @@ import Workout from './screens/Workout';
 export type Tab = 'home' | 'train' | 'diet' | 'progress' | 'profile' | 'admin';
 
 export default function App() {
-	const { me } = useStore();
+	const { me, status, saveError, clearSaveError, logout } = useStore();
 	const [tab, setTab] = useState<Tab>('home');
 	const [openDay, setOpenDay] = useState<string | null>(null);
 	const [running, setRunning] = useState<string | null>(null);
 
+	if (status === 'loading')
+		return (
+			<div className="login">
+				<p className="brand">
+					Fit<b>Coach</b>
+				</p>
+				<p className="dark-muted">Cargando…</p>
+			</div>
+		);
+	if (status === 'noAccess')
+		return (
+			<div className="login">
+				<p className="brand">
+					Fit<b>Coach</b>
+				</p>
+				<div className="card">
+					<div className="card-body">
+						<p className="card-title">Tu cuenta no tiene acceso</p>
+						<p className="muted">Esta cuenta existe, pero no está dada de alta en FitCoach. Pide a tu entrenador que te cree el acceso.</p>
+						<button className="btn dark" onClick={logout}>
+							Cerrar sesión
+						</button>
+					</div>
+				</div>
+			</div>
+		);
 	if (!me) return <Login />;
+
+	const banner = saveError && (
+		<div className="error" style={{ position: 'sticky', top: 'env(safe-area-inset-top, 0px)', zIndex: 30, marginTop: 8, display: 'flex', gap: 8 }}>
+			<span style={{ flex: 1 }}>{saveError}</span>
+			<button className="icon-btn" onClick={clearSaveError} aria-label="Cerrar aviso">
+				✕
+			</button>
+		</div>
+	);
 
 	if (running)
 		return (
 			<div className="app" style={{ paddingBottom: 24 }}>
+				{banner}
 				<Workout dayId={running} onExit={() => setRunning(null)} />
 				<AskHost />
 			</div>
@@ -46,6 +82,7 @@ export default function App() {
 	return (
 		<>
 			<div className="app">
+				{banner}
 				{tab === 'home' && (
 					<Home
 						onOpenDay={(id) => {

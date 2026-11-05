@@ -46,12 +46,6 @@ export function parseKg(v: string | undefined | null): number | null {
 	return Number.isNaN(n) ? null : n;
 }
 
-export async function hashPassword(email: string, password: string): Promise<string> {
-	const data = new TextEncoder().encode(`${email.trim().toLowerCase()}:${password}`);
-	const buf = await crypto.subtle.digest('SHA-256', data);
-	return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 // ---------- Alimentos ----------
 
 const foodMap = new Map(FOODS.map((f) => [f.id, f]));

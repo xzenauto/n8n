@@ -1,6 +1,7 @@
-import type { DB, Exercise, Plan, Session, SetLog, TrainingDay } from './types';
+import type { Exercise, Plan, Session, SetLog, TrainingDay } from './types';
 
 // Datos iniciales tomados de la hoja "Reset" y "🥗 Dieta Base" de Carlos.
+// Ya están cargados en Supabase; se conservan como referencia y para crear planes vacíos.
 
 const ex = (
 	id: string,
@@ -11,8 +12,7 @@ const ex = (
 	note = '',
 ): Exercise => ({ id, name, sets, reps, rir, note, video: '' });
 
-export const CARLOS_ID = 'u_carlos';
-export const ADMIN_ID = 'u_admin';
+const CARLOS_ID = 'u_carlos';
 
 const days: TrainingDay[] = [
 	{
@@ -85,7 +85,7 @@ const days: TrainingDay[] = [
 	},
 ];
 
-const carlosPlan: Plan = {
+export const carlosPlan: Plan = {
 	userId: CARLOS_ID,
 	program: {
 		name: 'Reset metabólico',
@@ -215,7 +215,7 @@ function session(
 	};
 }
 
-const sessions: Session[] = [
+export const carlosSessions: Session[] = [
 	session('s_w1d1', 'd1', '2026-10-26', 8, 7, [
 		sets([11, '12.5', 'F'], [10, '12.5', 'F']),
 		sets([9, '24', '1'], [9, '24', '0'], [8, '24', '0']),
@@ -279,38 +279,6 @@ const sessions: Session[] = [
 	]),
 ];
 
-export function createSeed(): DB {
-	return {
-		version: 1,
-		users: [
-			{
-				id: CARLOS_ID,
-				email: 'carlos@fitcoach.app',
-				name: 'Carlos Artiles',
-				phone: '',
-				passHash: 'bfb33f3d67015869fc50412589c31916f79c3ef65d67468fc691129dc863b3df',
-				isAdmin: true,
-				isAthlete: true,
-				createdAt: '2026-10-26',
-			},
-			{
-				id: ADMIN_ID,
-				email: 'admin@fitcoach.app',
-				name: 'Administrador',
-				phone: '',
-				passHash: '6e751f750daf11027857027d79b408f01d041598573b7d9e4999e1b93f742838',
-				isAdmin: true,
-				isAthlete: false,
-				createdAt: '2026-10-26',
-			},
-		],
-		plans: [carlosPlan],
-		sessions,
-		measurements: [],
-		equivalences: [],
-	};
-}
-
 export function emptyPlan(userId: string): Plan {
 	return {
 		userId,
@@ -324,6 +292,3 @@ export function emptyPlan(userId: string): Plan {
 	};
 }
 
-export function clonePlanFor(userId: string, from: Plan): Plan {
-	return { ...structuredClone(from), userId };
-}

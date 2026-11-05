@@ -19,26 +19,32 @@ App móvil (PWA) de **entreno y dieta** para atletas, con panel de **administrad
 
 ## Cuentas iniciales
 
-| Usuario | Contraseña | Rol |
-| --- | --- | --- |
-| `carlos@fitcoach.app` | `Carlos1234` | Atleta + administrador (Carlos Artiles, con el plan "Reset metabólico" y las semanas 1-2 de la hoja) |
-| `admin@fitcoach.app` | `Admin1234` | Solo administrador |
+| Usuario | Rol |
+| --- | --- |
+| `carlos@fitcoach.app` | Atleta + administrador (Carlos Artiles, con el plan "Reset metabólico" y las semanas 1-2 de la hoja) |
+| `admin@fitcoach.app` | Solo administrador |
 
-Cámbialas desde Perfil la primera vez.
+Las contraseñas no se guardan en el repo. Las cuentas están en Supabase Auth; un administrador crea el resto desde Admin.
 
-## Datos: estado actual
+## Publicación y datos
 
-Ahora mismo todo se guarda **en el navegador del dispositivo** (`localStorage`), toda la capa de datos está en
-`src/data/store.tsx`. Sirve para probar la app completa, pero los usuarios que cree el admin solo existen
-en ese dispositivo. Para usarla con varios atletas, cada uno desde su móvil, hay que conectarla a
-Supabase: el esquema con seguridad por filas está en `supabase/schema.sql` y solo hay que cambiar `store.tsx`.
+- **URL**: https://xzenstudio.com/app/appgym/ (repo `xzenauto/xzenstudio-web`, carpeta `app/appgym/`; Hostinger despliega desde `main`).
+- **Datos**: proyecto Supabase **Guarderia Fito&Friends**, tablas `gym_*` (perfiles, planes, entrenos, medidas y equivalencias) con RLS.
+  Cada atleta solo ve y modifica lo suyo, y no puede tocar su plan ni sus roles; los administradores lo ven todo.
+  Un usuario de otra app del proyecto (guardería, pádel) no ve nada en FitCoach si no tiene fila en `gym_profiles`.
+- **Altas, bajas y contraseñas de otros usuarios**: Edge Function `gym-admin` (`supabase/functions/gym-admin`), solo para administradores.
+  Al dar de baja se borran los datos de FitCoach; la cuenta de Supabase Auth se conserva por si se usa en otras apps del proyecto.
+- Esquema: `supabase/schema.sql`. Capa de datos de la app: `src/data/store.tsx`.
 
-## Desarrollo
+## Desarrollo y publicación
 
 ```bash
 cd fitcoach
+cp .env.example .env.local   # y rellena la clave anon de Supabase
 npm install
-npm run dev            # http://localhost:5173
-npm run build          # dist/ (para Vercel, Netlify, etc.)
-npm run build:single   # dist-single/index.html, un único archivo
+npm run dev     # http://localhost:5173
+npm run build   # dist/
 ```
+
+Para publicar: copia `dist/` en `xzenstudio-web/app/appgym/` sustituyendo lo anterior, sube el nombre de la caché
+en `sw.js` (`appgym-vN`) y haz push a `main`.
