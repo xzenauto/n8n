@@ -12,8 +12,19 @@ import Workout from './screens/Workout';
 
 export type Tab = 'home' | 'train' | 'diet' | 'progress' | 'profile' | 'admin';
 
+function SaveError({ msg, onClose }: { msg: string; onClose: () => void }) {
+	return (
+		<div className="error" style={{ position: 'sticky', top: 'env(safe-area-inset-top, 0px)', zIndex: 30, marginTop: 8, display: 'flex', gap: 8 }}>
+			<span style={{ flex: 1 }}>{msg}</span>
+			<button className="icon-btn" onClick={onClose} aria-label="Cerrar aviso">
+				✕
+			</button>
+		</div>
+	);
+}
+
 export default function App() {
-	const { me, status, saveError, clearSaveError, logout } = useStore();
+	const { me, status, saveError, clearSaveError, logout, pendingCount } = useStore();
 	const [tab, setTab] = useState<Tab>('home');
 	const [openDay, setOpenDay] = useState<string | null>(null);
 	const [running, setRunning] = useState<string | null>(null);
@@ -46,13 +57,15 @@ export default function App() {
 		);
 	if (!me) return <Login />;
 
-	const banner = saveError && (
-		<div className="error" style={{ position: 'sticky', top: 'env(safe-area-inset-top, 0px)', zIndex: 30, marginTop: 8, display: 'flex', gap: 8 }}>
-			<span style={{ flex: 1 }}>{saveError}</span>
-			<button className="icon-btn" onClick={clearSaveError} aria-label="Cerrar aviso">
-				✕
-			</button>
-		</div>
+	const banner = (saveError || pendingCount > 0) && (
+		<>
+			{pendingCount > 0 && (
+				<div className="ok" style={{ position: 'sticky', top: 'env(safe-area-inset-top, 0px)', zIndex: 30, marginTop: 8, background: '#fff4cc', color: '#5c4a00' }}>
+					⏳ {pendingCount === 1 ? '1 cambio guardado en el móvil' : `${pendingCount} cambios guardados en el móvil`}, enviando al servidor… Se envía solo en cuanto haya conexión.
+				</div>
+			)}
+			{saveError && <SaveError msg={saveError} onClose={clearSaveError} />}
+		</>
 	);
 
 	if (running)

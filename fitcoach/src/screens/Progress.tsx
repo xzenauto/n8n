@@ -242,7 +242,7 @@ function ExerciseProgress({ userId }: { userId: string }) {
 }
 
 function HabitsProgress({ userId, editable }: { userId: string; editable: boolean }) {
-	const { db, planOf, toggleHabit } = useStore();
+	const { db, planOf, toggleHabit, habitsLocal } = useStore();
 	const now = new Date();
 	const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() });
 	const plan = planOf(userId);
@@ -288,6 +288,11 @@ function HabitsProgress({ userId, editable }: { userId: string; editable: boolea
 				<div style={{ padding: '0 8px 8px' }}>
 					<HabitWheel habits={habits} logs={logs} year={ym.y} month={ym.m} onToggle={editable ? (date, id) => toggleHabit(userId, date, id) : undefined} />
 				</div>
+				{habitsLocal && (
+					<p className="muted" style={{ textAlign: 'center', margin: '0 14px 8px', color: '#8a6d00' }}>
+						Modo provisional: las marcas se guardan en este móvil y se subirán solas cuando se active la tabla de hábitos en Supabase.
+					</p>
+				)}
 				<p className="muted" style={{ textAlign: 'center', margin: '0 14px 14px' }}>
 					Cada anillo es un hábito (el 1º por fuera) y cada casilla un día.{editable ? ' Toca una casilla para marcarla o desmarcarla.' : ''}
 				</p>
