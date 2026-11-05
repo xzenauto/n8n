@@ -30,6 +30,11 @@
 html,
 body {
 	margin: 0;
+	/* Sin desplazamiento lateral ni zoom con los dedos */
+	overflow-x: hidden;
+	overscroll-behavior-x: none;
+	touch-action: pan-y;
+	-webkit-text-size-adjust: 100%;
 	background: var(--bg);
 	color: var(--on-dark);
 	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
@@ -45,11 +50,36 @@ textarea {
 	color: inherit;
 }
 
+/* iOS hace zoom al tocar un campo con letra menor de 16 px */
+input,
+select,
+textarea {
+	font-size: 16px;
+	max-width: 100%;
+	min-width: 0;
+}
+
+/* iOS da al selector de fecha un ancho mínimo propio que lo saca de la pantalla */
+input[type='date'],
+input[type='time'] {
+	-webkit-appearance: none;
+	appearance: none;
+	display: block;
+	width: 100%;
+	min-height: 46px;
+	text-align: left;
+}
+input[type='date']::-webkit-date-and-time-value,
+input[type='time']::-webkit-date-and-time-value {
+	text-align: left;
+}
+
 #root {
 	min-height: 100dvh;
 }
 
 .app {
+	overflow-x: hidden;
 	max-width: 560px;
 	margin: 0 auto;
 	min-height: 100dvh;
@@ -753,6 +783,8 @@ textarea {
 	justify-content: center;
 }
 .sheet {
+	overflow-x: hidden;
+	overscroll-behavior: contain;
 	background: var(--card);
 	color: var(--ink);
 	width: 100%;

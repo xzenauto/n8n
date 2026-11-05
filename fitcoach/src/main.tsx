@@ -15,3 +15,7 @@ createRoot(document.getElementById('root')!).render(
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
 	window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
+
+// Safari en iPhone ignora user-scalable=no: bloquea el gesto de pellizcar.
+// (El zoom con doble toque ya lo impide touch-action en styles.css.)
+document.addEventListener('gesturestart', (e) => e.preventDefault());
