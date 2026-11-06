@@ -109,6 +109,9 @@ redactado por la IA según la conversación (el 3.º es una despedida amable). R
 
 - Nuevo lead con los 3 seguimientos hechos (el recordatorio del video cuenta como uno) y sin respuesta 6 h después
   del último → columna **Última oportunidad**. Las respuestas automáticas del cliente no cuentan como respuesta.
+- También pasan a **Última oportunidad** los de Nuevo lead que no escriben desde hace más de 24 h (se cerró la ventana
+  de WhatsApp y ya no se les pueden mandar seguimientos, aunque no se hayan completado los 3). No se tocan los que tienen
+  `atencion-personalizada`, `maripino-off` o `cita-agendada`.
 - Más de 7 días en Última oportunidad → columna **Perdidos** con estado *lost*.
 - Si un lead de Última oportunidad o Perdidos vuelve a escribir, Maripino lo atiende y lo regresa a Nuevo lead (estado abierto).
 

@@ -1068,17 +1068,21 @@ rescate = {"name": "Maripino · Rescate de leads sin respuesta", "nodes": res_no
            "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
 
 # ---------------------------------------------------------------- pipeline: última oportunidad y perdidos (cada hora)
-PIPE_CLASIFICAR = CFG_JS + r"""// Nuevo lead con los 3 seguimientos hechos → revisar si contestó. Última oportunidad > 7 días → Perdidos.
+PIPE_CLASIFICAR = CFG_JS + r"""// Nuevo lead → revisar si ya terminaron sus seguimientos. Última oportunidad > 7 días → Perdidos.
 const DIA = 864e5;
 const salida = [];
 for (const o of $json.opportunities ?? []) {
   const tags = (o.contact?.tags ?? []).map((t) => String(t).toLowerCase());
   if (tags.includes('test-maripino') || o.status !== 'open') continue;
+  if (['atencion-personalizada', 'maripino-off', 'cita-agendada'].some((t) => tags.includes(t))) continue;
   if (o.pipelineStageId === CFG.etapas.nuevo) {
     // El recordatorio del video cuenta como un seguimiento.
     const hechos = tags.includes('seguimiento-3') ? 3
       : [1, 2].filter((k) => tags.includes(`seguimiento-${k}`)).length + (tags.includes('video-recordatorio') ? 1 : 0);
-    if (hechos >= 3) salida.push({ json: { accion: 'revisar', oppId: o.id, contactId: o.contactId || o.contact?.id, nombre: o.name } });
+    // También los que llevan más de 24 h: puede que la ventana de WhatsApp se cerrara antes de los 3 seguimientos.
+    const edad = Date.now() - new Date(o.createdAt || o.lastStageChangeAt || Date.now()).getTime();
+    if (hechos >= 3 || edad > 24 * 3600e3)
+      salida.push({ json: { accion: 'revisar', hechos, oppId: o.id, contactId: o.contactId || o.contact?.id, nombre: o.name } });
   } else if (o.pipelineStageId === CFG.etapas.ultima) {
     const desde = new Date(o.lastStageChangeAt || o.updatedAt || o.createdAt).getTime();
     if (Date.now() - desde > 7 * DIA) salida.push({ json: { accion: 'perdido', oppId: o.id, contactId: o.contactId || o.contact?.id, nombre: o.name } });
@@ -1100,11 +1104,15 @@ $input.all().forEach((item, i) => {
   if (!Array.isArray(msgs)) msgs = [];
   msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
   const ultOut = [...msgs].reverse().find((m) => m.direction === 'outbound');
-  if (!ultOut) return;
-  const tOut = new Date(ultOut.dateAdded).getTime();
-  const contesto = msgs.some((m) => m.direction === 'inbound' && new Date(m.dateAdded).getTime() > tOut && !AUTO.test(m.body ?? ''));
-  if (contesto) return;
-  if (Date.now() - tOut < 6 * 3600e3) return; // le damos 6 h después del último seguimiento
+  const ultIn = [...msgs].reverse().find((m) => m.direction === 'inbound' && !AUTO.test(m.body ?? ''));
+  const tOut = ultOut ? new Date(ultOut.dateAdded).getTime() : 0;
+  const tIn = ultIn ? new Date(ultIn.dateAdded).getTime() : 0;
+  // a) Los 3 seguimientos hechos, sin respuesta y 6 h después del último.
+  const tresSinRespuesta = c.hechos >= 3 && tOut && tIn < tOut && Date.now() - tOut >= 6 * 3600e3;
+  // b) Ventana de WhatsApp cerrada (el cliente no escribe desde hace más de 24 h): ya no se le pueden mandar
+  //    más seguimientos aunque no se hayan completado los 3.
+  const ventanaCerrada = tIn && Date.now() - tIn > 24 * 3600e3 && Date.now() - tOut >= 6 * 3600e3;
+  if (!tresSinRespuesta && !ventanaCerrada) return;
   salida.push({ json: { ...c, etapa: CFG.etapas.ultima, estado: 'open' } });
 });
 return salida;
