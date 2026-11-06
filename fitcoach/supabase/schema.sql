@@ -125,7 +125,8 @@ create policy gym_habit_logs_own on public.gym_habit_logs for all to authenticat
   using (user_id = (select auth.uid()) or public.gym_is_admin())
   with check (user_id = (select auth.uid()) or public.gym_is_admin());
 
--- ---------- El atleta edita sus propios hábitos (migración gym_athlete_edit_own_habits) ----------
+-- ---------- (NO APLICADO) Alternativa para que el atleta edite sus hábitos por RLS ----------
+-- Hoy lo hace la Edge Function gym-admin (acción my-habits), que solo modifica el campo habits del propio atleta.
 create or replace function public.gym_plans_guard() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin

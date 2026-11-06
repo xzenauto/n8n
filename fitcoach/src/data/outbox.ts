@@ -10,7 +10,7 @@ type Row = Record<string, unknown>;
 export interface Op {
 	key: string; // identifica el registro: un cambio nuevo sobre el mismo registro sustituye al anterior
 	table: string;
-	kind: 'upsert' | 'delete' | 'update';
+	kind: 'upsert' | 'delete' | 'update' | 'invoke'; // invoke: llama a la Edge Function `table` con `row`
 	row?: Row;
 	match?: Record<string, string>;
 	at: number;
@@ -66,7 +66,20 @@ export function flush(sb: SupabaseClient): Promise<{ dropped: string[] }> {
 		for (const op of [...memory]) {
 			let res: { error: Failure | null; status: number };
 			try {
-				if (op.kind === 'update') {
+				if (op.kind === 'invoke') {
+					const r = await sb.functions.invoke(op.table, { body: op.row });
+					if (!r.error && !r.data?.error) res = { error: null, status: 200 };
+					else {
+						const ctx = (r.error as { context?: Response } | null)?.context;
+						let message = r.data?.error ?? r.error?.message ?? 'Error';
+						try {
+							if (ctx && typeof ctx.json === 'function') message = (await ctx.clone().json())?.error ?? message;
+						} catch {
+							/* respuesta sin JSON */
+						}
+						res = { error: { message }, status: ctx?.status ?? (r.data?.error ? 400 : 0) };
+					}
+				} else if (op.kind === 'update') {
 					// Un update que la seguridad (RLS) no deja hacer no da error: devuelve 0 filas.
 					const r = await sb.from(op.table).update(op.row!).match(op.match!).select();
 					res = !r.error && (!r.data || r.data.length === 0) ? { error: { message: 'No tienes permiso para guardar este cambio' }, status: 403 } : r;

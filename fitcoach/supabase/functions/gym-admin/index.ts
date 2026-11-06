@@ -1,5 +1,5 @@
 // FitCoach · operaciones de administrador sobre usuarios (necesitan la service role).
-// Solo la puede usar un usuario con gym_profiles.is_admin = true.
+// Las acciones de usuarios son solo para administradores; 'my-habits' la puede usar cualquier atleta para sus propios hábitos.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const cors = {
@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 	const { data: who, error: whoErr } = await admin.auth.getUser(token);
 	if (whoErr || !who?.user) return json({ error: 'Sesión no válida' }, 401);
 	const { data: me } = await admin.from('gym_profiles').select('is_admin').eq('id', who.user.id).maybeSingle();
-	if (!me?.is_admin) return json({ error: 'Solo un administrador puede hacer esto' }, 403);
+	if (!me) return json({ error: 'Tu cuenta no tiene acceso a FitCoach' }, 403);
 
 	let body: Record<string, unknown>;
 	try {
@@ -31,6 +31,28 @@ Deno.serve(async (req) => {
 	} catch {
 		return json({ error: 'Petición no válida' }, 400);
 	}
+
+	// Cualquier atleta puede guardar SUS PROPIOS hábitos (solo ese campo de su plan).
+	if (body.action === 'my-habits') {
+		const h = body.habits as { goal?: unknown; items?: unknown; onboarded?: unknown } | null;
+		const items = Array.isArray(h?.items) ? h!.items : null;
+		if (!h || !items || items.length > 5) return json({ error: 'Hábitos no válidos (máximo 5)' }, 400);
+		const clean = {
+			goal: String(h.goal ?? '').slice(0, 200),
+			onboarded: !!h.onboarded,
+			items: items.map((it) => {
+				const x = it as Record<string, unknown>;
+				return { id: String(x.id ?? '').slice(0, 40), emoji: String(x.emoji ?? '').slice(0, 16), name: String(x.name ?? '').slice(0, 120) };
+			}),
+		};
+		if (clean.items.some((x) => !x.id || !x.name.trim())) return json({ error: 'Cada hábito necesita nombre' }, 400);
+		const { data: upd, error } = await admin.from('gym_plans').update({ habits: clean, updated_at: new Date().toISOString() }).eq('user_id', who.user.id).select('user_id');
+		if (error) return json({ error: error.message }, 400);
+		if (!upd?.length) return json({ error: 'No tienes plan asignado' }, 404);
+		return json({ ok: true });
+	}
+
+	if (!me.is_admin) return json({ error: 'Solo un administrador puede hacer esto' }, 403);
 
 	try {
 		switch (body.action) {

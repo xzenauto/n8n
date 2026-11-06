@@ -170,6 +170,9 @@ function mergePending(d: DB): DB {
 			else d.measurements = d.measurements.filter((x) => x.id !== op.match!.id);
 		} else if (op.table === 'gym_habit_logs' && op.kind === 'upsert') {
 			d.habitLogs = [...d.habitLogs.filter((x) => !(x.userId === r!.user_id && x.date === r!.date)), { userId: r!.user_id, date: r!.date, done: r!.done ?? [] }];
+		} else if (op.table === 'gym-admin' && op.kind === 'invoke' && r?.action === 'my-habits') {
+			const plan = d.plans.find((p) => p.userId === op.match!.user_id);
+			if (plan) plan.habits = r.habits;
 		} else if (op.table === 'gym_plans' && op.kind === 'update') {
 			const plan = d.plans.find((p) => p.userId === op.match!.user_id);
 			if (plan && r!.habits) plan.habits = r!.habits;
@@ -441,7 +444,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 						if (p) p.habits = habits;
 						return d;
 					},
-					[{ key: `gym_plans:habits:${me.id}`, table: 'gym_plans', kind: 'update', row: { habits, updated_at: new Date().toISOString() }, match: { user_id: me.id } }],
+					// El atleta no puede escribir en gym_plans: lo guarda la función gym-admin (solo su campo de hábitos).
+					[{ key: `gym_plans:habits:${me.id}`, table: 'gym-admin', kind: 'invoke', row: { action: 'my-habits', habits }, match: { user_id: me.id } }],
 				);
 			},
 			addSession(s) {
