@@ -1170,3 +1170,93 @@ input[type='time']::-webkit-date-and-time-value {
 	border-radius: 50%;
 	flex: none;
 }
+
+/* ---------- Cronómetro de descanso ---------- */
+.rest {
+	background: #141414;
+	border: 1.5px solid #2e2e2e;
+	border-radius: var(--radius);
+	padding: 10px 12px;
+	margin-bottom: 12px;
+	--rc: var(--on-dark-2);
+}
+.rest-rest {
+	--rc: var(--yellow);
+	border-color: #5c4f22;
+}
+.rest-ready {
+	--rc: var(--green);
+	border-color: var(--green);
+	background: #16220f;
+}
+.rest-over {
+	--rc: var(--red);
+	border-color: var(--red);
+	background: #2a1212;
+}
+.rest-main {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.rest-time {
+	font-size: 30px;
+	font-weight: 900;
+	font-variant-numeric: tabular-nums;
+	color: var(--rc);
+	min-width: 84px;
+}
+.rest-info {
+	flex: 1;
+	min-width: 0;
+	font-size: 13px;
+}
+.rest-info b {
+	display: block;
+	color: var(--on-dark);
+}
+.rest-info small {
+	color: var(--on-dark-2);
+	font-size: 12px;
+}
+.rest-btns {
+	display: flex;
+	gap: 6px;
+}
+.rest-btns button {
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	border: 0;
+	background: #2a2a2a;
+	color: var(--on-dark);
+	font-size: 16px;
+	cursor: pointer;
+}
+.rest-btns button:first-child {
+	background: var(--rc);
+	color: #111;
+}
+.rest-btns button:disabled {
+	opacity: 0.35;
+}
+.rest-bar {
+	position: relative;
+	height: 6px;
+	border-radius: 6px;
+	background: #2a2a2a;
+	margin-top: 10px;
+	overflow: hidden;
+}
+.rest-bar > div {
+	height: 100%;
+	background: var(--rc);
+	transition: width 0.25s linear;
+}
+.rest-bar i {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background: var(--on-dark-2);
+}

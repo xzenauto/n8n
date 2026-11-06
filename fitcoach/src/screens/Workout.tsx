@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { RestTimer, restIdle, restStart, type RestState } from '../components/RestTimer';
 import { ask, Scale } from '../components/ui';
 import { useStore } from '../data/store';
 import type { SetLog } from '../data/types';
@@ -13,6 +14,7 @@ interface Draft {
 	note: string;
 	logs: SetLog[][];
 	stepIdx: number;
+	rest?: RestState;
 }
 
 const DRAFT_KEY = 'fitcoach.draft.v1';
@@ -67,7 +69,15 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 		window.scrollTo(0, 0);
 	}, [draft.stepIdx]);
 
-	const go = (delta: number) => setDraft((d) => ({ ...d, stepIdx: Math.min(steps.length - 1, Math.max(0, d.stepIdx + delta)) }));
+	const go = (delta: number) =>
+		setDraft((d) => {
+			const stepIdx = Math.min(steps.length - 1, Math.max(0, d.stepIdx + delta));
+			// Al terminar una serie (avanzar desde una pantalla de serie a otra) arranca el descanso
+			const fromSet = steps[d.stepIdx]?.kind === 'set';
+			const toSet = steps[stepIdx]?.kind === 'set';
+			const rest = delta > 0 && fromSet && toSet ? restStart() : delta > 0 && !toSet ? restIdle : d.rest;
+			return { ...d, stepIdx, rest };
+		});
 
 	function finish() {
 		addSession({
@@ -146,6 +156,9 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 			{step.kind === 'set' && (
 				<SetScreen
 					key={draft.stepIdx}
+					rest={draft.rest ?? restIdle}
+					restText={day.rest}
+					onRest={(r) => setDraft((d) => ({ ...d, rest: r }))}
 					exIndex={step.ex}
 					setIndex={step.set}
 					total={day.exercises.length}
@@ -221,9 +234,12 @@ interface SetProps {
 	isLastSet: boolean;
 	isLastExercise: boolean;
 	nextExercise: { name: string; sets: number; reps: string } | null;
+	rest: RestState;
+	restText: string;
+	onRest: (r: RestState) => void;
 }
 
-function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, onChange, onPrev, onNext, isLastSet, isLastExercise, nextExercise }: SetProps) {
+function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, onChange, onPrev, onNext, isLastSet, isLastExercise, nextExercise, rest, restText, onRest }: SetProps) {
 	const n = Math.max(1, exercise.sets);
 	const prev = last?.entry.sets[setIndex] ?? last?.entry.sets[last.entry.sets.length - 1];
 	const set = (k: keyof SetLog, v: string) => onChange({ ...value, [k]: v });
@@ -245,6 +261,8 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 					</a>
 				)}
 			</div>
+
+			<RestTimer state={rest} onChange={onRest} rest={restText} />
 
 			<div className="card">
 				<div className="card-head">
