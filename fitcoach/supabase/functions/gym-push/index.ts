@@ -94,6 +94,22 @@ Deno.serve(async (req) => {
 		return json({ enviados: ok, dispositivos: subs?.length ?? 0 });
 	}
 
+	// Prueba lanzada desde el servidor (con el secreto del cron) a un atleta concreto
+	if (body.action === 'test' && body.user_id) {
+		const { data: subs } = await db.from('gym_push_subs').select('*').eq('user_id', body.user_id);
+		const res: string[] = [];
+		for (const s of (subs ?? []) as Sub[]) {
+			try {
+				await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title: 'FitCoach', body: '¡Las notificaciones funcionan! Te avisaremos a las 8:00 y a las 21:00.', url: './' }), { TTL: 3600 });
+				res.push('ok');
+			} catch (err) {
+				const e = err as { statusCode?: number; body?: string };
+				res.push(`error ${e.statusCode ?? ''} ${e.body ?? String(err)}`);
+			}
+		}
+		return json({ dispositivos: subs?.length ?? 0, resultado: res });
+	}
+
 	// Envío programado
 	const { data: subs } = await db.from('gym_push_subs').select('*');
 	if (!subs?.length) return json({ enviados: 0 });
