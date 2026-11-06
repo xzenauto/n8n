@@ -1,6 +1,6 @@
 // Service worker de FitCoach: guarda la app para abrir rápido y funcionar sin conexión.
 // Los datos (Supabase) nunca se cachean.
-const CACHE = 'appgym-v13';
+const CACHE = 'appgym-v14';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './img/icon-192.png'])));
@@ -36,13 +36,22 @@ self.addEventListener('push', (e) => {
     d = { body: e.data ? e.data.text() : '' };
   }
   e.waitUntil(
-    self.registration.showNotification(d.title || 'FitCoach', {
-      body: d.body || '',
-      icon: 'img/icon-192.png',
-      badge: 'img/icon-192.png',
-      data: { url: d.url || './' },
-    })
+    Promise.all([
+      self.registration.showNotification(d.title || 'FitCoach', {
+        body: d.body || '',
+        icon: 'img/icon-192.png',
+        badge: 'img/icon-192.png',
+        data: { url: d.url || './' },
+      }),
+      // Diagnóstico: avisa a la app abierta de que ha llegado la notificación
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => list.forEach((c) => c.postMessage({ type: 'push', title: d.title, body: d.body }))),
+    ])
   );
+});
+
+// La app pregunta qué versión del service worker está activa
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'version' && e.ports && e.ports[0]) e.ports[0].postMessage(CACHE);
 });
 
 self.addEventListener('notificationclick', (e) => {

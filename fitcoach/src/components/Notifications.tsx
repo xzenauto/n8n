@@ -17,8 +17,25 @@ export function NotificationsCard({ compact }: { compact?: boolean }) {
 			return false;
 		}
 	});
+	const [swVersion, setSwVersion] = useState<string | null>(null);
+	const [received, setReceived] = useState<string | null>(null);
 	useEffect(() => {
 		pushEnabled().then(setOn).catch(() => setOn(false));
+		if (!('serviceWorker' in navigator)) return;
+		// Diagnóstico: versión del service worker y notificaciones que llegan con la app abierta
+		navigator.serviceWorker.getRegistration().then((reg) => {
+			const sw = reg?.active;
+			if (!sw) return setSwVersion('ninguno');
+			const ch = new MessageChannel();
+			ch.port1.onmessage = (e) => setSwVersion(String(e.data));
+			sw.postMessage({ type: 'version' }, [ch.port2]);
+			setTimeout(() => setSwVersion((v) => v ?? 'antiguo (sin versión)'), 1500);
+		});
+		const onMsg = (e: MessageEvent) => {
+			if (e.data?.type === 'push') setReceived(`${e.data.title ?? ''} · ${e.data.body ?? ''}`);
+		};
+		navigator.serviceWorker.addEventListener('message', onMsg);
+		return () => navigator.serviceWorker.removeEventListener('message', onMsg);
 	}, []);
 
 	const needsInstall = isIOS() && !isStandalone();
@@ -62,6 +79,7 @@ export function NotificationsCard({ compact }: { compact?: boolean }) {
 					<b style={{ color: 'var(--ink)' }}>8:00</b> una frase para empezar el día · <b style={{ color: 'var(--ink)' }}>21:00</b> aviso si te queda algún hábito por marcar.
 				</p>
 				{msg && <div className={msg.ok ? 'ok' : 'error'}>{msg.text}</div>}
+				{received && <div className="ok">📩 Recibida en este móvil: {received}</div>}
 				{needsInstall ? (
 					<div className="ok" style={{ background: '#fff4cc', color: '#5c4a00', marginBottom: 0 }}>
 						En iPhone primero añade FitCoach a la pantalla de inicio: en Safari toca <b>Compartir</b> › <b>Añadir a pantalla de inicio</b>. Ábrela desde ese icono y
@@ -103,6 +121,11 @@ export function NotificationsCard({ compact }: { compact?: boolean }) {
 					<button className="btn" disabled={busy} onClick={enable}>
 						{busy ? 'Activando…' : 'Activar notificaciones'}
 					</button>
+				)}
+				{!compact && swVersion && (
+					<p className="muted" style={{ margin: '10px 0 0', fontSize: 11 }}>
+						Servicio de notificaciones: {swVersion}
+					</p>
 				)}
 			</div>
 		</div>
