@@ -10,7 +10,7 @@ type Row = Record<string, unknown>;
 export interface Op {
 	key: string; // identifica el registro: un cambio nuevo sobre el mismo registro sustituye al anterior
 	table: string;
-	kind: 'upsert' | 'delete';
+	kind: 'upsert' | 'delete' | 'update';
 	row?: Row;
 	match?: Record<string, string>;
 	at: number;
@@ -66,10 +66,15 @@ export function flush(sb: SupabaseClient): Promise<{ dropped: string[] }> {
 		for (const op of [...memory]) {
 			let res: { error: Failure | null; status: number };
 			try {
-				res =
-					op.kind === 'upsert'
-						? await sb.from(op.table).upsert(op.row!)
-						: await sb.from(op.table).delete().match(op.match!);
+				if (op.kind === 'update') {
+					// Un update que la seguridad (RLS) no deja hacer no da error: devuelve 0 filas.
+					const r = await sb.from(op.table).update(op.row!).match(op.match!).select();
+					res = !r.error && (!r.data || r.data.length === 0) ? { error: { message: 'No tienes permiso para guardar este cambio' }, status: 403 } : r;
+				} else
+					res =
+						op.kind === 'upsert'
+							? await sb.from(op.table).upsert(op.row!)
+							: await sb.from(op.table).delete().match(op.match!);
 			} catch (e) {
 				res = { error: { message: String(e) }, status: 0 };
 			}

@@ -5,6 +5,7 @@ import Admin from './screens/Admin';
 import DietScreen from './screens/Diet';
 import Home from './screens/Home';
 import Login from './screens/Login';
+import Onboarding from './screens/Onboarding';
 import Profile from './screens/Profile';
 import Progress from './screens/Progress';
 import Trainings from './screens/Trainings';
@@ -67,6 +68,16 @@ export default function App() {
 			{saveError && <SaveError msg={saveError} onClose={clearSaveError} />}
 		</>
 	);
+
+	// Primera vez: bienvenida de hábitos para atletas que aún no tienen ninguno
+	if (me.isAthlete && myPlan && !myPlan.habits?.onboarded && !(myPlan.habits?.items.length > 0))
+		return (
+			<div className="app" style={{ paddingBottom: 0 }}>
+				{banner}
+				<Onboarding />
+				<AskHost />
+			</div>
+		);
 
 	if (running)
 		return (

@@ -77,6 +77,8 @@ export interface Habit {
 export interface Habits {
 	goal: string;
 	items: Habit[]; // máximo 5
+	/** true cuando el atleta ya ha visto la bienvenida de hábitos */
+	onboarded?: boolean;
 }
 
 export interface Plan {

@@ -124,3 +124,21 @@ alter table public.gym_habit_logs enable row level security;
 create policy gym_habit_logs_own on public.gym_habit_logs for all to authenticated
   using (user_id = (select auth.uid()) or public.gym_is_admin())
   with check (user_id = (select auth.uid()) or public.gym_is_admin());
+
+-- ---------- El atleta edita sus propios hábitos (migración gym_athlete_edit_own_habits) ----------
+create or replace function public.gym_plans_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if coalesce(auth.role(), '') <> 'service_role' and not public.gym_is_admin() then
+    new.program := old.program;
+    new.diet := old.diet;
+  end if;
+  new.user_id := old.user_id;
+  return new;
+end $$;
+revoke execute on function public.gym_plans_guard() from public, anon, authenticated;
+create trigger gym_plans_guard before update on public.gym_plans
+  for each row execute function public.gym_plans_guard();
+create policy gym_plans_self_update on public.gym_plans for update to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));

@@ -103,6 +103,8 @@ interface Store {
 	deleteUser(id: string): Promise<string | null>;
 	planOf(userId: string): Plan | undefined;
 	savePlan(plan: Plan): void;
+	/** El atleta guarda sus propios hábitos (los administradores usan savePlan). */
+	saveMyHabits(habits: Habits): void;
 	addSession(s: Omit<Session, 'id'>): Session;
 	deleteSession(id: string): void;
 	addMeasurement(m: Omit<Measurement, 'id'>): void;
@@ -168,6 +170,9 @@ function mergePending(d: DB): DB {
 			else d.measurements = d.measurements.filter((x) => x.id !== op.match!.id);
 		} else if (op.table === 'gym_habit_logs' && op.kind === 'upsert') {
 			d.habitLogs = [...d.habitLogs.filter((x) => !(x.userId === r!.user_id && x.date === r!.date)), { userId: r!.user_id, date: r!.date, done: r!.done ?? [] }];
+		} else if (op.table === 'gym_plans' && op.kind === 'update') {
+			const plan = d.plans.find((p) => p.userId === op.match!.user_id);
+			if (plan && r!.habits) plan.habits = r!.habits;
 		} else if (op.table === 'gym_plans' && op.kind === 'upsert') {
 			const i = d.plans.findIndex((p) => p.userId === r!.user_id);
 			const prev = d.plans[i];
@@ -408,6 +413,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 						return d;
 					},
 					[{ key: `gym_plans:${plan.userId}`, table: 'gym_plans', kind: 'upsert', row }],
+				);
+			},
+			saveMyHabits(habits) {
+				if (!me) return;
+				const plan = db.plans.find((p) => p.userId === me.id);
+				if (!plan) return;
+				if (me.isAdmin || !hasHabitsCol.current) {
+					// Mismo camino que savePlan (no se usa this: el método puede llamarse desestructurado)
+					const next = { ...plan, habits };
+					const row: Row = { user_id: next.userId, program: next.program, diet: next.diet, updated_at: new Date().toISOString() };
+					if (hasHabitsCol.current) row.habits = habits;
+					else lsSet(LOCAL_HABITS + next.userId, habits);
+					apply(
+						(d) => {
+							const i = d.plans.findIndex((p) => p.userId === next.userId);
+							if (i >= 0) d.plans[i] = next;
+							return d;
+						},
+						[{ key: `gym_plans:${next.userId}`, table: 'gym_plans', kind: 'upsert', row }],
+					);
+					return;
+				}
+				apply(
+					(d) => {
+						const p = d.plans.find((x) => x.userId === me.id);
+						if (p) p.habits = habits;
+						return d;
+					},
+					[{ key: `gym_plans:habits:${me.id}`, table: 'gym_plans', kind: 'update', row: { habits, updated_at: new Date().toISOString() }, match: { user_id: me.id } }],
 				);
 			},
 			addSession(s) {

@@ -4,9 +4,9 @@ import type { Habits } from '../data/types';
 import { HabitsEditor } from '../screens/AdminEditors';
 import { Sheet } from './ui';
 
-/** Hoja para editar el objetivo y los hábitos de un atleta (solo administradores). */
+/** Hoja para editar el objetivo y los hábitos (el admin, los de cualquiera; el atleta, los suyos). */
 export function EditHabitsSheet({ userId, onClose }: { userId: string; onClose: () => void }) {
-	const { planOf, savePlan } = useStore();
+	const { planOf, savePlan, saveMyHabits, me } = useStore();
 	const plan = planOf(userId);
 	const [draft, setDraft] = useState<Habits>(() => structuredClone(plan?.habits ?? { goal: '', items: [] }));
 	if (!plan) return null;
@@ -20,7 +20,9 @@ export function EditHabitsSheet({ userId, onClose }: { userId: string; onClose: 
 				style={{ marginTop: 12 }}
 				disabled={draft.items.some((h) => !h.name.trim())}
 				onClick={() => {
-					savePlan({ ...plan, habits: { goal: draft.goal.trim(), items: draft.items.map((h) => ({ ...h, name: h.name.trim() })) } });
+					const habits = { ...draft, goal: draft.goal.trim(), onboarded: true, items: draft.items.map((h) => ({ ...h, name: h.name.trim() })) };
+					if (userId === me?.id) saveMyHabits(habits);
+					else savePlan({ ...plan, habits });
 					onClose();
 				}}
 			>
@@ -35,11 +37,11 @@ export function EditHabitsSheet({ userId, onClose }: { userId: string; onClose: 
 	);
 }
 
-/** Botón "Editar" que solo ve un administrador. */
+/** Botón "Editar": lo ve el administrador y el propio atleta en sus hábitos. */
 export function EditHabitsButton({ userId, dark }: { userId: string; dark?: boolean }) {
 	const { me } = useStore();
 	const [open, setOpen] = useState(false);
-	if (!me?.isAdmin) return null;
+	if (!me || !(me.isAdmin || me.id === userId)) return null;
 	return (
 		<>
 			<button
