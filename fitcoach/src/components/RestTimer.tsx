@@ -4,10 +4,14 @@ import { useEffect, useState } from 'react';
 export interface RestState {
 	startedAt: number | null; // marca de tiempo si está en marcha
 	accum: number; // ms acumulados en tramos anteriores (al pausar)
+	between?: boolean; // descanso entre ejercicios (no entre series)
 }
 
+/** Descanso entre ejercicios: 4 minutos (se pone en rojo pasado 1 minuto más). */
+export const BETWEEN_EXERCISES = { min: 240, max: 300 };
+
 export const restIdle: RestState = { startedAt: null, accum: 0 };
-export const restStart = (): RestState => ({ startedAt: Date.now(), accum: 0 });
+export const restStart = (between = false): RestState => ({ startedAt: Date.now(), accum: 0, between });
 
 const elapsedMs = (s: RestState) => s.accum + (s.startedAt ? Date.now() - s.startedAt : 0);
 
@@ -45,7 +49,7 @@ export function RestTimer({ state, onChange, rest }: { state: RestState; onChang
 	}, [running]);
 
 	const ms = elapsedMs(state);
-	const range = parseRest(rest);
+	const range = state.between ? BETWEEN_EXERCISES : parseRest(rest);
 	const sec = ms / 1000;
 	const phase = !range || ms === 0 ? 'idle' : sec < range.min ? 'rest' : sec <= range.max ? 'ready' : 'over';
 	const pct = range ? Math.min(100, (sec / range.max) * 100) : 0;
@@ -76,7 +80,9 @@ export function RestTimer({ state, onChange, rest }: { state: RestState; onChang
 						: 'Descanso';
 	const rangeText = !range
 		? ''
-		: range.min % 60 === 0 && range.max % 60 === 0
+		: state.between
+			? '4 min entre ejercicios'
+			: range.min % 60 === 0 && range.max % 60 === 0
 			? `${range.min / 60}${range.max !== range.min ? `-${range.max / 60}` : ''} min`
 			: `${range.min}${range.max !== range.min ? `-${range.max}` : ''} s`;
 
@@ -90,15 +96,15 @@ export function RestTimer({ state, onChange, rest }: { state: RestState; onChang
 				</span>
 				<span className="rest-btns">
 					{running ? (
-						<button onClick={() => onChange({ startedAt: null, accum: ms })} aria-label="Pausar cronómetro">
+						<button onClick={() => onChange({ ...state, startedAt: null, accum: ms })} aria-label="Pausar cronómetro">
 							⏸
 						</button>
 					) : (
-						<button onClick={() => onChange({ startedAt: Date.now(), accum: ms })} aria-label={ms > 0 ? 'Reanudar cronómetro' : 'Iniciar cronómetro'}>
+						<button onClick={() => onChange({ ...state, startedAt: Date.now(), accum: ms })} aria-label={ms > 0 ? 'Reanudar cronómetro' : 'Iniciar cronómetro'}>
 							▶
 						</button>
 					)}
-					<button onClick={() => onChange(running ? restStart() : restIdle)} aria-label="Reiniciar cronómetro" disabled={ms === 0}>
+					<button onClick={() => onChange(running ? restStart(state.between) : { ...restIdle, between: state.between })} aria-label="Reiniciar cronómetro" disabled={ms === 0}>
 						↺
 					</button>
 				</span>

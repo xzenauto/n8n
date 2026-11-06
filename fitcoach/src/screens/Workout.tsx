@@ -75,7 +75,11 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 			// Al terminar una serie (avanzar desde una pantalla de serie a otra) arranca el descanso
 			const fromSet = steps[d.stepIdx]?.kind === 'set';
 			const toSet = steps[stepIdx]?.kind === 'set';
-			const rest = delta > 0 && fromSet && toSet ? restStart() : delta > 0 && !toSet ? restIdle : d.rest;
+			const from = steps[d.stepIdx];
+			const to = steps[stepIdx];
+			// Entre series: el descanso del día. Al cambiar de ejercicio: 4 minutos.
+			const newExercise = fromSet && toSet && from.kind === 'set' && to.kind === 'set' && from.ex !== to.ex;
+			const rest = delta > 0 && fromSet && toSet ? restStart(newExercise) : delta > 0 && !toSet ? restIdle : d.rest;
 			return { ...d, stepIdx, rest };
 		});
 
