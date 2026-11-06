@@ -33,6 +33,12 @@ Anuncio de origen · Desde dónde nos contacta · Invierte en anuncios de Facebo
 Cita agendada (fecha y hora de la llamada, en hora de Ciudad de México).
 
 ## Cuándo habla Maripino
+
+**Clientes que no vienen de un anuncio:** Maripino no les contesta. Si el contacto es nuevo (creado hace menos de 3 días)
+y no tiene oportunidad, se crea su oportunidad en **Atención personalizada**, se etiqueta `atencion-personalizada` +
+`cliente-directo` y se manda un correo «Nuevo cliente por WhatsApp» a xzenauto@gmail.com con su nombre, teléfono y lo que
+escribió. Contactos viejos (importados por la coexistencia: amigos, clientes) se ignoran como antes.
+
 Solo con leads cuya oportunidad está en la primera columna (**Nuevo lead**) o que aún no tienen oportunidad.
 En cualquier otra columna (Contactado, Agendado, Última oportunidad, Cerrado, Atención personalizada) o si la
 oportunidad está ganada/perdida, no responde, ni manda seguimientos ni el recordatorio del video.

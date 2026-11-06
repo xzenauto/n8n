@@ -190,7 +190,11 @@ const verticalPorTexto = Object.entries(RUTAS.verticales)
   .find(([, v]) => v.activo && (v.textos_anuncio ?? []).some((t) => textosCliente.includes(t)))?.[0] ?? null;
 
 const esPrueba = tags.includes('test-maripino') || ent.simulacion;
-if (!anuncioId && !verticalPorTexto && !tags.includes('maripino') && !esPrueba) return [];
+// Cliente que escribe sin venir de un anuncio: Maripino no le contesta. Si es un contacto nuevo (creado hace menos
+// de 3 días) y no tiene oportunidad, se pasa a Atención personalizada y se avisa por correo (una sola vez: la etiqueta
+// atencion-personalizada hace que los siguientes mensajes se ignoren). Contactos viejos (amigos, clientes) se ignoran.
+const esDirecto = !anuncioId && !verticalPorTexto && !tags.includes('maripino') && !esPrueba;
+if (esDirecto && (opp || Date.now() - new Date(contacto.dateAdded ?? 0).getTime() > 3 * 864e5)) return [];
 const anuncio = anuncioId ? RUTAS.anuncios[anuncioId] : null;
 
 let vertical = anuncio?.vertical ?? verticalPorTexto ?? (esPrueba ? 'agencia_viajes' : RUTAS.vertical_por_defecto);
@@ -218,6 +222,9 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
   try { const m = $('GHL mensajes').first().json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}
   if (!Array.isArray(msgs)) msgs = [];
   msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+  // Cliente directo: si mandó varios mensajes seguidos, el evento "Contacto creado" (el primero) no lo atiende;
+  // lo atiende la ejecución del último mensaje.
+  if (esDirecto && ent.contactoCreado && msgs.filter((m) => m.direction === 'inbound').length > 1) return [];
   const USAR_BUFFER = __USAR_BUFFER__;
   const ultimo = msgs[msgs.length - 1];
   const buffer = USAR_BUFFER ? $('Buffer · tomar').first().json : { textos: [] };
@@ -248,6 +255,20 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
   // antes, ya se le contestó una vez; no volvemos a responder para no entrar en un bucle bot ↔ bot.
   const anteriores = new Set(msgs.slice(0, corte).filter((m) => m.direction === 'inbound').map((m) => limpio(m.body)));
   if (nuevos.every((t) => t.length > 30 && anteriores.has(t))) return [];
+}
+
+if (esDirecto) {
+  const nombreC = [contacto.firstName, contacto.lastName].map(limpio).filter(Boolean).join(' ') || 'Sin nombre';
+  return [{ json: { directo: true, contactId: ent.contactId, nombreCompleto: nombreC, tags,
+    telefono: limpio(contacto.phone), correo: limpio(contacto.email),
+    asunto: `Nuevo cliente por WhatsApp: ${nombreC} (${limpio(contacto.phone) || 'sin teléfono'})`,
+    cuerpo: [
+      'Te escribió un cliente que NO viene de un anuncio. Maripino no le responde: lo pasé a Atención personalizada para que lo atiendas tú.',
+      '',
+      `Nombre: ${nombreC}`, `Teléfono: ${limpio(contacto.phone) || '-'}`, `Correo: ${limpio(contacto.email) || '-'}`,
+      '', 'Lo que escribió:', ...nuevos.map((t) => `> ${t}`),
+      '', 'Contesta desde WhatsApp o desde GHL (Conversaciones).',
+    ].join('\n') } }];
 }
 
 const ahora = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City', dateStyle: 'full', timeStyle: 'short' });
@@ -693,6 +714,18 @@ nodos = [
         "=" + GHL + "/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
         query={"limit": "40"}, onError="continueRegularOutput", alwaysOutputData=True),
     nodo("Analizar", "n8n-nodes-base.code", 2, [1400, 300], {"jsCode": ANALIZAR}),
+    # Cliente que no viene de un anuncio → oportunidad en Atención personalizada + etiqueta + correo.
+    si("¿Cliente directo?", [1500, 300], "={{ $json.directo === true }}"),
+    ghl("GHL oportunidad directo", [1600, -100], "POST", GHL + "/opportunities/",
+        cuerpo="={{ JSON.stringify({ locationId: '" + LOCATION_ID + "', pipelineId: '" + CFG["pipelineId"] + "',"
+               " pipelineStageId: '" + CFG["etapas"]["atencion"] + "', status: 'open', contactId: $json.contactId,"
+               " name: $json.nombreCompleto }) }}", onError="continueRegularOutput"),
+    ghl("GHL etiqueta directo", [1800, -100], "POST", "=" + GHL + "/contacts/{{ $('Analizar').first().json.contactId }}/tags",
+        cuerpo='{"tags": ["atencion-personalizada", "cliente-directo"]}', onError="continueRegularOutput"),
+    nodo("Correo nuevo cliente", "n8n-nodes-base.gmail", 2.2, [2000, -100], {
+        "sendTo": CFG["correoAviso"], "subject": "={{ $('Analizar').first().json.asunto }}", "emailType": "text",
+        "message": "={{ $('Analizar').first().json.cuerpo }}", "options": {"appendAttribution": False},
+    }, CRED_GMAIL, onError="continueRegularOutput"),
     si("¿Primer contacto?", [1600, 300], "={{ $json.crearOportunidad }}"),
     ghl("GHL crear oportunidad", [1800, 120], "POST", GHL + "/opportunities/",
         cuerpo="={{ JSON.stringify({ locationId: '" + LOCATION_ID + "', pipelineId: '" + CFG["pipelineId"] + "',"
@@ -831,9 +864,13 @@ if not USAR_BUFFER:
 cadena = (["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Buffer · guardar", "Esperar ráfaga (12 s)", "Buffer · tomar",
            "¿Último mensaje?", "GHL contacto"] if USAR_BUFFER else
           ["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Esperar ráfaga (12 s)", "GHL contacto"]) + [
-          "GHL oportunidades", "GHL conversación", "GHL mensajes", "Analizar", "¿Primer contacto?"]
+          "GHL oportunidades", "GHL conversación", "GHL mensajes", "Analizar", "¿Cliente directo?"]
 for a, b in zip(cadena, cadena[1:]):
     une(a, b)
+une("¿Cliente directo?", "GHL oportunidad directo", salida=0)
+une("GHL oportunidad directo", "GHL etiqueta directo")
+une("GHL etiqueta directo", "Correo nuevo cliente")
+une("¿Cliente directo?", "¿Primer contacto?", salida=1)
 une("¿Primer contacto?", "GHL crear oportunidad", salida=0)
 une("GHL crear oportunidad", "GHL guardar anuncio")
 une("GHL guardar anuncio", "Maripino")
