@@ -250,7 +250,7 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 				<div className="card-head">
 					Serie {setIndex + 1} de {n}
 					<span className="pill yellow">
-						Objetivo {exercise.reps} · RIR {exercise.rir}
+						{[exercise.reps && `Objetivo ${exercise.reps}`, exercise.rir && `RIR ${exercise.rir}`].filter(Boolean).join(' · ') || 'Libre'}
 					</span>
 				</div>
 				<div className="set-dots" style={{ paddingTop: 4 }}>
@@ -286,7 +286,7 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 						</div>
 						<div className="kv">
 							<span>RIR</span>
-							<b>{exercise.rir}</b>
+							<b>{exercise.rir || "–"}</b>
 						</div>
 					</div>
 				</div>
@@ -295,7 +295,7 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 					<span>
 						{target.tip}
 						<small>
-							Rango {exercise.reps} · RIR {exercise.rir}
+							{[exercise.reps && `Rango ${exercise.reps}`, exercise.rir && `RIR ${exercise.rir}`].filter(Boolean).join(' · ')}
 						</small>
 					</span>
 				</div>

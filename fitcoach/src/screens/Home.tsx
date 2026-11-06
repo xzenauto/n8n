@@ -46,6 +46,7 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 		);
 	}
 
+	const hasDiet = myPlan.diet.kcal > 0 || myPlan.diet.meals.length > 0;
 	const option = meal?.meal.options[0];
 	const optMacros = option ? macrosOf(option.items) : null;
 
@@ -135,8 +136,10 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 				</div>
 			)}
 
+			{(hasDiet || myPlan.program.cardio.length > 0) && (
 			<div className="card">
-				<div className="card-head">Objetivos diarios</div>
+				<div className="card-head">{hasDiet ? 'Objetivos diarios' : 'Cardio y pasos'}</div>
+				{hasDiet && (
 				<div className="stats">
 					<div>
 						<b>{myPlan.diet.kcal}</b>
@@ -155,6 +158,7 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 						<span>Grasa</span>
 					</div>
 				</div>
+				)}
 				{myPlan.program.cardio.map((c) => (
 					<div className="row" key={c.id}>
 						<div className="grow">
@@ -165,6 +169,7 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 					</div>
 				))}
 			</div>
+			)}
 		</>
 	);
 }

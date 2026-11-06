@@ -24,7 +24,7 @@ function SaveError({ msg, onClose }: { msg: string; onClose: () => void }) {
 }
 
 export default function App() {
-	const { me, status, saveError, clearSaveError, logout, pendingCount } = useStore();
+	const { me, myPlan, status, saveError, clearSaveError, logout, pendingCount } = useStore();
 	const [tab, setTab] = useState<Tab>('home');
 	const [openDay, setOpenDay] = useState<string | null>(null);
 	const [running, setRunning] = useState<string | null>(null);
@@ -86,10 +86,12 @@ export default function App() {
 	const items: { id: Tab; label: string; icon: Parameters<typeof Icon>[0]['name'] }[] = [
 		{ id: 'home', label: 'Inicio', icon: 'home' },
 		{ id: 'train', label: 'Entrenos', icon: 'dumbbell' },
-		{ id: 'diet', label: 'Dieta', icon: 'food' },
 		{ id: 'progress', label: 'Progreso', icon: 'chart' },
 		{ id: 'profile', label: 'Perfil', icon: 'user' },
 	];
+	// La pestaña Dieta solo aparece si el atleta tiene dieta asignada (los admin la ven siempre)
+	const hasDiet = !!myPlan && (myPlan.diet.kcal > 0 || myPlan.diet.meals.length > 0);
+	if (hasDiet || me.isAdmin) items.splice(2, 0, { id: 'diet', label: 'Dieta', icon: 'food' });
 	if (me.isAdmin) items.push({ id: 'admin', label: 'Admin', icon: 'shield' });
 
 	return (

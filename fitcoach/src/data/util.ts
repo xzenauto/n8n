@@ -196,7 +196,8 @@ export function setTarget(range: string, prev?: { reps: string; kg: string } | n
 	const r = parseRange(range);
 	const reps = Number(prev?.reps);
 	const kg = prev?.kg?.trim() || '';
-	if (!r || !prev || !reps) return { kind: 'new', reps: range, kg: kg || '–', tip: `Elige un peso con el que hagas ${range} reps` };
+	if (!r) return { kind: 'new', reps: '–', kg: kg || '–', tip: 'Apunta lo que hagas hoy' };
+	if (!prev || !reps) return { kind: 'new', reps: range, kg: kg || '–', tip: `Elige un peso con el que hagas ${range} reps` };
 	if (reps >= r.max)
 		return { kind: 'up', reps: `${r.min}`, kg: kg ? `> ${kg}` : '↑', tip: `Llegaste al tope (${reps}). Sube el peso y busca ${r.min} reps` };
 	if (reps < r.min) return { kind: 'reach', reps: `${r.min}`, kg: kg || '–', tip: `Mismo peso: llega a ${r.min} reps para entrar en el rango` };
