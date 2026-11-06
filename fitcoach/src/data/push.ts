@@ -13,7 +13,7 @@ function keyToBytes(base64: string) {
 }
 
 async function registration() {
-	const reg = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register('./sw.js'));
+	const reg = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register(`./sw.js?b=${__BUILD__}`, { updateViaCache: 'none' }));
 	await navigator.serviceWorker.ready;
 	return reg;
 }
