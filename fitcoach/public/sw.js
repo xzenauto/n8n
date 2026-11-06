@@ -1,6 +1,6 @@
 // Service worker de FitCoach: guarda la app para abrir rápido y funcionar sin conexión.
 // Los datos (Supabase) nunca se cachean.
-const CACHE = 'appgym-v11';
+const CACHE = 'appgym-v12';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './img/icon-192.png'])));

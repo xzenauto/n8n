@@ -266,8 +266,6 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 				)}
 			</div>
 
-			<RestTimer state={rest} onChange={onRest} rest={restText} />
-
 			<div className="card">
 				<div className="card-head">
 					Serie {setIndex + 1} de {n}
@@ -343,6 +341,8 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 					</div>
 				)}
 			</div>
+
+			<RestTimer state={rest} onChange={onRest} rest={restText} />
 
 			<div className="spacer" />
 			<div className="btn-row">
