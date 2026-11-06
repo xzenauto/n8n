@@ -1057,12 +1057,15 @@ seguimientos = {"name": "Maripino · Seguimientos", "nodes": seg_nodos, "connect
                 "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
 
 # ---------------------------------------------------------------- rescate de leads colgados (cada 2 h)
-RES_CANDIDATOS = r"""// Conversaciones de WhatsApp cuyo último mensaje es del cliente y nadie ha contestado:
+RES_CANDIDATOS = r"""// Conversaciones de WhatsApp cuyo último mensaje es del cliente y nadie ha contestado
+// (mismo esquema que el rescate de las agencias de RS Viajes):
 // de hace más de 10 minutos y menos de 23 horas (aún se le puede escribir).
-// Entre las 23:00 y las 8:00 no se rescata; lo pendiente sale en la vuelta de las 8:00.
+// De 22:00 a 8:00 solo se rescata si el cliente está escribiendo en ese momento (último mensaje de hace menos de 40 min);
+// lo que quede pendiente de la noche se rescata en la vuelta de las 8:00.
+// Cada mensaje se revisa una sola vez (se marca como visto; si el envío falla, se reintenta en la siguiente vuelta).
 // Maripino decide después si le corresponde (solo leads de anuncios, sin atención personalizada ni maripino-off).
 const horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;
-if (horaMx >= 23 || horaMx < 8) return [];
+const deNoche = horaMx >= 22 || horaMx < 8;
 const memoria = $getWorkflowStaticData('global');
 memoria.vistos = memoria.vistos || {};
 const ahora = Date.now();
@@ -1071,36 +1074,57 @@ return ($json.conversations ?? [])
   .filter((c) => c.lastMessageDirection === 'inbound' && /WHATSAPP/.test(c.lastMessageType ?? ''))
   .map((c) => ({ c, t: Number(c.lastMessageDate) || new Date(c.lastMessageDate).getTime() }))
   .filter(({ t }) => ahora - t > 10 * 60e3 && ahora - t < 23 * 3600e3)
-  .map(({ c, t }) => ({ clave: `${c.contactId}:${t}`, contactId: c.contactId, nombre: c.fullName || c.contactName || '' }))
+  .filter(({ t }) => !deNoche || ahora - t < 40 * 60e3)
+  .map(({ c, t }) => ({ clave: `${c.contactId}:${t}`, contactId: c.contactId, convId: c.id, nombre: c.fullName || c.contactName || '' }))
   .filter((x) => !memoria.vistos[x.clave])
   .map((x) => ({ json: x }));
 """
 
-RES_MARCAR = r"""// Recuerda lo ya enviado para no rescatarlo dos veces (si el envío falló, se reintenta en la siguiente vuelta).
-const memoria = $getWorkflowStaticData('global');
-memoria.vistos = memoria.vistos || {};
+RES_DECIDIR = r"""// No se rescata si ya le escribió una persona del equipo (sus mensajes llevan usuario; los de Maripino no,
+// y los automáticos de GHL vienen como "workflow"): esa conversación la lleva alguien a mano.
 const cand = $('Candidatos').all();
 return $input.all().map((item, i) => {
-  if (!item.json.error) memoria.vistos[cand[i].json.clave] = Date.now();
-  return { json: { ...cand[i].json, enviado: !item.json.error } };
+  let m = item.json.messages; m = (m && (m.messages || m)) || [];
+  if (!Array.isArray(m)) m = [];
+  const escribioPersona = m.some((x) => x.direction === 'outbound' && x.source !== 'workflow' && x.userId
+    && !String(x.messageType ?? '').startsWith('TYPE_ACTIVITY'));
+  return { json: { ...cand[i].json, rescatar: !escribioPersona, motivo: escribioPersona ? 'ya le escribió una persona del equipo' : 'sin respuesta' } };
+});
+"""
+
+RES_MARCAR = r"""// Recuerda lo ya revisado para no rescatarlo dos veces (si el envío falló, se reintenta en la siguiente vuelta).
+const memoria = $getWorkflowStaticData('global');
+memoria.vistos = memoria.vistos || {};
+// Llega por dos caminos: desde "Enviar a Maripino" (respuesta del webhook) o desde "Rescatar" (no se rescata).
+return $input.all().map((item, i) => {
+  const clave = item.json.clave ?? $('¿Rescatar?').itemMatching(i).json.clave;
+  if (clave && !item.json.error) memoria.vistos[clave] = Date.now();
+  return { json: { clave, enviado: !item.json.error && !item.json.clave } };
 });
 """
 
 res_nodos = [
-    nodo("Cada 2 horas", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 0],
-         {"rule": {"interval": [{"field": "cronExpression", "expression": "0 */2 * * *"}]}}),
+    nodo("Cada 30 min (de noche solo si el cliente está escribiendo)", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 0],
+         {"rule": {"interval": [{"field": "cronExpression", "expression": "*/30 * * * *"}]}}),
     ghl("GHL conversaciones sin respuesta", [200, 0], "GET", GHL + "/conversations/search",
         query={"locationId": LOCATION_ID, "lastMessageDirection": "inbound", "sortBy": "last_message_date",
                "sort": "desc", "limit": "100"}),
     nodo("Candidatos", "n8n-nodes-base.code", 2, [400, 0], {"jsCode": RES_CANDIDATOS}),
-    nodo("Enviar a Maripino", "n8n-nodes-base.httpRequest", 4.2, [600, 0], {
+    ghl("GHL mensajes de la conversación", [600, 0], "GET", "=" + GHL + "/conversations/{{ $json.convId }}/messages",
+        query={"limit": "20"}, onError="continueRegularOutput", alwaysOutputData=True),
+    nodo("¿Rescatar?", "n8n-nodes-base.code", 2, [800, 0], {"jsCode": RES_DECIDIR}),
+    si("Rescatar", [1000, 0], "={{ $json.rescatar }}"),
+    nodo("Enviar a Maripino", "n8n-nodes-base.httpRequest", 4.2, [1200, -100], {
         "method": "POST", "url": "http://localhost:5678/webhook/xzen-maripino",
         "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify({ contact_id: $json.contactId, rescate: true }) }}",
         "options": {"batching": {"batch": {"batchSize": 1, "batchInterval": 3000}}},
     }, onError="continueRegularOutput"),
-    nodo("Marcar visto", "n8n-nodes-base.code", 2, [800, 0], {"jsCode": RES_MARCAR}),
+    nodo("Marcar visto", "n8n-nodes-base.code", 2, [1400, 0], {"jsCode": RES_MARCAR}),
 ]
-res_con = {a["name"]: {"main": [[{"node": b["name"], "type": "main", "index": 0}]]} for a, b in zip(res_nodos, res_nodos[1:])}
+res_con = {a["name"]: {"main": [[{"node": b["name"], "type": "main", "index": 0}]]} for a, b in zip(res_nodos[:5], res_nodos[1:6])}
+res_con["Rescatar"] = {"main": [[{"node": "Enviar a Maripino", "type": "main", "index": 0}], [{"node": "Marcar visto", "type": "main", "index": 0}]]}
+# "Enviar a Maripino" devuelve la respuesta del webhook: se marca el candidato correspondiente.
+res_con["Enviar a Maripino"] = {"main": [[{"node": "Marcar visto", "type": "main", "index": 0}]]}
 rescate = {"name": "Maripino · Rescate de leads sin respuesta", "nodes": res_nodos, "connections": res_con,
            "settings": {"executionOrder": "v1", "timezone": "America/Mexico_City"}}
 

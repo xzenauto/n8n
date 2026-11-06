@@ -121,10 +121,14 @@ redactado por la IA según la conversación (el 3.º es una despedida amable). R
 - Más de 7 días en Última oportunidad → columna **Perdidos** con estado *lost*.
 - Si un lead de Última oportunidad o Perdidos vuelve a escribir, Maripino lo atiende y lo regresa a Nuevo lead (estado abierto).
 
-## Rescate de leads sin respuesta (flujo «Maripino · Rescate de leads sin respuesta», cada 2 h)
-Busca en GHL conversaciones de WhatsApp cuyo último mensaje es del cliente (de hace más de 10 min y menos de
-23 h) y se las pasa a Maripino, que contesta si es un lead suyo. Entre las 23:00 y las 08:00 no rescata: lo
-pendiente sale en la vuelta de las 8:00. Cada mensaje se rescata una sola vez.
+## Rescate de leads sin respuesta (flujo «Maripino · Rescate de leads sin respuesta», cada 30 min)
+
+Mismo esquema que el rescate de las agencias de RS Viajes:
+- Conversaciones de WhatsApp cuyo último mensaje es del cliente, de hace más de 10 min y menos de 23 h.
+- De 22:00 a 8:00 solo si el cliente está escribiendo en ese momento (último mensaje de hace menos de 40 min);
+  lo pendiente de la noche sale en la vuelta de las 8:00.
+- No se rescata si ya le escribió una persona del equipo (mensaje con usuario de GHL).
+- Cada mensaje se revisa una sola vez. Maripino decide después si le corresponde contestar.
 
 ## Reporte diario (flujo «Maripino · Reporte diario (correo)», 8:00)
 Correo HTML a xzenauto@gmail.com con: anuncios (ayer, 7 días y desde el inicio: gasto, impresiones, clics,

@@ -2,8 +2,8 @@
   "name": "Maripino · Rescate de leads sin respuesta",
   "nodes": [
     {
-      "id": "87780972-12be-5f3a-ba6d-e53195f7144a",
-      "name": "Cada 2 horas",
+      "id": "0a6516a5-d10d-5100-b5b1-f89009e65d1b",
+      "name": "Cada 30 min (de noche solo si el cliente está escribiendo)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -15,7 +15,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 */2 * * *"
+              "expression": "*/30 * * * *"
             }
           ]
         }
@@ -92,7 +92,101 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Conversaciones de WhatsApp cuyo último mensaje es del cliente y nadie ha contestado:\n// de hace más de 10 minutos y menos de 23 horas (aún se le puede escribir).\n// Entre las 23:00 y las 8:00 no se rescata; lo pendiente sale en la vuelta de las 8:00.\n// Maripino decide después si le corresponde (solo leads de anuncios, sin atención personalizada ni maripino-off).\nconst horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;\nif (horaMx >= 23 || horaMx < 8) return [];\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst ahora = Date.now();\nfor (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];\nreturn ($json.conversations ?? [])\n  .filter((c) => c.lastMessageDirection === 'inbound' && /WHATSAPP/.test(c.lastMessageType ?? ''))\n  .map((c) => ({ c, t: Number(c.lastMessageDate) || new Date(c.lastMessageDate).getTime() }))\n  .filter(({ t }) => ahora - t > 10 * 60e3 && ahora - t < 23 * 3600e3)\n  .map(({ c, t }) => ({ clave: `${c.contactId}:${t}`, contactId: c.contactId, nombre: c.fullName || c.contactName || '' }))\n  .filter((x) => !memoria.vistos[x.clave])\n  .map((x) => ({ json: x }));\n"
+        "jsCode": "// Conversaciones de WhatsApp cuyo último mensaje es del cliente y nadie ha contestado\n// (mismo esquema que el rescate de las agencias de RS Viajes):\n// de hace más de 10 minutos y menos de 23 horas (aún se le puede escribir).\n// De 22:00 a 8:00 solo se rescata si el cliente está escribiendo en ese momento (último mensaje de hace menos de 40 min);\n// lo que quede pendiente de la noche se rescata en la vuelta de las 8:00.\n// Cada mensaje se revisa una sola vez (se marca como visto; si el envío falla, se reintenta en la siguiente vuelta).\n// Maripino decide después si le corresponde (solo leads de anuncios, sin atención personalizada ni maripino-off).\nconst horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;\nconst deNoche = horaMx >= 22 || horaMx < 8;\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst ahora = Date.now();\nfor (const [k, t] of Object.entries(memoria.vistos)) if (ahora - t > 3 * 864e5) delete memoria.vistos[k];\nreturn ($json.conversations ?? [])\n  .filter((c) => c.lastMessageDirection === 'inbound' && /WHATSAPP/.test(c.lastMessageType ?? ''))\n  .map((c) => ({ c, t: Number(c.lastMessageDate) || new Date(c.lastMessageDate).getTime() }))\n  .filter(({ t }) => ahora - t > 10 * 60e3 && ahora - t < 23 * 3600e3)\n  .filter(({ t }) => !deNoche || ahora - t < 40 * 60e3)\n  .map(({ c, t }) => ({ clave: `${c.contactId}:${t}`, contactId: c.contactId, convId: c.id, nombre: c.fullName || c.contactName || '' }))\n  .filter((x) => !memoria.vistos[x.clave])\n  .map((x) => ({ json: x }));\n"
+      }
+    },
+    {
+      "id": "9338e9c1-0840-5e2f-8659-116696886202",
+      "name": "GHL mensajes de la conversación",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://services.leadconnectorhq.com/conversations/{{ $json.convId }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "60689cd3-c226-55a3-a6d8-2e097046f104",
+      "name": "¿Rescatar?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// No se rescata si ya le escribió una persona del equipo (sus mensajes llevan usuario; los de Maripino no,\n// y los automáticos de GHL vienen como \"workflow\"): esa conversación la lleva alguien a mano.\nconst cand = $('Candidatos').all();\nreturn $input.all().map((item, i) => {\n  let m = item.json.messages; m = (m && (m.messages || m)) || [];\n  if (!Array.isArray(m)) m = [];\n  const escribioPersona = m.some((x) => x.direction === 'outbound' && x.source !== 'workflow' && x.userId\n    && !String(x.messageType ?? '').startsWith('TYPE_ACTIVITY'));\n  return { json: { ...cand[i].json, rescatar: !escribioPersona, motivo: escribioPersona ? 'ya le escribió una persona del equipo' : 'sin respuesta' } };\n});\n"
+      }
+    },
+    {
+      "id": "cbf5fa94-98bf-57b5-8c31-3e180f041245",
+      "name": "Rescatar",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5f1de8a0-5363-561d-8620-bd3baff5ee40",
+              "leftValue": "={{ $json.rescatar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       }
     },
     {
@@ -101,8 +195,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        600,
-        0
+        1200,
+        -100
       ],
       "parameters": {
         "method": "POST",
@@ -127,16 +221,16 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        800,
+        1400,
         0
       ],
       "parameters": {
-        "jsCode": "// Recuerda lo ya enviado para no rescatarlo dos veces (si el envío falló, se reintenta en la siguiente vuelta).\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\nconst cand = $('Candidatos').all();\nreturn $input.all().map((item, i) => {\n  if (!item.json.error) memoria.vistos[cand[i].json.clave] = Date.now();\n  return { json: { ...cand[i].json, enviado: !item.json.error } };\n});\n"
+        "jsCode": "// Recuerda lo ya revisado para no rescatarlo dos veces (si el envío falló, se reintenta en la siguiente vuelta).\nconst memoria = $getWorkflowStaticData('global');\nmemoria.vistos = memoria.vistos || {};\n// Llega por dos caminos: desde \"Enviar a Maripino\" (respuesta del webhook) o desde \"Rescatar\" (no se rescata).\nreturn $input.all().map((item, i) => {\n  const clave = item.json.clave ?? $('¿Rescatar?').itemMatching(i).json.clave;\n  if (clave && !item.json.error) memoria.vistos[clave] = Date.now();\n  return { json: { clave, enviado: !item.json.error && !item.json.clave } };\n});\n"
       }
     }
   ],
   "connections": {
-    "Cada 2 horas": {
+    "Cada 30 min (de noche solo si el cliente está escribiendo)": {
       "main": [
         [
           {
@@ -162,7 +256,47 @@
       "main": [
         [
           {
+            "node": "GHL mensajes de la conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL mensajes de la conversación": {
+      "main": [
+        [
+          {
+            "node": "¿Rescatar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Rescatar?": {
+      "main": [
+        [
+          {
+            "node": "Rescatar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rescatar": {
+      "main": [
+        [
+          {
             "node": "Enviar a Maripino",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar visto",
             "type": "main",
             "index": 0
           }
