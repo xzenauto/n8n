@@ -143,3 +143,25 @@ create trigger gym_plans_guard before update on public.gym_plans
 create policy gym_plans_self_update on public.gym_plans for update to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
+
+-- ---------- Notificaciones push (migración gym_push_notifications) ----------
+create table if not exists public.gym_push_subs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.gym_profiles on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  tz text not null default 'Atlantic/Canary',
+  last_quote date,
+  last_habits date,
+  created_at timestamptz not null default now()
+);
+alter table public.gym_push_subs enable row level security;
+create policy gym_push_subs_own on public.gym_push_subs for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+-- pg_cron cada hora → función gym-push (8:00 frase del día, 21:00 hábitos pendientes, hora local)
+select cron.schedule('gym-recordatorios', '0 * * * *', $$
+  select net.http_post(url := 'https://jlbrcgdfsqlvssgbrxzr.supabase.co/functions/v1/gym-push',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', (select valor from public.config_privada where clave = 'cron_secret')),
+    body := '{}'::jsonb);
+$$);

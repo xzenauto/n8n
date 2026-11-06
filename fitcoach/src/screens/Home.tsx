@@ -1,5 +1,6 @@
 import type { Tab } from '../App';
 import { EditHabitsButton } from '../components/EditHabits';
+import { NotificationsCard } from '../components/Notifications';
 import { HabitRings, MONTHS, monthStats } from '../components/Habits';
 import { useStore } from '../data/store';
 import { dayFor, formatLong, getFood, macrosOf, nextMeal, nextTrainingFrom, sessionsFor, toISO, WEEKDAYS, WEEKDAYS_SHORT, weekdayIndex } from '../data/util';
@@ -97,6 +98,7 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 			</div>
 
 			{myPlan.habits?.items.length > 0 && <HabitsWidget onGo={onGo} />}
+			{myPlan.habits?.items.length > 0 && <NotificationsCard compact />}
 
 			{meal && option && (
 				<div className="card">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NotificationsCard } from '../components/Notifications';
 import { TopBar, useToast } from '../components/ui';
 import { useStore } from '../data/store';
 
@@ -68,6 +69,8 @@ export default function Profile() {
 					</div>
 				)}
 			</div>
+
+			<NotificationsCard />
 
 			<div className="card">
 				<div className="card-head">Mis datos</div>
