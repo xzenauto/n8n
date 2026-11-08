@@ -162,6 +162,14 @@
       const btn = f.querySelector("button[type=submit]"), msg = f.querySelector("[data-msg]");
       const datos = Object.fromEntries(new FormData(f));
       if (datos.website) return; // trampa anti-spam
+      if (!C.contactoUrl) { // sin n8n: enviamos el mensaje por WhatsApp
+        const txt = f.dataset.lead === "newsletter"
+          ? `Hola, quiero recibir novedades de Gyrarte.\nNombre: ${datos.nombre || ""}\nCorreo: ${datos.email || ""}`
+          : `Hola, les escribo desde gyrarte.com\nNombre: ${datos.nombre || ""}\nCorreo: ${datos.email || ""}\nTeléfono: ${datos.telefono || ""}\n\n${datos.mensaje || ""}`;
+        window.open(`https://wa.me/${C.defaultWa}?text=${encodeURIComponent(txt)}`, "_blank", "noopener");
+        msg.className = "form-ok"; msg.textContent = "Te abrimos WhatsApp para enviar tu mensaje.";
+        return;
+      }
       btn.disabled = true;
       try {
         const r = await fetch(C.contactoUrl, {
