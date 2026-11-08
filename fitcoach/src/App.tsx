@@ -34,6 +34,7 @@ export default function App() {
 	if (status === 'loading')
 		return (
 			<div className="login">
+				<img className="brand-logo" src="img/logo.png" alt="" />
 				<p className="brand">
 					Axis <b>Athlete</b>
 				</p>
@@ -43,6 +44,7 @@ export default function App() {
 	if (status === 'noAccess')
 		return (
 			<div className="login">
+				<img className="brand-logo" src="img/logo.png" alt="" />
 				<p className="brand">
 					Axis <b>Athlete</b>
 				</p>

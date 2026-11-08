@@ -99,7 +99,7 @@ interface Store {
 	logout(): void;
 	changePassword(current: string, next: string): Promise<string | null>;
 	updateUser(id: string, patch: Partial<Omit<User, 'id'>>): void;
-	createUser(data: { name: string; email: string; phone: string; password: string; isAdmin: boolean; isAthlete: boolean; copyFrom?: string; templateId?: string }): Promise<string | null>;
+	createUser(data: { name: string; email: string; phone: string; password: string; isAdmin: boolean; isAthlete: boolean; copyFrom?: string; templateId?: string; dietFrom?: string }): Promise<string | null>;
 	setUserPassword(id: string, password: string): Promise<string | null>;
 	deleteUser(id: string): Promise<string | null>;
 	planOf(userId: string): Plan | undefined;
@@ -155,7 +155,9 @@ function lsSet(key: string, value: unknown) {
 	}
 }
 
-const toTemplate = (r: Row): Template => ({ id: r.id, name: r.name, program: r.program });
+// Las de dieta se guardan como program = { kind: 'diet', diet } para reutilizar la tabla.
+const toTemplate = (r: Row): Template =>
+	r.program?.kind === 'diet' ? { id: r.id, name: r.name, kind: 'diet', diet: r.program.diet } : { id: r.id, name: r.name, kind: 'program', program: r.program };
 const toExercise = (r: Row): LibraryExercise => ({ id: r.id, name: r.name, video: r.video ?? '' });
 const toAnnouncement = (r: Row): Announcement => ({ id: r.id, title: r.title, body: r.body ?? '', authorId: r.author_id ?? null, createdAt: r.created_at ?? new Date().toISOString() });
 
@@ -404,11 +406,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 					.eq('id', id)
 					.then(({ error }) => error && setSaveError(`No se pudo guardar el perfil: ${error.message}`));
 			},
-			async createUser({ name, email, phone, password, isAdmin, isAthlete, copyFrom, templateId }) {
+			async createUser({ name, email, phone, password, isAdmin, isAthlete, copyFrom, templateId, dietFrom }) {
 				if (!name.trim() || !email.trim()) return 'Nombre y email son obligatorios';
 				if (password.length < 6) return 'La contraseña debe tener al menos 6 caracteres';
+				const emptyDiet = { kcal: 0, protein: 0, carbs: 0, fat: 0, meals: [] };
 				const tpl = templateId ? db.templates.find((t) => t.id === templateId) : undefined;
-				const src = copyFrom ? db.plans.find((p) => p.userId === copyFrom) : tpl ? { program: tpl.program, diet: { kcal: 0, protein: 0, carbs: 0, fat: 0, meals: [] }, habits: { goal: '', items: [] } } : undefined;
+				// Dieta inicial: 'tpl:<id>' (plantilla de dieta) o 'user:<id>' (copiar la de otro atleta)
+				const [dk, dref] = (dietFrom ?? '').split(':');
+				const dietSrc = dk === 'tpl' ? db.templates.find((t) => t.id === dref)?.diet : dk === 'user' ? db.plans.find((p) => p.userId === dref)?.diet : undefined;
+				const base = copyFrom ? db.plans.find((p) => p.userId === copyFrom) : tpl?.program ? { program: tpl.program, diet: emptyDiet, habits: { goal: '', items: [] } } : undefined;
+				const src = base ? { ...base, diet: dietSrc ?? (copyFrom ? base.diet : emptyDiet) } : dietSrc ? { program: { name: 'Nuevo programa', days: [], schedule: [null, null, null, null, null, null, null], cardio: [] }, diet: dietSrc, habits: { goal: '', items: [] } } : undefined;
 				const plan = isAthlete
 					? src
 						? { program: src.program, diet: src.diet, ...(hasHabitsCol.current ? { habits: src.habits } : {}) }
@@ -544,7 +551,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 						d.templates = [...d.templates.filter((x) => x.id !== t.id), t].sort((a, b) => a.name.localeCompare(b.name));
 						return d;
 					},
-					[{ key: `gym_templates:${t.id}`, table: 'gym_templates', kind: 'upsert', row: { id: t.id, name: t.name, program: t.program, updated_at: new Date().toISOString() } }],
+					[
+						{
+							key: `gym_templates:${t.id}`,
+							table: 'gym_templates',
+							kind: 'upsert',
+							row: { id: t.id, name: t.name, program: t.kind === 'diet' ? { kind: 'diet', diet: t.diet } : t.program, updated_at: new Date().toISOString() },
+						},
+					],
 				);
 			},
 			deleteTemplate(id) {

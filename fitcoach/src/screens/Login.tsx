@@ -17,6 +17,7 @@ export default function Login() {
 
 	return (
 		<div className="login">
+			<img className="brand-logo" src="img/logo.png" alt="" />
 			<p className="brand">
 				Axis <b>Athlete</b>
 			</p>

@@ -136,10 +136,13 @@ export interface EquivalenceGroup {
 	items: MealItem[];
 }
 
+/** Plantilla de entreno (program) o de dieta (diet). Se guardan en la misma tabla gym_templates. */
 export interface Template {
 	id: string;
 	name: string;
-	program: Program;
+	kind: 'program' | 'diet';
+	program?: Program;
+	diet?: Diet;
 }
 
 export interface LibraryExercise {

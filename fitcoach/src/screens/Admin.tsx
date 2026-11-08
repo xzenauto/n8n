@@ -3,12 +3,12 @@ import { ask, Sheet, TopBar, useToast } from '../components/ui';
 import { emptyPlan } from '../data/seed';
 import { useStore } from '../data/store';
 import type { Diet, EquivalenceGroup, Habits, Program, User } from '../data/types';
-import { ExerciseLibrary, SaveAsTemplate, TemplateEditor, Templates } from './AdminTemplates';
+import { ApplyTemplate, ExerciseLibrary, SaveAsTemplate, TemplateEditor, Templates } from './AdminTemplates';
 import { formatShort, sessionsFor } from '../data/util';
 import { DietEditor, EquivalencesEditor, HabitsEditor, ProgramEditor } from './AdminEditors';
 import Progress from './Progress';
 
-type View = { kind: 'list' } | { kind: 'user'; id: string } | { kind: 'equiv' } | { kind: 'templates' } | { kind: 'template'; id: string } | { kind: 'library' };
+type View = { kind: 'list' } | { kind: 'user'; id: string } | { kind: 'equiv' } | { kind: 'templates'; tkind: 'program' | 'diet' } | { kind: 'template'; id: string } | { kind: 'library' };
 
 export default function Admin() {
 	const { db } = useStore();
@@ -18,8 +18,9 @@ export default function Admin() {
 
 	if (view.kind === 'user') return <UserDetail id={view.id} onBack={() => setView({ kind: 'list' })} />;
 	if (view.kind === 'equiv') return <Equivalences onBack={() => setView({ kind: 'list' })} />;
-	if (view.kind === 'templates') return <Templates onBack={() => setView({ kind: 'list' })} onOpen={(id) => setView({ kind: 'template', id })} />;
-	if (view.kind === 'template') return <TemplateEditor id={view.id} onBack={() => setView({ kind: 'templates' })} />;
+	if (view.kind === 'templates') return <Templates kind={view.tkind} onBack={() => setView({ kind: 'list' })} onOpen={(id) => setView({ kind: 'template', id })} />;
+	if (view.kind === 'template')
+		return <TemplateEditor id={view.id} onBack={() => setView({ kind: 'templates', tkind: db.templates.find((t) => t.id === view.id)?.kind ?? 'program' })} />;
 	if (view.kind === 'library') return <ExerciseLibrary onBack={() => setView({ kind: 'list' })} />;
 
 	const users = db.users.filter((u) => `${u.name} ${u.email}`.toLowerCase().includes(q.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
@@ -58,10 +59,10 @@ export default function Admin() {
 
 			<div className="section-label">Entreno</div>
 			<div className="card">
-				<div className="row clickable" onClick={() => setView({ kind: 'templates' })}>
+				<div className="row clickable" onClick={() => setView({ kind: 'templates', tkind: 'program' })}>
 					<div className="grow">
-						<div className="name">Plantillas de rutina</div>
-						<div className="muted">{db.templates.length} guardadas · se asignan al dar de alta o cambiar el plan</div>
+						<div className="name">Plantillas de entreno</div>
+						<div className="muted">{db.templates.filter((t) => t.kind === 'program').length} guardadas · se asignan al dar de alta o cambiar el plan</div>
 					</div>
 					<span className="chev">›</span>
 				</div>
@@ -76,6 +77,13 @@ export default function Admin() {
 
 			<div className="section-label">Dieta</div>
 			<div className="card">
+				<div className="row clickable" onClick={() => setView({ kind: 'templates', tkind: 'diet' })}>
+					<div className="grow">
+						<div className="name">Plantillas de dieta</div>
+						<div className="muted">{db.templates.filter((t) => t.kind === 'diet').length} guardadas · dietas base para asignar</div>
+					</div>
+					<span className="chev">›</span>
+				</div>
 				<div className="row clickable" onClick={() => setView({ kind: 'equiv' })}>
 					<div className="grow">
 						<div className="name">Tabla de equivalencias de alimentos</div>
@@ -93,14 +101,17 @@ export default function Admin() {
 function CreateUser({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
 	const { createUser, db } = useStore();
 	const athletesWithPlan = db.users.filter((u) => db.plans.some((p) => p.userId === u.id));
-	const [f, setF] = useState({ name: '', email: '', phone: '', password: '', isAdmin: false, isAthlete: true, copyFrom: '' });
+	const [f, setF] = useState({ name: '', email: '', phone: '', password: '', isAdmin: false, isAthlete: true, copyFrom: '', dietFrom: '' });
+	const programTpls = db.templates.filter((t) => t.kind === 'program');
+	const dietTpls = db.templates.filter((t) => t.kind === 'diet');
+	const withDiet = db.users.filter((u) => db.plans.some((p) => p.userId === u.id && p.diet.meals.length));
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 
 	async function submit() {
 		setBusy(true);
 		const [kind, ref] = f.copyFrom.split(':');
-		const err = await createUser({ ...f, copyFrom: kind === 'user' ? ref : undefined, templateId: kind === 'tpl' ? ref : undefined });
+		const err = await createUser({ ...f, copyFrom: kind === 'user' ? ref : undefined, templateId: kind === 'tpl' ? ref : undefined, dietFrom: f.dietFrom || undefined });
 		setBusy(false);
 		if (err) setError(err);
 		else onCreated();
@@ -135,12 +146,12 @@ function CreateUser({ onClose, onCreated }: { onClose: () => void; onCreated: ()
 			</label>
 			{f.isAthlete && (
 				<label className="field" style={{ marginTop: 8 }}>
-					<span>Plan inicial</span>
+					<span>Entreno inicial</span>
 					<select value={f.copyFrom} onChange={(e) => setF({ ...f, copyFrom: e.target.value })}>
 						<option value="">Plan vacío</option>
-						{db.templates.length > 0 && (
-							<optgroup label="Plantillas">
-								{db.templates.map((t) => (
+						{programTpls.length > 0 && (
+							<optgroup label="Plantillas de entreno">
+								{programTpls.map((t) => (
 									<option key={t.id} value={`tpl:${t.id}`}>
 										{t.name}
 									</option>
@@ -157,6 +168,32 @@ function CreateUser({ onClose, onCreated }: { onClose: () => void; onCreated: ()
 					</select>
 				</label>
 			)}
+			{f.isAthlete && (
+				<label className="field">
+					<span>Dieta inicial</span>
+					<select value={f.dietFrom} onChange={(e) => setF({ ...f, dietFrom: e.target.value })}>
+						<option value="">{f.copyFrom.startsWith('user:') ? 'La del atleta copiado' : 'Sin dieta'}</option>
+						{dietTpls.length > 0 && (
+							<optgroup label="Plantillas de dieta">
+								{dietTpls.map((t) => (
+									<option key={t.id} value={`tpl:${t.id}`}>
+										{t.name}
+									</option>
+								))}
+							</optgroup>
+						)}
+						{withDiet.length > 0 && (
+							<optgroup label="Copiar la dieta de otro atleta">
+								{withDiet.map((u) => (
+									<option key={u.id} value={`user:${u.id}`}>
+										{u.name}
+									</option>
+								))}
+							</optgroup>
+						)}
+					</select>
+				</label>
+			)}
 			<button className="btn" onClick={submit} disabled={busy}>
 				{busy ? 'Creando…' : 'Crear usuario'}
 			</button>
@@ -170,6 +207,7 @@ function UserDetail({ id, onBack }: { id: string; onBack: () => void }) {
 	const [tab, setTab] = useState<'data' | 'train' | 'diet' | 'habits' | 'history' | 'progress'>('data');
 	const [version, setVersion] = useState(0);
 	const [saveTpl, setSaveTpl] = useState<Program | null>(null);
+	const [saveDietTpl, setSaveDietTpl] = useState<Diet | null>(null);
 	if (!user) return null;
 	const plan = store.planOf(id);
 
@@ -199,10 +237,11 @@ function UserDetail({ id, onBack }: { id: string; onBack: () => void }) {
 						<PlanPart<Habits> key={`h${id}`} initial={plan.habits ?? { goal: '', items: [] }} onSave={(habits) => store.savePlan({ ...store.planOf(id)!, habits })} Editor={HabitsEditor} />
 					) : tab === 'train' ? (
 						<>
-							<ApplyPlan
+							<ApplyTemplate
+								kind="program"
 								userId={id}
 								onApplied={(program) => {
-									store.savePlan({ ...store.planOf(id)!, program });
+									store.savePlan({ ...store.planOf(id)!, program: program as Program });
 									setVersion((v) => v + 1);
 								}}
 							/>
@@ -217,10 +256,33 @@ function UserDetail({ id, onBack }: { id: string; onBack: () => void }) {
 									</button>
 								)}
 							/>
-							{saveTpl && <SaveAsTemplate program={saveTpl} suggestedName={saveTpl.name} onClose={() => setSaveTpl(null)} />}
+							{saveTpl && <SaveAsTemplate kind="program" program={saveTpl} suggestedName={saveTpl.name} onClose={() => setSaveTpl(null)} />}
 						</>
 					) : (
-						<PlanPart<Diet> key={`d${id}`} initial={plan.diet} onSave={(diet) => store.savePlan({ ...store.planOf(id)!, diet })} Editor={DietEditor} />
+						<>
+							<ApplyTemplate
+								kind="diet"
+								userId={id}
+								onApplied={(diet) => {
+									store.savePlan({ ...store.planOf(id)!, diet: diet as Diet });
+									setVersion((v) => v + 1);
+								}}
+							/>
+							<PlanPart<Diet>
+								key={`d${id}-${version}`}
+								initial={plan.diet}
+								onSave={(diet) => store.savePlan({ ...store.planOf(id)!, diet })}
+								Editor={DietEditor}
+								footer={(draft) => (
+									<button className="btn secondary" style={{ marginBottom: 14 }} onClick={() => setSaveDietTpl(draft)}>
+										⧉ Guardar esta dieta también como plantilla
+									</button>
+								)}
+							/>
+							{saveDietTpl && (
+								<SaveAsTemplate kind="diet" diet={saveDietTpl} suggestedName={`${user.name.split(' ')[0]} · ${saveDietTpl.kcal} kcal`} onClose={() => setSaveDietTpl(null)} />
+							)}
+						</>
 					)
 				) : (
 					<div className="card">
@@ -415,60 +477,5 @@ function Equivalences({ onBack }: { onBack: () => void }) {
 			<TopBar title="Equivalencias" onBack={onBack} />
 			<PlanPart<EquivalenceGroup[]> initial={db.equivalences} onSave={saveEquivalences} Editor={EquivalencesEditor} />
 		</>
-	);
-}
-
-/** Cambiar el entreno de un atleta partiendo de una plantilla o del plan de otro atleta. */
-function ApplyPlan({ userId, onApplied }: { userId: string; onApplied: (p: Program) => void }) {
-	const { db } = useStore();
-	const [src, setSrc] = useState('');
-	const [toast, show] = useToast();
-	const others = db.users.filter((u) => u.id !== userId && db.plans.some((p) => p.userId === u.id && p.program.days.length));
-	const name = db.users.find((u) => u.id === userId)?.name ?? '';
-	const apply = async () => {
-		const [kind, ref] = src.split(':');
-		const program = kind === 'tpl' ? db.templates.find((t) => t.id === ref)?.program : db.plans.find((p) => p.userId === ref)?.program;
-		if (!program) return;
-		if (!(await ask(`Se sustituirá el entreno actual de ${name} por el elegido. Su historial no se borra. ¿Seguir?`))) return;
-		onApplied(structuredClone(program));
-		setSrc('');
-		show('Entreno cambiado');
-	};
-	return (
-		<div className="card">
-			<div className="card-head">Partir de una plantilla</div>
-			<div className="card-body">
-				<div style={{ display: 'flex', gap: 8 }}>
-					<select className="input" value={src} onChange={(e) => setSrc(e.target.value)} style={{ flex: 1, minWidth: 0 }}>
-						<option value="">Elige plantilla o atleta…</option>
-						{db.templates.length > 0 && (
-							<optgroup label="Plantillas">
-								{db.templates.map((t) => (
-									<option key={t.id} value={`tpl:${t.id}`}>
-										{t.name}
-									</option>
-								))}
-							</optgroup>
-						)}
-						{others.length > 0 && (
-							<optgroup label="Copiar de otro atleta">
-								{others.map((u) => (
-									<option key={u.id} value={`user:${u.id}`}>
-										{u.name}
-									</option>
-								))}
-							</optgroup>
-						)}
-					</select>
-					<button className="btn sm" disabled={!src} onClick={apply}>
-						Aplicar
-					</button>
-				</div>
-				<p className="muted" style={{ margin: '8px 0 0' }}>
-					La plantilla es solo el punto de partida: lo que cambies después es solo de {name.split(' ')[0]}.
-				</p>
-			</div>
-			{toast}
-		</div>
 	);
 }
