@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel Gyrarte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/styles.css">
+<style>
+  body { background: #0b0b0d; }
+  .adm-top { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px; border-bottom:1px solid var(--border); background:#000; position:sticky; top:0; z-index:5; }
+  .adm-top strong { letter-spacing:.14em; }
+  .adm-wrap { max-width:1100px; margin:0 auto; padding:24px 16px 80px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px; }
+  .login { max-width:420px; margin:10vh auto 0; }
+  .tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .tabs button { background:none; border:1px solid var(--border); color:#fff; border-radius:999px; padding:8px 18px; font:500 14px var(--font); cursor:pointer; }
+  .tabs button[aria-selected=true] { background:#fff; color:#000; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  @media (max-width:700px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+  .check { display:flex; align-items:center; gap:10px; font-size:15px; }
+  .check input { width:20px; height:20px; }
+  .help { font-size:12px; color:var(--muted); margin-top:4px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  th { color:var(--muted); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+  .tbl-wrap { overflow-x:auto; }
+  .row-actions { display:flex; gap:6px; flex-wrap:wrap; }
+  .sm { padding:7px 12px; font-size:13px; }
+  .tag { font-size:12px; padding:3px 10px; border-radius:999px; border:1px solid var(--border); white-space:nowrap; }
+  .tag--venta { background:rgba(255,59,59,.2); } .tag--whatsapp { background:rgba(37,211,102,.2); }
+  .tag--proximamente { background:rgba(200,160,255,.2); } .tag--agotado { background:rgba(255,255,255,.1); }
+  .tag--oculto { color:var(--muted); }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#fff; color:#000; padding:12px 20px; border-radius:999px; font-weight:500; display:none; z-index:200; }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+  .stats .card strong { display:block; font-size:26px; }
+  @media (max-width:700px){ .stats{ grid-template-columns:1fr; } }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- ======= LOGIN ======= -->
+<section id="vLogin" hidden>
+  <div class="adm-wrap">
+    <div class="card login">
+      <h1 style="font-size:24px">Panel Gyrarte</h1>
+      <p style="color:var(--muted);margin-top:0">Acceso exclusivo para promotores.</p>
+      <form class="form" id="fLogin">
+        <div class="field"><label for="l-email">Correo</label><input id="l-email" name="email" type="email" required autocomplete="username"></div>
+        <div class="field"><label for="l-pass">Contraseña</label><input id="l-pass" name="password" type="password" required autocomplete="current-password"></div>
+        <p class="form-error" role="alert"></p>
+        <button class="btn btn--accent" type="submit">Entrar</button>
+        <button class="btn btn--ghost sm" type="button" id="bReset">Olvidé mi contraseña</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ======= NUEVA CONTRASEÑA (desde correo de recuperación) ======= -->
+<section id="vNewPass" hidden>
+  <div class="adm-wrap">
+    <div class="card login">
+      <h1 style="font-size:22px">Crea tu nueva contraseña</h1>
+      <form class="form" id="fNewPass">
+        <div class="field"><label for="np">Nueva contraseña (mínimo 10 caracteres)</label><input id="np" name="password" type="password" minlength="10" required autocomplete="new-password"></div>
+        <p class="form-error" role="alert"></p>
+        <button class="btn btn--accent" type="submit">Guardar</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ======= PANEL ======= -->
+<section id="vPanel" hidden>
+  <div class="adm-top">
+    <strong>GYRARTE · PANEL</strong>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="who" style="color:var(--muted);font-size:13px"></span>
+      <a class="btn btn--ghost sm" href="/conciertos/" target="_blank" rel="noopener">Ver sitio</a>
+      <button class="btn btn--dark sm" id="bLogout" type="button">Salir</button>
+    </div>
+  </div>
+  <div class="adm-wrap">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="tEventos">Conciertos</button>
+      <button role="tab" aria-selected="false" data-tab="tNuevo" id="tabNuevo">+ Nuevo concierto</button>
+      <button role="tab" aria-selected="false" data-tab="tVentas">Ventas</button>
+    </div>
+
+    <!-- Lista de conciertos -->
+    <div id="tEventos" class="card">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Artista</th><th>Ciudad · Lugar</th><th>Precio</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="lista"><tr><td colspan="6">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Alta / edición -->
+    <div id="tNuevo" class="card" hidden>
+      <h2 style="font-size:20px" id="formTitulo">Nuevo concierto</h2>
+      <form class="form" id="fEvento">
+        <input type="hidden" name="id">
+        <div class="grid2">
+          <div class="field"><label for="e-artista">Artista / proyecto*</label><input id="e-artista" name="artista" required maxlength="120"></div>
+          <div class="field"><label for="e-titulo">Subtítulo</label><input id="e-titulo" name="titulo" value="En vivo" maxlength="120"></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label for="e-fecha">Fecha*</label><input id="e-fecha" name="fecha" type="date" required></div>
+          <div class="field"><label for="e-hora">Hora</label><input id="e-hora" name="hora" type="time"></div>
+          <div class="field"><label for="e-tipo">Tipo</label>
+            <select id="e-tipo" name="tipo"><option value="concierto">Concierto</option><option value="tributo">Tributo</option><option value="gira">Gira</option></select></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="e-ciudad">Ciudad*</label><input id="e-ciudad" name="ciudad" required maxlength="80"></div>
+          <div class="field"><label for="e-lugar">Lugar / recinto*</label><input id="e-lugar" name="lugar" required maxlength="160"></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label for="e-estado">Venta</label>
+            <select id="e-estado" name="estado">
+              <option value="venta">Venta online (Mercado Pago)</option>
+              <option value="whatsapp">Solo WhatsApp</option>
+              <option value="proximamente">Boletos próximamente</option>
+              <option value="agotado">Agotado (Sold out)</option>
+            </select></div>
+          <div class="field"><label for="e-precio">Precio por boleto (MXN)</label><input id="e-precio" name="precio" type="number" min="0" step="1" value="0"><div class="help">Obligatorio si es venta online.</div></div>
+          <div class="field"><label for="e-cupo">Cupo (opcional)</label><input id="e-cupo" name="cupo" type="number" min="0" step="1"><div class="help">Al llegar al cupo se cierra la venta.</div></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="e-wa">WhatsApp de esta fecha</label><input id="e-wa" name="wa_number" placeholder="524438438164" pattern="[0-9]{10,15}"><div class="help">Con 52 al inicio, sin espacios. Vacío = número general.</div></div>
+          <div class="field"><label for="e-buy">Link externo de venta (opcional)</label><input id="e-buy" name="buy_url" type="url" placeholder="https://…"><div class="help">Si lo llenas, el botón lleva a ese link en lugar de nuestro cobro.</div></div>
+        </div>
+        <label class="check"><input type="checkbox" name="publicado" checked> Publicado en el sitio</label>
+        <p class="form-error" role="alert"></p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn--accent" type="submit">Guardar concierto</button>
+          <button class="btn btn--ghost" type="button" id="bCancelar">Cancelar</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Ventas -->
+    <div id="tVentas" hidden>
+      <div class="stats">
+        <div class="card"><span class="eyebrow">Boletos vendidos</span><strong id="sBoletos">–</strong></div>
+        <div class="card"><span class="eyebrow">Ingresos aprobados</span><strong id="sMonto">–</strong></div>
+        <div class="card"><span class="eyebrow">Compras</span><strong id="sCompras">–</strong></div>
+      </div>
+      <div class="card tbl-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Concierto</th><th>Comprador</th><th>Boletos</th><th>Monto</th><th>Estado</th></tr></thead>
+          <tbody id="ventas"><tr><td colspan="6">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="vNoAdmin" hidden>
+  <div class="adm-wrap"><div class="card login center">
+    <h1 style="font-size:22px">Sin acceso</h1>
+    <p style="color:var(--muted)">Tu usuario no tiene permisos de administrador de Gyrarte.</p>
+    <button class="btn btn--dark" id="bLogout2" type="button">Salir</button>
+  </div></div>
+</section>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/vendor/supabase-2.45.4/supabase.js"></script>
+<script src="/assets/js/admin.js"></script>
+</body>
+</html>

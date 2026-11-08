@@ -1,0 +1,284 @@
+{
+  "name": "Gyrarte - Crear pago Mercado Pago",
+  "nodes": [
+    {
+      "id": "f75bac81-2675-4a2d-aa3a-1a05de666963",
+      "name": "Webhook checkout",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gyrarte-checkout",
+        "options": {
+          "allowedOrigins": "https://gyrarte.com,https://www.gyrarte.com"
+        },
+        "responseMode": "responseNode"
+      },
+      "webhookId": "311becbe-cee5-4443-9821-1098e4f7d4b4"
+    },
+    {
+      "id": "0d5e680e-7e45-4940-93a0-a123f3a5cd1b",
+      "name": "Validar datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Valida lo que manda el sitio. NUNCA confiamos en el precio del navegador:\n// el precio se lee de Supabase en el siguiente paso.\nconst b = $input.first().json.body || {};\nconst limpio = (s, n) => String(s ?? '').trim().slice(0, n);\nconst out = {\n  eventoId: limpio(b.eventoId, 100),\n  cantidad: parseInt(b.cantidad, 10),\n  nombre: limpio(b.nombre, 120),\n  email: limpio(b.email, 160).toLowerCase(),\n  telefono: limpio(b.telefono, 30).replace(/[^0-9+]/g, ''),\n};\nlet error = null;\nif (!/^[a-z0-9-]{3,100}$/.test(out.eventoId)) error = 'Concierto inválido';\nelse if (!(out.cantidad >= 1 && out.cantidad <= 10)) error = 'Cantidad inválida (1 a 10 boletos)';\nelse if (out.nombre.length < 3) error = 'Escribe tu nombre completo';\nelse if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(out.email)) error = 'Correo inválido';\nelse if (out.telefono.replace(/\\D/g, '').length < 10) error = 'Teléfono inválido';\n// Si hay error, usamos un id imposible para que la consulta no devuelva nada\nif (error) out.eventoId = 'x-invalido';\nreturn [{ json: { ...out, error } }];"
+      }
+    },
+    {
+      "id": "30ff57f1-6045-446b-9c67-fbc86f1758e8",
+      "name": "Leer concierto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/gyrarte_eventos?select=*&publicado=eq.true&id=eq.{{ $json.eventoId }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase XzenAuto (service role)"
+        }
+      }
+    },
+    {
+      "id": "4e4d285e-7aee-4455-bf63-d29bdd2ee527",
+      "name": "Leer ventas del concierto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/gyrarte_ventas?select=cantidad&estado=in.(approved,pending,in_process)&evento_id=eq.{{ $('Validar datos').first().json.eventoId }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase XzenAuto (service role)"
+        }
+      }
+    },
+    {
+      "id": "44299aa7-bb88-4912-a83c-ec0927263f92",
+      "name": "Preparar pago",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const datos = $('Validar datos').first().json;\nconst ev = $('Leer concierto').all().map(i => i.json).find(e => e && e.id === datos.eventoId);\nconst vendidos = $('Leer ventas del concierto').all().map(i => i.json)\n  .filter(v => v && v.cantidad).reduce((a, v) => a + Number(v.cantidad), 0);\nconst hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());\n\nlet error = datos.error;\nif (!error && !ev) error = 'Concierto no encontrado';\nif (!error && ev.estado !== 'venta') error = 'Este concierto no tiene venta en línea';\nif (!error && !(Number(ev.precio) > 0)) error = 'Precio no configurado';\nif (!error && ev.fecha < hoy) error = 'Este concierto ya pasó';\nif (!error && ev.cupo != null && vendidos + datos.cantidad > ev.cupo) {\n  const quedan = Math.max(0, ev.cupo - vendidos);\n  error = quedan ? `Sólo quedan ${quedan} boletos` : 'Boletos agotados';\n}\nif (error) return [{ json: { ok: false, error } }];\n\nconst meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];\nconst [y, m, d] = ev.fecha.split('-').map(Number);\nconst expira = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().replace('Z', '-00:00');\n\nconst preferencia = {\n  items: [{\n    id: ev.id,\n    title: `Boleto ${ev.artista} · ${ev.ciudad} · ${d} ${meses[m - 1]} ${y}`,\n    description: `${ev.lugar}${ev.hora ? ' · ' + ev.hora + ' h' : ''}`,\n    category_id: 'tickets',\n    quantity: datos.cantidad,\n    unit_price: Number(ev.precio),\n    currency_id: 'MXN',\n  }],\n  payer: { name: datos.nombre, email: datos.email },\n  back_urls: {\n    success: 'https://gyrarte.com/gracias/?estado=ok',\n    pending: 'https://gyrarte.com/gracias/?estado=pendiente',\n    failure: 'https://gyrarte.com/gracias/?estado=error',\n  },\n  auto_return: 'approved',\n  notification_url: 'https://n8n.srv964593.hstgr.cloud/webhook/gyrarte-mp-webhook',\n  external_reference: `gyrarte|${ev.id}|${Date.now()}`,\n  statement_descriptor: 'GYRARTE',\n  expires: true,\n  expiration_date_to: expira,\n  metadata: {\n    origen: 'gyrarte',\n    evento_id: ev.id,\n    cantidad: datos.cantidad,\n    nombre: datos.nombre,\n    email: datos.email,\n    telefono: datos.telefono,\n  },\n};\nreturn [{ json: { ok: true, preferencia } }];"
+      }
+    },
+    {
+      "id": "972c6231-8fc6-4912-8007-1ac3f2d873e7",
+      "name": "¿Todo bien?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f77c778e-0671-497a-82d1-671b6950c8fc",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "40ac097a-949e-40d4-b90d-291cc483cc5c",
+      "name": "Crear preferencia Mercado Pago",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mercadopago.com/checkout/preferences",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.preferencia) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Mercado Pago Gyrarte"
+        }
+      }
+    },
+    {
+      "id": "d317d489-fa00-4928-acd9-0372b8f7765f",
+      "name": "Responder URL de pago",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { url: $json.init_point } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "24459eb6-07e8-40da-a9a7-caecb30e6e27",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: $json.error } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook checkout": {
+      "main": [
+        [
+          {
+            "node": "Validar datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar datos": {
+      "main": [
+        [
+          {
+            "node": "Leer concierto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer concierto": {
+      "main": [
+        [
+          {
+            "node": "Leer ventas del concierto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer ventas del concierto": {
+      "main": [
+        [
+          {
+            "node": "Preparar pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar pago": {
+      "main": [
+        [
+          {
+            "node": "¿Todo bien?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Todo bien?": {
+      "main": [
+        [
+          {
+            "node": "Crear preferencia Mercado Pago",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear preferencia Mercado Pago": {
+      "main": [
+        [
+          {
+            "node": "Responder URL de pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  },
+  "pinData": {}
+}

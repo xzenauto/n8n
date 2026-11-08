@@ -1,0 +1,360 @@
+{
+  "name": "Gyrarte - Pagos Mercado Pago → Supabase + GHL",
+  "nodes": [
+    {
+      "id": "d01b2f14-c3ad-4e39-b780-a649fb1337c8",
+      "name": "Webhook Mercado Pago",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gyrarte-mp-webhook",
+        "options": {}
+      },
+      "webhookId": "56546af8-ff32-43d0-9075-ebfafae9f2c1"
+    },
+    {
+      "id": "efab8293-609b-421b-8b1f-4592d0e1850b",
+      "name": "Extraer id de pago",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Mercado Pago avisa con ?data.id=...&type=payment o en el body {type, data:{id}}\nconst { body = {}, query = {} } = $input.first().json;\nconst tipo = body.type || query.type || query.topic;\nconst id = (body.data && body.data.id) || query['data.id'] || (query.topic === 'payment' ? query.id : null);\nif (tipo !== 'payment' || !id || !/^\\d+$/.test(String(id))) return [];\nreturn [{ json: { paymentId: String(id) } }];"
+      }
+    },
+    {
+      "id": "816982c1-5d25-4aea-a183-188eaaac0ca1",
+      "name": "Consultar pago en Mercado Pago",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.mercadopago.com/v1/payments/{{ $json.paymentId }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Mercado Pago Gyrarte"
+        }
+      }
+    },
+    {
+      "id": "04ead22a-c255-49dc-9a0f-8f93545848ad",
+      "name": "Filtrar pagos de Gyrarte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Consultamos el pago directo a Mercado Pago (fuente confiable) y\n// sólo seguimos si es una venta de boletos de Gyrarte.\nconst p = $input.first().json;\nconst md = p.metadata || {};\nif (md.origen !== 'gyrarte' || !md.evento_id) return [];\nreturn [{ json: {\n  payment_id: String(p.id),\n  evento_id: md.evento_id,\n  cantidad: Number(md.cantidad) || 1,\n  monto: Number(p.transaction_amount) || 0,\n  estado: p.status,\n  comprador_nombre: md.nombre || [p.payer?.first_name, p.payer?.last_name].filter(Boolean).join(' '),\n  comprador_email: md.email || p.payer?.email || null,\n  comprador_tel: md.telefono || null,\n} }];"
+      }
+    },
+    {
+      "id": "6abe114b-25a4-4dbc-8230-c9b469adc30d",
+      "name": "Leer venta previa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/gyrarte_ventas?select=payment_id,estado&payment_id=eq.{{ $json.payment_id }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase XzenAuto (service role)"
+        }
+      }
+    },
+    {
+      "id": "723abb12-771e-4791-b7d3-d6038a407f47",
+      "name": "Preparar venta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const venta = $('Filtrar pagos de Gyrarte').first().json;\nconst previa = $('Leer venta previa').all().map(i => i.json).find(v => v && v.payment_id);\n// Notificamos sólo la PRIMERA vez que el pago queda aprobado (MP repite avisos)\nconst nuevoAprobado = venta.estado === 'approved' && (!previa || previa.estado !== 'approved');\nreturn [{ json: { venta, nuevoAprobado } }];"
+      }
+    },
+    {
+      "id": "0fd800d6-9b1f-49b1-92cb-0fd01fd61f96",
+      "name": "Guardar venta en Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fllhjemdhohsewqwzrpc.supabase.co/rest/v1/gyrarte_ventas?on_conflict=payment_id",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.venta) }}"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase XzenAuto (service role)"
+        }
+      }
+    },
+    {
+      "id": "c875a687-6e93-4ed8-b88e-9206c0bb375e",
+      "name": "¿Pago recién aprobado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a3381e2-ef22-4910-85e5-5068f2a7f3bb",
+              "leftValue": "={{ $('Preparar venta').first().json.nuevoAprobado }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "56988bcb-1287-4c5e-b6d0-361edf1d4dd3",
+      "name": "GHL: crear/actualizar contacto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/upsert",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  locationId: \"REEMPLAZAR_LOCATION_ID_GYRARTE\",\n  name: $('Preparar venta').first().json.venta.comprador_nombre,\n  email: $('Preparar venta').first().json.venta.comprador_email,\n  phone: $('Preparar venta').first().json.venta.comprador_tel,\n  source: \"gyrarte.com\",\n  tags: [\"gyrarte-boleto\", \"gyrarte-\" + $('Preparar venta').first().json.venta.evento_id]\n}) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "GHL Gyrarte"
+        }
+      }
+    },
+    {
+      "id": "60640cb6-7013-4ccd-90b0-4a0f8472b014",
+      "name": "GHL: nota con la compra",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.contact.id }}/notes",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ body: `🎟️ Compra de boletos Gyrarte\\nConcierto: ${$('Preparar venta').first().json.venta.evento_id}\\nBoletos: ${$('Preparar venta').first().json.venta.cantidad}\\nMonto: $${$('Preparar venta').first().json.venta.monto} MXN\\nPago Mercado Pago: ${$('Preparar venta').first().json.venta.payment_id}` }) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "GHL Gyrarte"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Mercado Pago": {
+      "main": [
+        [
+          {
+            "node": "Extraer id de pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer id de pago": {
+      "main": [
+        [
+          {
+            "node": "Consultar pago en Mercado Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar pago en Mercado Pago": {
+      "main": [
+        [
+          {
+            "node": "Filtrar pagos de Gyrarte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar pagos de Gyrarte": {
+      "main": [
+        [
+          {
+            "node": "Leer venta previa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer venta previa": {
+      "main": [
+        [
+          {
+            "node": "Preparar venta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar venta": {
+      "main": [
+        [
+          {
+            "node": "Guardar venta en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar venta en Supabase": {
+      "main": [
+        [
+          {
+            "node": "¿Pago recién aprobado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Pago recién aprobado?": {
+      "main": [
+        [
+          {
+            "node": "GHL: crear/actualizar contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL: crear/actualizar contacto": {
+      "main": [
+        [
+          {
+            "node": "GHL: nota con la compra",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  },
+  "pinData": {}
+}
