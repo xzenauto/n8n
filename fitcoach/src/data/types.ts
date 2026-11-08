@@ -38,6 +38,8 @@ export interface Program {
 	days: TrainingDay[];
 	/** Índice 0 = lunes … 6 = domingo. null = descanso */
 	schedule: (string | null)[];
+	/** Rotativo: no hay días fijos; siempre toca el día siguiente al último que se hizo (D1 → D2 → … → D1). */
+	rotation?: boolean;
 	cardio: CardioItem[];
 }
 

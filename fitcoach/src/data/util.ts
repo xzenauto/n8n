@@ -203,3 +203,46 @@ export function setTarget(range: string, prev?: { reps: string; kg: string } | n
 	if (reps < r.min) return { kind: 'reach', reps: `${r.min}`, kg: kg || '–', tip: `Mismo peso: llega a ${r.min} reps para entrar en el rango` };
 	return { kind: 'more', reps: `${reps + 1}`, kg: kg || '–', tip: `Mismo peso y haz una más: ${reps + 1} reps` };
 }
+
+
+// ---------- Qué toca hoy (días fijos o rotativo) ----------
+
+export interface UpNext {
+	rotation: boolean;
+	/** Entreno de hoy (en rotativo: la siguiente sesión pendiente, o la que ya se hizo hoy) */
+	today: TrainingDay | null;
+	todayDone: boolean;
+	/** Lo siguiente: en días fijos, con su día de la semana; en rotativo, la sesión de después */
+	next: { day: TrainingDay; label: string } | null;
+	/** Último entreno hecho (rotativo) */
+	last?: { day: TrainingDay; date: string };
+}
+
+export function upNext(program: Program | undefined, sessions: Session[], userId: string, now = new Date()): UpNext {
+	const none: UpNext = { rotation: false, today: null, todayDone: false, next: null };
+	if (!program || !program.days.length) return none;
+	const todayIso = toISO(now);
+	const mine = sessionsFor(sessions, userId);
+	const doneTodaySession = mine.find((s) => s.date === todayIso);
+
+	if (!program.rotation) {
+		const today = dayFor(program, now);
+		const nx = nextTrainingFrom(program, now);
+		return { rotation: false, today, todayDone: !!doneTodaySession, next: nx ? { day: nx.day, label: WEEKDAYS[weekdayIndex(nx.date)] } : null };
+	}
+
+	const days = program.days;
+	const after = (id?: string) => {
+		const i = days.findIndex((d) => d.id === id);
+		return days[(i + 1) % days.length] ?? days[0];
+	};
+	// Último entreno hecho de este programa (las sesiones vienen de más reciente a más antigua)
+	const lastSession = mine.find((s) => days.some((d) => d.id === s.dayId));
+	const last = lastSession ? { day: days.find((d) => d.id === lastSession.dayId)!, date: lastSession.date } : undefined;
+	if (doneTodaySession && days.some((d) => d.id === doneTodaySession.dayId)) {
+		const today = days.find((d) => d.id === doneTodaySession.dayId)!;
+		return { rotation: true, today, todayDone: true, next: { day: after(today.id), label: 'Próxima sesión' }, last };
+	}
+	const today = lastSession ? after(lastSession.dayId) : days[0];
+	return { rotation: true, today, todayDone: false, next: days.length > 1 ? { day: after(today.id), label: 'Después' } : null, last };
+}

@@ -34,6 +34,30 @@ export function ProgramEditor({ value, onChange }: { value: Program; onChange: (
 						<span>Nombre del programa</span>
 						<input value={value.name} onChange={(e) => onChange({ ...value, name: e.target.value })} />
 					</label>
+					<div className="field">
+						<span>Cómo se reparten los entrenos</span>
+						<div className="tabs" style={{ marginBottom: 0 }}>
+							<button
+								className={!value.rotation ? 'on' : ''}
+								style={!value.rotation ? undefined : { background: 'var(--cell)', color: 'var(--ink)' }}
+								onClick={() => onChange({ ...value, rotation: false })}
+							>
+								Días fijos
+							</button>
+							<button
+								className={value.rotation ? 'on' : ''}
+								style={value.rotation ? undefined : { background: 'var(--cell)', color: 'var(--ink)' }}
+								onClick={() => onChange({ ...value, rotation: true })}
+							>
+								Rotativo
+							</button>
+						</div>
+					</div>
+					{value.rotation ? (
+						<p className="muted" style={{ margin: 0 }}>
+							No hay días fijos: cuando entrene, le tocará el día siguiente al último que hizo (D1 → D2 → … → D1), vaya el día que vaya.
+						</p>
+					) : (
 					<div className="field" style={{ marginBottom: 0 }}>
 						<span>Qué día toca cada día de la semana</span>
 						<div className="sched">
@@ -59,6 +83,7 @@ export function ProgramEditor({ value, onChange }: { value: Program; onChange: (
 							))}
 						</div>
 					</div>
+					)}
 				</div>
 			</div>
 

@@ -3,15 +3,17 @@ import { EditHabitsButton } from '../components/EditHabits';
 import { NotificationsCard } from '../components/Notifications';
 import { HabitRings, MONTHS, monthStats } from '../components/Habits';
 import { useStore } from '../data/store';
-import { dayFor, formatLong, getFood, macrosOf, nextMeal, nextTrainingFrom, sessionsFor, toISO, WEEKDAYS, WEEKDAYS_SHORT, weekdayIndex } from '../data/util';
+import { dayFor, formatLong, formatShort, getFood, macrosOf, nextMeal, sessionsFor, toISO, upNext, WEEKDAYS_SHORT, weekdayIndex } from '../data/util';
 
 export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => void; onGo: (t: Tab) => void }) {
 	const { me, myPlan, db } = useStore();
 	const now = new Date();
-	const today = dayFor(myPlan?.program, now);
-	const next = nextTrainingFrom(myPlan?.program, now);
+	const up = upNext(myPlan?.program, db.sessions, me!.id, now);
+	const today = up.today;
+	const next = up.next;
 	const mySessions = sessionsFor(db.sessions, me!.id);
-	const doneToday = mySessions.find((s) => s.date === toISO(now));
+	const doneToday = up.todayDone;
+	const rotation = up.rotation;
 	const meal = myPlan ? nextMeal(myPlan.diet.meals, now) : null;
 	const firstName = me!.name.split(' ')[0];
 
@@ -22,8 +24,10 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 		const d = new Date(monday);
 		d.setDate(monday.getDate() + i);
 		const iso = toISO(d);
-		const td = dayFor(myPlan?.program, d);
-		return { i, iso, td, done: mySessions.some((s) => s.date === iso) };
+		const done = mySessions.find((s) => s.date === iso);
+		// En rotativo no hay días fijos: se marca lo que se hizo cada día
+		const td = rotation ? (myPlan?.program.days.find((x) => x.id === done?.dayId) ?? null) : dayFor(myPlan?.program, d);
+		return { i, iso, td, done: !!done };
 	});
 
 	if (!myPlan) {
@@ -57,10 +61,12 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 
 			<div className="hero">
 				<div className="hero-top">
-					<div className="date">Te toca hoy</div>
+					<div className="date">{rotation ? (doneToday ? 'Hoy has hecho' : 'Te toca') : 'Te toca hoy'}</div>
 					<h2>{today ? today.name : 'Descanso'}</h2>
 					<div style={{ color: '#bbb', fontSize: 13 }}>
-						{today ? `${today.exercises.length} ejercicios · ${today.warmup}` : 'Recupera, camina y cumple tus pasos'}
+						{today
+							? `${today.exercises.length} ejercicios${today.warmup ? ` · ${today.warmup}` : ''}${rotation && up.last && !doneToday ? ` · último: ${up.last.day.name.split('·')[0].trim()} (${formatShort(up.last.date)})` : ''}`
+							: 'Recupera, camina y cumple tus pasos'}
 					</div>
 				</div>
 				<div className="card-body">
@@ -74,6 +80,10 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 									Ver entreno
 								</button>
 							</div>
+						) : rotation ? (
+							<button className="btn" onClick={() => onOpenDay(today.id)}>
+								Ver mi próximo entreno
+							</button>
 						) : (
 							<button className="btn" onClick={() => onOpenDay(today.id)}>
 								Ver entreno de hoy
@@ -82,16 +92,21 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 					) : (
 						next && (
 							<p className="muted" style={{ margin: 0 }}>
-								Próximo: <b style={{ color: 'var(--ink)' }}>{next.day.name}</b> · {WEEKDAYS[weekdayIndex(next.date)]}
+								Próximo: <b style={{ color: 'var(--ink)' }}>{next.day.name}</b> · {next.label}
 							</p>
 						)
 					)}
 				</div>
+				{rotation && doneToday && next && (
+					<p className="muted" style={{ margin: '-6px 14px 0' }}>
+						La próxima vez que vayas: <b style={{ color: 'var(--ink)' }}>{next.day.name}</b>
+					</p>
+				)}
 				<div className="week">
 					{week.map((w) => (
-						<div key={w.i} className={`${w.td ? '' : 'rest'} ${w.done ? 'done' : ''} ${w.iso === toISO(now) ? 'today' : ''}`}>
+						<div key={w.i} className={`${w.td || rotation ? '' : 'rest'} ${w.done ? 'done' : ''} ${w.iso === toISO(now) ? 'today' : ''}`}>
 							{WEEKDAYS_SHORT[w.i]}
-							<small>{w.td ? `D${myPlan.program.days.indexOf(w.td) + 1}` : '—'}</small>
+							<small>{w.td ? `D${myPlan.program.days.indexOf(w.td) + 1}` : rotation ? '·' : '—'}</small>
 						</div>
 					))}
 				</div>

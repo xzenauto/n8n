@@ -2,7 +2,7 @@ import { TopBar } from '../components/ui';
 import { useStore } from '../data/store';
 import { videoFor } from '../data/videos';
 import type { TrainingDay } from '../data/types';
-import { dayFor, formatShort, nextTrainingFrom, sessionsFor, toISO, WEEKDAYS, weekdayIndex } from '../data/util';
+import { formatShort, sessionsFor, toISO, upNext, WEEKDAYS } from '../data/util';
 
 interface Props {
 	openDay: string | null;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function Trainings({ openDay, setOpenDay, onStart }: Props) {
-	const { myPlan } = useStore();
+	const { myPlan, db, me } = useStore();
 	if (!myPlan || myPlan.program.days.length === 0)
 		return (
 			<>
@@ -26,9 +26,9 @@ export default function Trainings({ openDay, setOpenDay, onStart }: Props) {
 	const day = program.days.find((d) => d.id === openDay);
 	if (day) return <DayDetail day={day} onBack={() => setOpenDay(null)} onStart={() => onStart(day.id)} />;
 
-	const now = new Date();
-	const today = dayFor(program, now);
-	const next = nextTrainingFrom(program, now);
+	const up = upNext(program, db.sessions, me!.id, new Date());
+	const today = up.today;
+	const next = up.next;
 	const weekdaysOf = (id: string) =>
 		program.schedule
 			.map((d, i) => (d === id ? WEEKDAYS[i] : null))
@@ -39,9 +39,14 @@ export default function Trainings({ openDay, setOpenDay, onStart }: Props) {
 		<>
 			<TopBar title="Entrenos" sub={program.name} />
 
-			<div className="section-label">Te toca hoy</div>
+			<div className="section-label">{up.rotation ? (up.todayDone ? 'Hoy has hecho' : 'Te toca') : 'Te toca hoy'}</div>
+			{up.rotation && (
+				<p className="dark-muted" style={{ margin: '-4px 2px 8px' }}>
+					Plan rotativo: te toca siempre el día siguiente al último que hiciste{up.last ? ` (${up.last.day.name}, ${formatShort(up.last.date)})` : ''}, vayas el día que vayas.
+				</p>
+			)}
 			{today ? (
-				<DayCard day={today} badge="Hoy" yellow onClick={() => setOpenDay(today.id)} />
+				<DayCard day={today} badge={up.rotation ? (up.todayDone ? '✓ Hecho' : 'Siguiente') : 'Hoy'} yellow onClick={() => setOpenDay(today.id)} />
 			) : (
 				<div className="card">
 					<div className="card-body">
@@ -56,7 +61,7 @@ export default function Trainings({ openDay, setOpenDay, onStart }: Props) {
 			{next && (
 				<>
 					<div className="section-label">Lo siguiente</div>
-					<DayCard day={next.day} badge={WEEKDAYS[weekdayIndex(next.date)]} onClick={() => setOpenDay(next.day.id)} />
+					<DayCard day={next.day} badge={next.label} onClick={() => setOpenDay(next.day.id)} />
 				</>
 			)}
 
