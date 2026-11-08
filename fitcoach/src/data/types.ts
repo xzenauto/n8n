@@ -136,6 +136,26 @@ export interface EquivalenceGroup {
 	items: MealItem[];
 }
 
+export interface Template {
+	id: string;
+	name: string;
+	program: Program;
+}
+
+export interface LibraryExercise {
+	id: string;
+	name: string;
+	video: string;
+}
+
+export interface Announcement {
+	id: string;
+	title: string;
+	body: string;
+	authorId: string | null;
+	createdAt: string;
+}
+
 export interface DB {
 	users: User[];
 	plans: Plan[];
@@ -143,4 +163,7 @@ export interface DB {
 	measurements: Measurement[];
 	equivalences: EquivalenceGroup[];
 	habitLogs: HabitLog[];
+	templates: Template[];
+	exercises: LibraryExercise[];
+	announcements: Announcement[];
 }

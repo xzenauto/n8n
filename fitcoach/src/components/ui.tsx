@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
-export function Icon({ name }: { name: 'home' | 'dumbbell' | 'food' | 'chart' | 'user' | 'shield' }) {
+export function Icon({ name }: { name: 'home' | 'dumbbell' | 'food' | 'chart' | 'user' | 'shield' | 'users' }) {
 	const p = {
 		fill: 'none',
 		stroke: 'currentColor',
@@ -38,6 +38,15 @@ export function Icon({ name }: { name: 'home' | 'dumbbell' | 'food' | 'chart' | 
 				<svg viewBox="0 0 24 24" {...p}>
 					<circle cx="12" cy="8" r="4" />
 					<path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
+				</svg>
+			);
+		case 'users':
+			return (
+				<svg viewBox="0 0 24 24" {...p}>
+					<circle cx="9" cy="8" r="3.5" />
+					<path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5" />
+					<circle cx="17" cy="9" r="2.8" />
+					<path d="M16 14.6c2.6.2 4.5 2 5.3 4.9" />
 				</svg>
 			);
 		case 'shield':

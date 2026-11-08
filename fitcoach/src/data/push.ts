@@ -28,7 +28,7 @@ export async function pushEnabled(): Promise<boolean> {
 export async function enablePush(userId: string): Promise<string | null> {
 	if (!pushSupported()) return isIOS() ? 'Añade la app a la pantalla de inicio para poder recibir notificaciones.' : 'Este navegador no admite notificaciones.';
 	const perm = await Notification.requestPermission();
-	if (perm !== 'granted') return 'No has dado permiso. Puedes activarlo en Ajustes › Notificaciones › FitCoach.';
+	if (perm !== 'granted') return 'No has dado permiso. Puedes activarlo en Ajustes › Notificaciones › Axis Athlete.';
 	try {
 		const { data: key, error } = await sb.rpc('padel_vapid');
 		if (error || !key) return 'No se pudo preparar el servicio de notificaciones.';

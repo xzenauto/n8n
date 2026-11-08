@@ -1,4 +1,4 @@
-// FitCoach · notificaciones push.
+// Axis Athlete · notificaciones push.
 // - La llama pg_cron cada hora (cabecera x-cron-secret): a las 8:00 envía la frase del día
 //   y a las 21:00 recuerda los hábitos que faltan, en la hora local de cada suscripción.
 // - Un atleta con sesión puede pedir una notificación de prueba ({ action: 'test' }).
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 		if (!who?.user) return json({ error: 'Sesión no válida' }, 401);
 		const { data: subs } = await db.from('gym_push_subs').select('*').eq('user_id', who.user.id);
 		let ok = 0;
-		for (const s of (subs ?? []) as Sub[]) if (await send(s, { title: 'FitCoach', body: '¡Las notificaciones funcionan! Te avisaremos a las 8:00 y a las 21:00.', url: './' })) ok++;
+		for (const s of (subs ?? []) as Sub[]) if (await send(s, { title: 'Axis Athlete', body: '¡Las notificaciones funcionan! Te avisaremos a las 8:00 y a las 21:00.', url: './' })) ok++;
 		return json({ enviados: ok, dispositivos: subs?.length ?? 0 });
 	}
 
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 		const res: string[] = [];
 		for (const s of (subs ?? []) as Sub[]) {
 			try {
-				await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title: 'FitCoach', body: '¡Las notificaciones funcionan! Te avisaremos a las 8:00 y a las 21:00.', url: './' }), { TTL: 3600 });
+				await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title: 'Axis Athlete', body: '¡Las notificaciones funcionan! Te avisaremos a las 8:00 y a las 21:00.', url: './' }), { TTL: 3600 });
 				res.push('ok');
 			} catch (err) {
 				const e = err as { statusCode?: number; body?: string };

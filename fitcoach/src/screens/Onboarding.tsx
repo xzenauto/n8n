@@ -62,7 +62,7 @@ export default function Onboarding() {
 			body: (
 				<>
 					<p>
-						Además del entreno, en FitCoach vas a cuidar <b>4 o 5 hábitos diarios</b>. Son pequeñas acciones que, repetidas cada día, marcan la diferencia en tus
+						Además del entreno, en Axis Athlete vas a cuidar <b>4 o 5 hábitos diarios</b>. Son pequeñas acciones que, repetidas cada día, marcan la diferencia en tus
 						resultados.
 					</p>
 					<p>

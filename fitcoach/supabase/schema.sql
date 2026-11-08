@@ -165,3 +165,10 @@ select cron.schedule('gym-recordatorios', '0 * * * *', $$
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', (select valor from public.config_privada where clave = 'cron_secret')),
     body := '{}'::jsonb);
 $$);
+
+-- ---------- Plantillas, biblioteca de ejercicios y comunidad (migración gym_templates_library_community) ----------
+-- gym_templates (admin), gym_exercises (lectura: usuarios de la app; escritura: admin),
+-- gym_announcements (lectura: usuarios de la app; escritura: admin) y la función
+-- gym_community_ranking(p_from, p_to): % medio diario de hábitos cumplidos (cada hábito vale
+-- 100 / nº de hábitos del atleta) y racha de días al 100 %, sin exponer los hábitos de nadie.
+-- Ver la migración aplicada en Supabase para el SQL completo.

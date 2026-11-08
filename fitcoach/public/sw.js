@@ -1,6 +1,6 @@
-// Service worker de FitCoach: guarda la app para abrir rápido y funcionar sin conexión.
+// Service worker de Axis Athlete: guarda la app para abrir rápido y funcionar sin conexión.
 // Los datos (Supabase) nunca se cachean.
-const CACHE = 'appgym-v16';
+const CACHE = 'appgym-v17';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './img/icon-192.png'])));
@@ -37,7 +37,7 @@ self.addEventListener('push', (e) => {
   }
   e.waitUntil(
     Promise.all([
-      self.registration.showNotification(d.title || 'FitCoach', {
+      self.registration.showNotification(d.title || 'Axis Athlete', {
         body: d.body || '',
         icon: 'img/icon-192.png',
         badge: 'img/icon-192.png',

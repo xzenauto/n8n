@@ -2,7 +2,7 @@ import { ask } from '../components/ui';
 import { useState } from 'react';
 import { FOODS, GROUP_LABEL, type FoodGroup } from '../data/foods';
 import { HABIT_COLORS } from '../components/Habits';
-import { CATALOG_NAMES, catalogVideo, videoFor } from '../data/videos';
+import { catalogNames, catalogVideo, videoFor } from '../data/videos';
 import type { Diet, EquivalenceGroup, Exercise, Habit, Habits, MealItem, Program, TrainingDay } from '../data/types';
 import { getFood, macrosOf, uid, WEEKDAYS_SHORT } from '../data/util';
 
@@ -23,7 +23,7 @@ export function ProgramEditor({ value, onChange }: { value: Program; onChange: (
 	return (
 		<>
 			<datalist id="catalogo-ejercicios">
-				{CATALOG_NAMES.map((n) => (
+				{catalogNames().map((n) => (
 					<option key={n} value={n} />
 				))}
 			</datalist>

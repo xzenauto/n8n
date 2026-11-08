@@ -82,7 +82,7 @@ export function NotificationsCard({ compact }: { compact?: boolean }) {
 				{received && <div className="ok">📩 Recibida en este móvil: {received}</div>}
 				{needsInstall ? (
 					<div className="ok" style={{ background: '#fff4cc', color: '#5c4a00', marginBottom: 0 }}>
-						En iPhone primero añade FitCoach a la pantalla de inicio: en Safari toca <b>Compartir</b> › <b>Añadir a pantalla de inicio</b>. Ábrela desde ese icono y
+						En iPhone primero añade Axis Athlete a la pantalla de inicio: en Safari toca <b>Compartir</b> › <b>Añadir a pantalla de inicio</b>. Ábrela desde ese icono y
 						vuelve aquí para activarlas.
 					</div>
 				) : !pushSupported() ? (

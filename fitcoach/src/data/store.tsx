@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { enqueue, flush, pending, type Op } from './outbox';
-import type { DB, EquivalenceGroup, HabitLog, Habits, Measurement, Plan, Session, User } from './types';
+import type { Announcement, DB, EquivalenceGroup, HabitLog, Habits, LibraryExercise, Measurement, Plan, Session, Template, User } from './types';
+import { setLibrary } from './videos';
 
 /**
  * Capa de datos sobre Supabase (proyecto "Guarderia Fito&Friends", tablas gym_*).
@@ -18,7 +19,7 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 	auth: { persistSession: true, autoRefreshToken: true, storageKey: 'gym-auth' },
 });
 
-const EMPTY: DB = { users: [], plans: [], sessions: [], measurements: [], equivalences: [], habitLogs: [] };
+const EMPTY: DB = { users: [], plans: [], sessions: [], measurements: [], equivalences: [], habitLogs: [], templates: [], exercises: [], announcements: [] };
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -98,7 +99,7 @@ interface Store {
 	logout(): void;
 	changePassword(current: string, next: string): Promise<string | null>;
 	updateUser(id: string, patch: Partial<Omit<User, 'id'>>): void;
-	createUser(data: { name: string; email: string; phone: string; password: string; isAdmin: boolean; isAthlete: boolean; copyFrom?: string }): Promise<string | null>;
+	createUser(data: { name: string; email: string; phone: string; password: string; isAdmin: boolean; isAthlete: boolean; copyFrom?: string; templateId?: string }): Promise<string | null>;
 	setUserPassword(id: string, password: string): Promise<string | null>;
 	deleteUser(id: string): Promise<string | null>;
 	planOf(userId: string): Plan | undefined;
@@ -110,6 +111,14 @@ interface Store {
 	addMeasurement(m: Omit<Measurement, 'id'>): void;
 	deleteMeasurement(id: string): void;
 	saveEquivalences(groups: EquivalenceGroup[]): void;
+	saveTemplate(t: Template): void;
+	deleteTemplate(id: string): void;
+	saveExercise(e: LibraryExercise): void;
+	deleteExercise(id: string): void;
+	addAnnouncement(a: { title: string; body: string }): void;
+	deleteAnnouncement(id: string): void;
+	/** Ranking de la comunidad (% de hábitos cumplidos entre dos fechas y racha). */
+	ranking(from: string, to: string): Promise<{ userId: string; name: string; pct: number; streak: number; habits: number }[] | string>;
 	habitLogOf(userId: string, date: string): HabitLog | undefined;
 	toggleHabit(userId: string, date: string, habitId: string): void;
 }
@@ -146,6 +155,10 @@ function lsSet(key: string, value: unknown) {
 	}
 }
 
+const toTemplate = (r: Row): Template => ({ id: r.id, name: r.name, program: r.program });
+const toExercise = (r: Row): LibraryExercise => ({ id: r.id, name: r.name, video: r.video ?? '' });
+const toAnnouncement = (r: Row): Announcement => ({ id: r.id, title: r.title, body: r.body ?? '', authorId: r.author_id ?? null, createdAt: r.created_at ?? new Date().toISOString() });
+
 const sessionRow = (s: Session) => ({
 	id: s.id,
 	user_id: s.userId,
@@ -170,6 +183,12 @@ function mergePending(d: DB): DB {
 			else d.measurements = d.measurements.filter((x) => x.id !== op.match!.id);
 		} else if (op.table === 'gym_habit_logs' && op.kind === 'upsert') {
 			d.habitLogs = [...d.habitLogs.filter((x) => !(x.userId === r!.user_id && x.date === r!.date)), { userId: r!.user_id, date: r!.date, done: r!.done ?? [] }];
+		} else if (op.table === 'gym_templates' || op.table === 'gym_exercises' || op.table === 'gym_announcements') {
+			const key = op.table === 'gym_templates' ? 'templates' : op.table === 'gym_exercises' ? 'exercises' : 'announcements';
+			const list = d[key] as { id: string }[];
+			const item = op.table === 'gym_templates' ? (r ? toTemplate(r) : null) : op.table === 'gym_exercises' ? (r ? toExercise(r) : null) : r ? toAnnouncement(r) : null;
+			const rest = list.filter((x) => x.id !== (op.kind === 'delete' ? op.match!.id : r!.id));
+			(d[key] as { id: string }[]) = op.kind === 'delete' || !item ? rest : [...rest, item];
 		} else if (op.table === 'gym-admin' && op.kind === 'invoke' && r?.action === 'my-habits') {
 			const plan = d.plans.find((p) => p.userId === op.match!.user_id);
 			if (plan) plan.habits = r.habits;
@@ -208,13 +227,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 	}, []);
 
 	const load = useCallback(async (userId: string) => {
-		const [p, pl, s, m, e, h] = await Promise.all([
+		const [p, pl, s, m, e, h, tp, ex, an] = await Promise.all([
 			sb.from('gym_profiles').select('*'),
 			sb.from('gym_plans').select('*'),
 			sb.from('gym_sessions').select('*').order('date', { ascending: false }),
 			sb.from('gym_measurements').select('*').order('date'),
 			sb.from('gym_equivalences').select('*').order('created_at'),
 			sb.from('gym_habit_logs').select('user_id,date,done'),
+			sb.from('gym_templates').select('*').order('name'),
+			sb.from('gym_exercises').select('*').order('name'),
+			sb.from('gym_announcements').select('*').order('created_at', { ascending: false }).limit(50),
 		]);
 		if (p.error && !p.data) throw new Error(p.error.message);
 		const users = (p.data ?? []).map(toUser);
@@ -258,7 +280,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 			measurements: (m.data ?? []).map(toMeasurement),
 			equivalences: (e.data ?? []).map((r) => ({ id: r.id, name: r.name, items: r.items ?? [] })),
 			habitLogs,
+			templates: (tp.data ?? []).map(toTemplate),
+			exercises: (ex.data ?? []).map(toExercise),
+			announcements: (an.data ?? []).map(toAnnouncement),
 		};
+		setLibrary(fresh.exercises);
 		// Copia en el móvil para poder abrir la app sin cobertura
 		lsSet(CACHE, { userId, db: fresh, hasHabitsCol: hasHabitsCol.current, habitsLocal: !remoteHabits || !hasHabitsCol.current });
 		setDb(mergePending(fresh));
@@ -291,6 +317,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 							habitLogs: cache.habitsLocal ? lsGet<HabitLog[]>(LOCAL_LOGS, []) : cache.db.habitLogs,
 						}),
 					);
+					setLibrary(cache.db.exercises ?? []);
 					setMeId(uid);
 					setStatus('ready');
 					setSaveError('Sin conexión: estás viendo los últimos datos guardados en el móvil. Lo que apuntes se enviará al volver la cobertura.');
@@ -377,10 +404,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 					.eq('id', id)
 					.then(({ error }) => error && setSaveError(`No se pudo guardar el perfil: ${error.message}`));
 			},
-			async createUser({ name, email, phone, password, isAdmin, isAthlete, copyFrom }) {
+			async createUser({ name, email, phone, password, isAdmin, isAthlete, copyFrom, templateId }) {
 				if (!name.trim() || !email.trim()) return 'Nombre y email son obligatorios';
 				if (password.length < 6) return 'La contraseña debe tener al menos 6 caracteres';
-				const src = copyFrom ? db.plans.find((p) => p.userId === copyFrom) : undefined;
+				const tpl = templateId ? db.templates.find((t) => t.id === templateId) : undefined;
+				const src = copyFrom ? db.plans.find((p) => p.userId === copyFrom) : tpl ? { program: tpl.program, diet: { kcal: 0, protein: 0, carbs: 0, fat: 0, meals: [] }, habits: { goal: '', items: [] } } : undefined;
 				const plan = isAthlete
 					? src
 						? { program: src.program, diet: src.diet, ...(hasHabitsCol.current ? { habits: src.habits } : {}) }
@@ -509,6 +537,68 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 				apply(local, [
 					{ key: `gym_habit_logs:${userId}:${date}`, table: 'gym_habit_logs', kind: 'upsert', row: { user_id: userId, date, done, updated_at: new Date().toISOString() } },
 				]);
+			},
+			saveTemplate(t) {
+				apply(
+					(d) => {
+						d.templates = [...d.templates.filter((x) => x.id !== t.id), t].sort((a, b) => a.name.localeCompare(b.name));
+						return d;
+					},
+					[{ key: `gym_templates:${t.id}`, table: 'gym_templates', kind: 'upsert', row: { id: t.id, name: t.name, program: t.program, updated_at: new Date().toISOString() } }],
+				);
+			},
+			deleteTemplate(id) {
+				apply(
+					(d) => {
+						d.templates = d.templates.filter((x) => x.id !== id);
+						return d;
+					},
+					[{ key: `gym_templates:${id}`, table: 'gym_templates', kind: 'delete', match: { id } }],
+				);
+			},
+			saveExercise(e) {
+				apply(
+					(d) => {
+						d.exercises = [...d.exercises.filter((x) => x.id !== e.id), e].sort((a, b) => a.name.localeCompare(b.name));
+						setLibrary(d.exercises);
+						return d;
+					},
+					[{ key: `gym_exercises:${e.id}`, table: 'gym_exercises', kind: 'upsert', row: { id: e.id, name: e.name, video: e.video } }],
+				);
+			},
+			deleteExercise(id) {
+				apply(
+					(d) => {
+						d.exercises = d.exercises.filter((x) => x.id !== id);
+						setLibrary(d.exercises);
+						return d;
+					},
+					[{ key: `gym_exercises:${id}`, table: 'gym_exercises', kind: 'delete', match: { id } }],
+				);
+			},
+			addAnnouncement({ title, body }) {
+				const a: Announcement = { id: crypto.randomUUID(), title, body, authorId: me?.id ?? null, createdAt: new Date().toISOString() };
+				apply(
+					(d) => {
+						d.announcements = [a, ...d.announcements];
+						return d;
+					},
+					[{ key: `gym_announcements:${a.id}`, table: 'gym_announcements', kind: 'upsert', row: { id: a.id, title: a.title, body: a.body, author_id: a.authorId, created_at: a.createdAt } }],
+				);
+			},
+			deleteAnnouncement(id) {
+				apply(
+					(d) => {
+						d.announcements = d.announcements.filter((x) => x.id !== id);
+						return d;
+					},
+					[{ key: `gym_announcements:${id}`, table: 'gym_announcements', kind: 'delete', match: { id } }],
+				);
+			},
+			async ranking(from, to) {
+				const { data, error } = await sb.rpc('gym_community_ranking', { p_from: from, p_to: to });
+				if (error) return error.message;
+				return ((data ?? []) as Row[]).map((r) => ({ userId: r.user_id, name: r.name, pct: Number(r.pct), streak: r.streak, habits: r.habits }));
 			},
 			saveEquivalences(groups) {
 				const isUuid = (s: string) => /^[0-9a-f-]{36}$/i.test(s);

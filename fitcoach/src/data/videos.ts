@@ -113,7 +113,20 @@ const norm = (s: string) =>
 		.replace(/\s+/g, ' ')
 		.trim();
 
-const byName = new Map(EXERCISE_VIDEOS.map(([n, url]) => [norm(n), url]));
+const staticByName = new Map(EXERCISE_VIDEOS.map(([n, url]) => [norm(n), url]));
+let byName = staticByName;
+let names = EXERCISE_VIDEOS.map(([n]) => n);
+
+/** La biblioteca de Supabase (editable desde Admin) sustituye al catálogo fijo cuando existe. */
+export function setLibrary(list: { name: string; video: string }[]) {
+	if (!list.length) {
+		byName = staticByName;
+		names = EXERCISE_VIDEOS.map(([n]) => n);
+		return;
+	}
+	byName = new Map(list.filter((e) => e.video).map((e) => [norm(e.name), e.video]));
+	names = list.map((e) => e.name);
+}
 
 /** Vídeo del catálogo para un nombre de ejercicio (o undefined si no está). */
 export function catalogVideo(name: string): string | undefined {
@@ -124,4 +137,4 @@ export function catalogVideo(name: string): string | undefined {
 /** Vídeo a mostrar: el que puso el entrenador en el plan o, si no hay, el del catálogo. */
 export const videoFor = (ex: { name: string; video?: string }) => ex.video?.trim() || catalogVideo(ex.name);
 
-export const CATALOG_NAMES = EXERCISE_VIDEOS.map(([n]) => n).sort((a, b) => a.localeCompare(b, 'es'));
+export const catalogNames = () => [...names].sort((a, b) => a.localeCompare(b, 'es'));

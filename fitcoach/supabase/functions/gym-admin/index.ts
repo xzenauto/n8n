@@ -1,4 +1,4 @@
-// FitCoach · operaciones de administrador sobre usuarios (necesitan la service role).
+// Axis Athlete · operaciones de administrador sobre usuarios (necesitan la service role).
 // Las acciones de usuarios son solo para administradores; 'my-habits' la puede usar cualquier atleta para sus propios hábitos.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 	const { data: who, error: whoErr } = await admin.auth.getUser(token);
 	if (whoErr || !who?.user) return json({ error: 'Sesión no válida' }, 401);
 	const { data: me } = await admin.from('gym_profiles').select('is_admin').eq('id', who.user.id).maybeSingle();
-	if (!me) return json({ error: 'Tu cuenta no tiene acceso a FitCoach' }, 403);
+	if (!me) return json({ error: 'Tu cuenta no tiene acceso a Axis Athlete' }, 403);
 
 	let body: Record<string, unknown>;
 	try {
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
 			case 'delete': {
 				const id = String(body.id ?? '');
 				if (id === who.user.id) return json({ error: 'No puedes borrarte a ti mismo' }, 400);
-				// Solo se borran los datos de FitCoach; la cuenta de Auth puede usarse en otras apps del proyecto.
+				// Solo se borran los datos de Axis Athlete; la cuenta de Auth puede usarse en otras apps del proyecto.
 				const { error } = await admin.from('gym_profiles').delete().eq('id', id);
 				if (error) return json({ error: error.message }, 400);
 				return json({ ok: true });

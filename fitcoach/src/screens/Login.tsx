@@ -18,7 +18,7 @@ export default function Login() {
 	return (
 		<div className="login">
 			<p className="brand">
-				Fit<b>Coach</b>
+				Axis <b>Athlete</b>
 			</p>
 			<p className="dark-muted" style={{ marginTop: 4, marginBottom: 24 }}>
 				Entreno y dieta en un solo sitio

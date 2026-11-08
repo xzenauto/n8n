@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AskHost, Icon } from './components/ui';
 import { useStore } from './data/store';
 import Admin from './screens/Admin';
+import Community from './screens/Community';
 import DietScreen from './screens/Diet';
 import Home from './screens/Home';
 import Login from './screens/Login';
@@ -11,7 +12,7 @@ import Progress from './screens/Progress';
 import Trainings from './screens/Trainings';
 import Workout from './screens/Workout';
 
-export type Tab = 'home' | 'train' | 'diet' | 'progress' | 'profile' | 'admin';
+export type Tab = 'home' | 'train' | 'diet' | 'progress' | 'community' | 'profile' | 'admin';
 
 function SaveError({ msg, onClose }: { msg: string; onClose: () => void }) {
 	return (
@@ -34,7 +35,7 @@ export default function App() {
 		return (
 			<div className="login">
 				<p className="brand">
-					Fit<b>Coach</b>
+					Axis <b>Athlete</b>
 				</p>
 				<p className="dark-muted">Cargando…</p>
 			</div>
@@ -43,12 +44,12 @@ export default function App() {
 		return (
 			<div className="login">
 				<p className="brand">
-					Fit<b>Coach</b>
+					Axis <b>Athlete</b>
 				</p>
 				<div className="card">
 					<div className="card-body">
 						<p className="card-title">Tu cuenta no tiene acceso</p>
-						<p className="muted">Esta cuenta existe, pero no está dada de alta en FitCoach. Pide a tu entrenador que te cree el acceso.</p>
+						<p className="muted">Esta cuenta existe, pero no está dada de alta en Axis Athlete. Pide a tu entrenador que te cree el acceso.</p>
 						<button className="btn dark" onClick={logout}>
 							Cerrar sesión
 						</button>
@@ -98,6 +99,7 @@ export default function App() {
 		{ id: 'home', label: 'Inicio', icon: 'home' },
 		{ id: 'train', label: 'Entrenos', icon: 'dumbbell' },
 		{ id: 'progress', label: 'Progreso', icon: 'chart' },
+		{ id: 'community', label: 'Comunidad', icon: 'users' },
 		{ id: 'profile', label: 'Perfil', icon: 'user' },
 	];
 	// La pestaña Dieta solo aparece si el atleta tiene dieta asignada (los admin la ven siempre)
@@ -121,6 +123,7 @@ export default function App() {
 				{tab === 'train' && <Trainings openDay={openDay} setOpenDay={setOpenDay} onStart={setRunning} />}
 				{tab === 'diet' && <DietScreen />}
 				{tab === 'progress' && <Progress />}
+				{tab === 'community' && <Community />}
 				{tab === 'profile' && <Profile />}
 				{tab === 'admin' && me.isAdmin && <Admin />}
 			</div>
