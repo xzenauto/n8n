@@ -1260,3 +1260,33 @@ input[type='time']::-webkit-date-and-time-value {
 	width: 2px;
 	background: var(--on-dark-2);
 }
+
+/* Botón de vídeo del ejercicio */
+.video-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: #2a2a2a;
+	color: var(--on-dark);
+	border: 1.5px solid #3a3a3a;
+	border-radius: 999px;
+	padding: 8px 14px 8px 8px;
+	font-weight: 700;
+	font-size: 14px;
+	text-decoration: none;
+}
+.video-btn span {
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: #ff3b30;
+	color: #fff;
+	display: grid;
+	place-items: center;
+	font-size: 11px;
+}
+.ex-table a.video-link {
+	color: #c62828;
+	font-weight: 700;
+	text-decoration: none;
+}

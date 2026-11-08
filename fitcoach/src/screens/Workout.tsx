@@ -4,6 +4,7 @@ import { ask, Scale } from '../components/ui';
 import { useStore } from '../data/store';
 import type { SetLog } from '../data/types';
 import { bestSet, formatShort, lastLogOf, parseKg, setTarget, toISO } from '../data/util';
+import { videoFor } from '../data/videos';
 
 type Step = { kind: 'readiness' } | { kind: 'set'; ex: number; set: number } | { kind: 'fatigue' } | { kind: 'done' };
 
@@ -248,6 +249,7 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 	const prev = last?.entry.sets[setIndex] ?? last?.entry.sets[last.entry.sets.length - 1];
 	const set = (k: keyof SetLog, v: string) => onChange({ ...value, [k]: v });
 	const target = setTarget(exercise.reps, prev);
+	const video = videoFor(exercise);
 	const nextLabel = !isLastSet ? 'Siguiente serie' : isLastExercise ? 'Terminar' : 'Próximo ejercicio';
 
 	return (
@@ -256,15 +258,17 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 				Ejercicio {exIndex + 1} de {total}
 			</div>
 			<h1 style={{ margin: '4px 0 2px', fontSize: 24, lineHeight: 1.2 }}>{exercise.name}</h1>
-			<div className="dark-muted" style={{ marginBottom: 12 }}>
-				{exercise.note}
-				{exercise.note && exercise.video ? ' · ' : ''}
-				{exercise.video && (
-					<a href={exercise.video} target="_blank" rel="noreferrer" style={{ color: 'var(--yellow)' }}>
-						Ver vídeo
-					</a>
-				)}
-			</div>
+			{exercise.note && (
+				<div className="dark-muted" style={{ marginBottom: 8 }}>
+					{exercise.note}
+				</div>
+			)}
+			{video && (
+				<a className="video-btn" href={video} target="_blank" rel="noreferrer">
+					<span>▶</span> Ver vídeo del ejercicio
+				</a>
+			)}
+			<div style={{ height: 12 }} />
 
 			<div className="card">
 				<div className="card-head">

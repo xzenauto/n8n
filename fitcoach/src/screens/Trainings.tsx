@@ -1,5 +1,6 @@
 import { TopBar } from '../components/ui';
 import { useStore } from '../data/store';
+import { videoFor } from '../data/videos';
 import type { TrainingDay } from '../data/types';
 import { dayFor, formatShort, nextTrainingFrom, sessionsFor, toISO, WEEKDAYS, weekdayIndex } from '../data/util';
 
@@ -122,13 +123,13 @@ function DayDetail({ day, onBack, onStart }: { day: TrainingDay; onBack: () => v
 							<tr key={e.id}>
 								<td>
 									{e.name}
-									{(e.note || e.video) && (
+									{(e.note || videoFor(e)) && (
 										<span className="note">
 											{e.note}
-											{e.note && e.video ? ' · ' : ''}
-											{e.video && (
-												<a href={e.video} target="_blank" rel="noreferrer">
-													Vídeo
+											{e.note && videoFor(e) ? ' · ' : ''}
+											{videoFor(e) && (
+												<a href={videoFor(e)} target="_blank" rel="noreferrer" className="video-link">
+													▶ Vídeo
 												</a>
 											)}
 										</span>

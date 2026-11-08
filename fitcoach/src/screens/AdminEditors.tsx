@@ -2,6 +2,7 @@ import { ask } from '../components/ui';
 import { useState } from 'react';
 import { FOODS, GROUP_LABEL, type FoodGroup } from '../data/foods';
 import { HABIT_COLORS } from '../components/Habits';
+import { CATALOG_NAMES, catalogVideo, videoFor } from '../data/videos';
 import type { Diet, EquivalenceGroup, Exercise, Habit, Habits, MealItem, Program, TrainingDay } from '../data/types';
 import { getFood, macrosOf, uid, WEEKDAYS_SHORT } from '../data/util';
 
@@ -21,6 +22,11 @@ export function ProgramEditor({ value, onChange }: { value: Program; onChange: (
 
 	return (
 		<>
+			<datalist id="catalogo-ejercicios">
+				{CATALOG_NAMES.map((n) => (
+					<option key={n} value={n} />
+				))}
+			</datalist>
 			<div className="card">
 				<div className="card-head">Programa</div>
 				<div className="card-body">
@@ -168,7 +174,17 @@ function ExerciseEditor({ ex, onChange, onRemove, onMove }: { ex: Exercise; onCh
 	return (
 		<div className="editor-ex">
 			<div className="head">
-				<input value={ex.name} onChange={(e) => set({ name: e.target.value })} />
+				<input
+					value={ex.name}
+					list="catalogo-ejercicios"
+					onChange={(e) => {
+						const name = e.target.value;
+						// Si el nombre está en el catálogo y no hay vídeo propio, se pone el del catálogo
+						const auto = catalogVideo(name);
+						set(auto && (!ex.video || ex.video === catalogVideo(ex.name)) ? { name, video: auto } : { name });
+					}}
+					placeholder="Escribe o elige del catálogo"
+				/>
 				<button className="icon-btn" onClick={() => onMove(-1)} aria-label="Subir">
 					↑
 				</button>
@@ -202,8 +218,15 @@ function ExerciseEditor({ ex, onChange, onRemove, onMove }: { ex: Exercise; onCh
 				<input value={ex.note} onChange={(e) => set({ note: e.target.value })} placeholder="Ej.: banco 45º" />
 			</label>
 			<label className="full">
-				<span>Enlace al vídeo</span>
-				<input value={ex.video} onChange={(e) => set({ video: e.target.value })} placeholder="https://…" />
+				<span>
+					Enlace al vídeo{' '}
+					{videoFor(ex) && (
+						<a href={videoFor(ex)} target="_blank" rel="noreferrer" style={{ textTransform: 'none' }}>
+							▶ ver
+						</a>
+					)}
+				</span>
+				<input value={ex.video} onChange={(e) => set({ video: e.target.value })} placeholder={catalogVideo(ex.name) ? 'Del catálogo (se usa automáticamente)' : 'https://…'} />
 			</label>
 		</div>
 	);
