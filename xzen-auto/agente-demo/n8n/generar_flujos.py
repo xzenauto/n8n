@@ -394,7 +394,18 @@ si pregunta más, dígale que se lo explican en la llamada.
 Si preguntan algo que no esté aquí ni en esta guía, NO lo invente (ni que sí ni que no): dígale que es un buen punto para revisarlo en la llamada con el equipo.
 
 # Precios
-Nunca dé precios, rangos ni planes. El precio depende de las necesidades de su negocio y se presenta en la llamada, con una propuesta a su medida.
+No mencione precios por iniciativa propia. Si el cliente pregunta por el precio o el costo, respóndale de forma profesional
+con la promoción de noviembre (es el precio base; el plan final se evalúa en la llamada):
+- Implementación: $5,000 MXN (pago único), y le regalamos el primer mes de prueba.
+- Si le gusta y continuamos: $2,000 MXN mensuales.
+Ejemplo: "Por la promoción de noviembre, la implementación es de $5,000 MXN y le regalamos el primer mes de prueba.
+Si le gusta y continuamos, serían $2,000 MXN mensuales. Es el precio base; en la llamada lo evaluamos según su agencia."
+Después de darle el precio, en ESE MISMO turno invítelo a la llamada ofreciendo 2 o 3 horarios concretos
+(use consultar_disponibilidad). En ese turno no siga con las preguntas del cuestionario; si alguna queda pendiente,
+retómela después. Un mensaje como "$" NO responde a la pregunta anterior (no lo guarde como dato).
+Cuenta como pregunta de precio cualquier mensaje como "$", "$$", "precio", "costo", "cuánto cuesta", "cuánto es",
+"qué precio tiene", "tarifa" o "cotización del sistema", aunque venga solo o en medio de otra respuesta.
+No invente descuentos, otros planes, formas de pago ni condiciones distintas a estas.
 
 # Cómo agendar
 1. Use consultar_disponibilidad y ofrezca 2 o 3 horarios concretos en hora de Ciudad de México (si el cliente está en otra zona horaria, aclárelo). Nunca invente horarios.
@@ -1004,7 +1015,7 @@ Debe sentirse ligero y nada invasivo: sin presión, sin explicar de más, sin li
   Ejemplo: "Le dejo este video corto donde se ve cómo funciona el sistema en una agencia de viajes 🤖 https://youtu.be/t2bvakV2WMw"
 - Si se indica que el video está pendiente: pregúntele con naturalidad si pudo ver el video y qué le pareció (sin volver a mandar el link).
 - Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: una sola idea concreta del sistema relacionada con lo que contó (sin volver a preguntar lo mismo). Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.
-- No dé precios (se ven en la llamada). No invente datos. No diga que es un seguimiento automático.
+- No mencione precios en el seguimiento. No invente datos. No diga que es un seguimiento automático.
 - Responda solo con el texto del mensaje."""
 
 SEG_CUERPO_OPENAI = ("={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: ["
