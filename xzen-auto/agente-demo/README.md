@@ -87,7 +87,7 @@ cuando el cliente escribe.
 ## Precio (solo si el cliente pregunta)
 
 Promoción de noviembre: implementación $5,000 MXN y el primer mes de prueba gratis; si continúa, $2,000 MXN mensuales.
-Es precio base, evaluable en la llamada. Maripino lo da solo si preguntan ("$", "precio", "costo", "cuánto cuesta"…)
+Es precio base, evaluable en la llamada. Sin permanencia: puede cancelar después del mes de prueba sin compromiso. Maripino lo da solo si preguntan ("$", "precio", "costo", "cuánto cuesta"…)
 y en el mismo turno ofrece 2-3 horarios para la llamada.
 
 ## Preguntas frecuentes (solo si el cliente pregunta)
@@ -95,7 +95,7 @@ Agentes y cuentas sin límite (un solo agente de IA adaptado al negocio) · What
 (ideal un número oficial) y se sigue usando en el celular · app de celular y computadora · WhatsApp, Instagram,
 Facebook, TikTok y email · a los curiosos se les resuelven dudas y se recopilan los datos del viaje · ideal para
 agencias que empiezan · llamada por Zoom de 20-30 min con el equipo · implementación de 3 a 5 días · contrato con
-permanencia inicial de 3 meses · la información y promociones de la agencia se guardan en un documento.
+sin permanencia: puede cancelar después del mes de prueba · la información y promociones de la agencia se guardan en un documento.
 Lo que no está en la lista (p. ej. integraciones) no lo afirma ni lo niega: lo deja para la llamada.
 
 ## Buffer de mensajes (pendiente)
