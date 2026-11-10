@@ -1,0 +1,12 @@
+[
+ {"id": "hook",    "txt": "¿Tu club de pádel todavía organiza los partidos por WhatsApp?"},
+ {"id": "intro",   "txt": "Te presento Xzen Pádel: la app de tu club para reservar partidos por niveles, apuntarte a torneos y pagar desde el móvil."},
+ {"id": "reserva", "txt": "Eliges el día, hasta con siete días de antelación. Ves las pistas libres y tocas un hueco. Solo o con pareja, y solo te salen partidos de tu nivel."},
+ {"id": "pago",    "txt": "Se paga solo: primero con tus bonos y, si no tienes, con tu saldo. Y cuando entran los cuatro jugadores, te llega un aviso al móvil."},
+ {"id": "nivel",   "txt": "Tu nivel sube y baja jugando. Nueve subniveles, del cero al cien por ciento. Y si le ganas a un rival más fuerte, sumas más."},
+ {"id": "result",  "txt": "Cualquiera de los cuatro pone el resultado, y la otra pareja lo confirma."},
+ {"id": "torneos", "txt": "Torneos con inscripción en pareja, saldo, bonos más baratos, y puntos que canjeas por premios."},
+ {"id": "club",    "txt": "Y para el club, un panel completo: recargas en recepción, resultados por revisar, premios por entregar, niveles, permisos, y torneos nuevos en un minuto."},
+ {"id": "multi",   "txt": "Se usa desde el móvil, se instala como una app, y sirve para varios clubes, cada uno con su marca."},
+ {"id": "cta",     "txt": "¿Quieres Xzen Pádel en tu club? Escríbenos la palabra PÁDEL."}
+]

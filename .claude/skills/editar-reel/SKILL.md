@@ -275,6 +275,31 @@ Hecho para los 4 anuncios (agencia de viajes y mueblería, corto y largo). El ma
 5. Audio: voz, `musica_motivacional.py` a volume 0.065 con ducking, `sfx_pop.py` (0.10) en cada recurso y
    `sfx_whoosh.py` (0.09) en cada B-roll, `loudnorm=I=-14`.
 
+## 3c. Anuncio 100 % animado con locución (sin grabación del usuario) (`ejemplos/anuncio_animado/`)
+
+Hecho para "Xzen Pádel" a partir de un PDF de la app. Formato 4:3 (1440x1080), unos 65 s.
+1. **Material**: `pdftotext -layout` para el contenido y `pdfimages -png` para las capturas del móvil
+   (780x1688; las hojas más bajas, de 780x1187, se completan con la cabecera de la app). Los colores de marca se toman de las capturas.
+2. **Guion** (`guion.json`, un bloque por escena): gancho con pregunta de dolor → presentación → 5–6 funciones
+   (una idea por escena) → multi-uso → CTA con palabra clave. Frases cortas, tuteo, sin datos inventados.
+3. **Voz** (`tts.py`): Kokoro-82M ONNX **sin internet**. El modelo y las voces españolas (em_alex, ef_dora, em_santa)
+   vienen en el paquete npm `expo-kokoro` (`npm install --ignore-scripts --no-save expo-kokoro` →
+   `build/kokoro-quantized.onnx` + `build/voices/*.bin`). El motor es `python3 -m pip install kokoro-onnx`.
+   Usa em_alex, velocidad 1.05 y `lang es-419` (acento neutro latino). Hay que corregir la pronunciación:
+   "Xzen" → "Zen", " app" → " ap", "WhatsApp" → "guatsap". Hugging Face, Google TTS y Edge TTS están bloqueados en el entorno.
+   Luego pasa Whisper con word_timestamps sobre `voz.wav` (`words.json`). `anim.py` alinea esas palabras con el guion
+   (difflib) y así cada animación entra en la palabra exacta: `T("bloque", "palabra")`.
+4. **Animación** (`anim.py`, PIL, 30 fps):
+   - Fondo azul marino con una pista de pádel tenue que se desplaza.
+   - Teléfono a la derecha con las capturas. Al cambiar de captura, la nueva sube como una hoja.
+   - Foco dorado que oscurece el resto de la pantalla, más toques (ripple) y una notificación push que cae.
+   - A la izquierda, un título de sección numerado y pasos que aparecen con rebote y se marcan ✓ al pasar al siguiente.
+   - Subtítulos Bebas centrados abajo, con palabras clave en dorado. En el gancho no hay subtítulos: va la pregunta en grande.
+   - Al final, el logo y un botón "ESCRÍBENOS PALABRA" con anillo pulsante.
+   - Para revisar: `prev.py ... t1,t2,... hoja.png` hace una hoja de fotogramas sin renderizar todo.
+5. **Audio**: voz + `musica_motivacional.py` (0.06, ducking) + whoosh en cada escena + pops en cada pieza
+   (los tiempos salen en `salida.mkv.events.json`).
+
 ## 4. Ajustes rápidos (constantes al principio de `reel_subs.py`)
 
 | Constante | Valor | Qué controla |
