@@ -1,0 +1,292 @@
+{
+  "name": "Reporte diario agentes - Matriz (María Luisa)",
+  "nodes": [
+    {
+      "name": "L-V 17:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 17 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "ab3c402e-d76b-410c-975a-f1b91603f429"
+    },
+    {
+      "name": "Prueba (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "tmp-reporte-agentes-2c088aae8c30",
+      "parameters": {
+        "path": "tmp-reporte-agentes-2c088aae8c30",
+        "options": {}
+      },
+      "id": "84cc186e-a7a2-4cd6-8f99-102662785f06"
+    },
+    {
+      "name": "Peticiones",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Matriz: etapas del pipeline, usuarios y todas las oportunidades del pipeline \"RsViajes Matriz\"\nconst LOC = 'UIJiu5Wa9iPVzMpbaZcx', PIPE = 'QxW5mmE6EmqSIHnmsPBm';\nconst out = [\n  { json: { agencia: 'matriz', method: 'GET', path: `/opportunities/pipelines?locationId=${LOC}`, ctx: { tipo: 'pipes' } } },\n  { json: { agencia: 'matriz', method: 'GET', path: `/users/?locationId=${LOC}`, ctx: { tipo: 'users' } } },\n];\nfor (let page = 1; page <= 30; page++)\n  out.push({ json: { agencia: 'matriz', method: 'GET', path: `/opportunities/search?location_id=${LOC}&pipeline_id=${PIPE}&limit=100&page=${page}`, ctx: { tipo: 'opps', page } } });\nreturn out;\n"
+      },
+      "id": "925a3c01-4fba-43e6-aa94-897ce8282265"
+    },
+    {
+      "name": "GHL por agencia",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "t1lsQVxg72KgeJHO",
+          "mode": "id"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "580df499-1b4a-456b-841e-299b05d654ce"
+    },
+    {
+      "name": "Armar reporte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Reporte diario para María Luisa: leads asignados y ventas/reservas por agente (Matriz)\nconst SHEET_URL = 'https://docs.google.com/spreadsheets/d/19pNro6wPdm5L5JBRbe9q92g3el0mntzt6B8NfgSbehk/edit';\nconst PIPE = 'QxW5mmE6EmqSIHnmsPBm', DATOS = 1675396445, RES = 1;\nlet prueba = false;\ntry { prueba = $('Prueba (webhook)').isExecuted; } catch (e) {}\nconst PARA = prueba ? 'xzenauto@gmail.com' : 'maluisasalazar@rsviajes.com';\nconst MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];\nconst tz = 'America/Mexico_City';\nconst etapas = {}, usuarios = {}; let opps = [];\nfor (const it of $('GHL por agencia').all()) {\n  const { ctx, res } = it.json;\n  if (ctx.tipo === 'pipes') { for (const p of res.pipelines || []) if (p.id === PIPE) for (const s of p.stages || []) etapas[s.id] = s.name; }\n  else if (ctx.tipo === 'users') { for (const u of res.users || []) usuarios[u.id] = u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim(); }\n  else opps = opps.concat(res.opportunities || []);\n}\nconst vistos = new Set();\nopps = opps.filter(o => o.pipelineId === PIPE && !vistos.has(o.id) && vistos.add(o.id));\nif (!opps.length || !Object.keys(etapas).length) throw new Error('GHL no regresó oportunidades o etapas de Matriz');\nconst limpiaEtapa = (n) => String(n || 'Otra').replace(/[^\\p{L}\\p{N}\\s.,()\\/-]/gu, '').trim();\nconst resultado = (o, et) => o.status === 'won' || /anticipo|pagado|mañana sale|en destino|de regreso|ganado/i.test(et) ? 'Venta / reserva'\n  : /cotizaci/i.test(et) ? 'Cotización' : /[uú]ltima oportunidad/i.test(et) ? 'Última oportunidad' : /perdido/i.test(et) ? 'Perdido' : 'Sin cotizar aún';\nconst ESTADO = { open: 'Abierta', won: 'Ganada', lost: 'Perdida', abandoned: 'Abandonada' };\nconst filas = opps.map(o => {\n  const f = DateTime.fromISO(o.createdAt, { zone: 'utc' }).setZone(tz);\n  const et = limpiaEtapa(etapas[o.pipelineStageId]);\n  return { ms: f.toMillis(), fecha: f.toFormat('yyyy-MM-dd'), mes: `${MESES[f.month - 1]} ${f.year}`,\n    agente: (usuarios[o.assignedTo] || (o.assignedTo ? 'Otro usuario' : 'Sin asignar')).trim(),\n    res: resultado(o, et), etapa: et, estado: ESTADO[o.status] || o.status, monto: Number(o.monetaryValue) || 0, nombre: String(o.name || '') };\n}).sort((a, b) => b.ms - a.ms);\n// Agentes: los que tienen leads asignados, de más a menos; \"Sin asignar\" al final\nconst cuenta = {};\nfor (const r of filas) cuenta[r.agente] = (cuenta[r.agente] || 0) + 1;\nconst agentes = Object.keys(cuenta).filter(a => a !== 'Sin asignar').sort((a, b) => cuenta[b] - cuenta[a]);\nif (cuenta['Sin asignar']) agentes.push('Sin asignar');\nconst hoy = DateTime.now().setZone(tz);\nconst meses = [2, 1, 0].map(k => { const m = hoy.minus({ months: k }); return `${MESES[m.month - 1]} ${m.year}`; });\nconst t = (s) => \"'\" + String(s);\nconst D = \"'Datos GHL'!\";\nconst fmtFecha = (ms) => DateTime.fromMillis(ms).setZone(tz).setLocale('es').toFormat(\"d 'de' LLLL 'de' yyyy\");\nconst desde = fmtFecha(filas[filas.length - 1].ms), hasta = fmtFecha(filas[0].ms);\n// ---- Hoja: Datos GHL\nconst datos = filas.map(r => [r.fecha, t(r.mes), t(r.agente), t(r.res), t(r.etapa), t(r.estado), r.monto, t(r.nombre)]);\n// ---- Hoja: Resumen (fórmulas sobre Datos GHL)\nconst n = agentes.length, ri = 5, rt = ri + n; // fila del total\nconst res = [\n  [t('Leads y ventas por agente · RS Viajes Matriz')],\n  [t(`Fuente: GHL, pipeline «RsViajes Matriz». Oportunidades creadas del ${desde} al ${hasta}. Actualizado el ${fmtFecha(hoy.toMillis())} a las ${hoy.toFormat('HH:mm')}.`)],\n  [t('Una venta o reserva cuenta cuando la oportunidad está en Con Anticipo, Pagado al completo, Mañana sale, En destino, De regreso o Cliente Ganado.')],\n  ['Agente', 'Leads asignados', ...meses.map(t), 'Cotización', 'Última oportunidad', 'Venta / reserva', 'Monto vendido', 'Perdido', 'Sin cotizar aún', '% de venta'],\n];\nagentes.forEach((a, i) => {\n  const r = ri + i;\n  res.push([t(a), `=COUNTIFS(${D}$C:$C;$A${r})`,\n    ...['C', 'D', 'E'].map(c => `=COUNTIFS(${D}$C:$C;$A${r};${D}$B:$B;${c}$4)`),\n    ...['F', 'G', 'H'].map(c => `=COUNTIFS(${D}$C:$C;$A${r};${D}$D:$D;${c}$4)`),\n    `=SUMIFS(${D}$G:$G;${D}$C:$C;$A${r};${D}$D:$D;$H$4)`,\n    ...['J', 'K'].map(c => `=COUNTIFS(${D}$C:$C;$A${r};${D}$D:$D;${c}$4)`),\n    `=IF(B${r}=0;0;H${r}/B${r})`]);\n});\nres.push(['Total', ...'BCDEFGHIJK'.split('').map(c => `=SUM(${c}${ri}:${c}${rt - 1})`), `=IF(B${rt}=0;0;H${rt}/B${rt})`]);\nres.push([]);\nres.push(['Detalle de ventas / reservas']);\nres.push(['Fecha de alta', 'Mes', 'Agente asignado', 'Resultado', 'Etapa en GHL', 'Estado GHL', 'Monto', 'Oportunidad']);\nres.push([`=IFERROR(FILTER(${D}A2:H;${D}D2:D=$H$4);\"Sin ventas registradas\")`]);\nconst valores = { valueInputOption: 'USER_ENTERED', data: [\n  { range: \"'Datos GHL'!A2\", values: datos },\n  { range: 'Resumen!A1', values: res.map(f => { const x = f.slice(); while (x.length < 12) x.push(''); return x; }) },\n] };\n// ---- Formato\nconst rgb = (h) => ({ red: parseInt(h.slice(1, 3), 16) / 255, green: parseInt(h.slice(3, 5), 16) / 255, blue: parseInt(h.slice(5, 7), 16) / 255 });\nconst rg = (s, r0, r1, c0, c1) => ({ sheetId: s, startRowIndex: r0, endRowIndex: r1, startColumnIndex: c0, endColumnIndex: c1 });\nconst rep = (range, f, fields) => ({ repeatCell: { range, cell: { userEnteredFormat: f }, fields } });\nconst AZUL = rgb('#1F3864'), BLANCO = rgb('#FFFFFF'), GRIS = rgb('#BFBFBF');\nconst encab = { textFormat: { bold: true, fontFamily: 'Arial', foregroundColor: BLANCO }, backgroundColor: AZUL };\nconst ENT = { type: 'NUMBER', pattern: '#,##0;(#,##0);\"-\"' }, PESOS = { type: 'NUMBER', pattern: '$#,##0;($#,##0);\"-\"' };\nconst b = { style: 'SOLID', color: GRIS };\nconst fe = rt - 1; // índice 0 de la fila del total\nconst requests = [\n  rep(rg(RES, 0, 1000, 0, 26), {}, 'userEnteredFormat'),\n  rep(rg(RES, 0, 1, 0, 12), { textFormat: { bold: true, fontSize: 14, fontFamily: 'Arial' } }, 'userEnteredFormat.textFormat'),\n  rep(rg(RES, 1, 3, 0, 12), { textFormat: { italic: true, fontFamily: 'Arial', foregroundColor: rgb('#595959') } }, 'userEnteredFormat.textFormat'),\n  rep(rg(RES, 3, 4, 0, 12), { ...encab, horizontalAlignment: 'CENTER', verticalAlignment: 'MIDDLE', wrapStrategy: 'WRAP' }, 'userEnteredFormat'),\n  rep(rg(RES, 4, fe, 0, 12), { textFormat: { fontFamily: 'Arial' } }, 'userEnteredFormat.textFormat'),\n  rep(rg(RES, 4, fe, 1, 8), { numberFormat: ENT, horizontalAlignment: 'CENTER' }, 'userEnteredFormat.numberFormat,userEnteredFormat.horizontalAlignment'),\n  rep(rg(RES, 4, fe, 9, 11), { numberFormat: ENT, horizontalAlignment: 'CENTER' }, 'userEnteredFormat.numberFormat,userEnteredFormat.horizontalAlignment'),\n  rep(rg(RES, 4, fe, 8, 9), { numberFormat: PESOS }, 'userEnteredFormat.numberFormat'),\n  rep(rg(RES, 4, fe, 11, 12), { numberFormat: { type: 'NUMBER', pattern: '0.0%' }, horizontalAlignment: 'CENTER' }, 'userEnteredFormat.numberFormat,userEnteredFormat.horizontalAlignment'),\n  rep(rg(RES, 4, fe, 7, 9), { textFormat: { bold: true, fontFamily: 'Arial' }, backgroundColor: rgb('#E2EFDA') }, 'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'),\n];\nrequests.push(\n  rep(rg(RES, fe, fe + 1, 0, 12), { textFormat: { bold: true, fontFamily: 'Arial' }, backgroundColor: rgb('#D9D9D9'), horizontalAlignment: 'CENTER' }, 'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor,userEnteredFormat.horizontalAlignment'),\n  rep(rg(RES, fe, fe + 1, 0, 1), { horizontalAlignment: 'LEFT' }, 'userEnteredFormat.horizontalAlignment'),\n  rep(rg(RES, fe, fe + 1, 1, 8), { numberFormat: ENT }, 'userEnteredFormat.numberFormat'),\n  rep(rg(RES, fe, fe + 1, 9, 11), { numberFormat: ENT }, 'userEnteredFormat.numberFormat'),\n  rep(rg(RES, fe, fe + 1, 8, 9), { numberFormat: PESOS }, 'userEnteredFormat.numberFormat'),\n  rep(rg(RES, fe, fe + 1, 11, 12), { numberFormat: { type: 'NUMBER', pattern: '0.0%' } }, 'userEnteredFormat.numberFormat'),\n  { updateBorders: { range: rg(RES, 3, fe + 1, 0, 12), top: b, bottom: b, left: b, right: b, innerHorizontal: b, innerVertical: b } },\n  rep(rg(RES, fe + 2, fe + 3, 0, 8), { textFormat: { bold: true, fontSize: 12, fontFamily: 'Arial' } }, 'userEnteredFormat.textFormat'),\n  rep(rg(RES, fe + 3, fe + 4, 0, 8), encab, 'userEnteredFormat.textFormat,userEnteredFormat.backgroundColor'),\n  rep(rg(RES, fe + 4, 1000, 0, 1), { numberFormat: { type: 'DATE', pattern: 'yyyy-mm-dd' } }, 'userEnteredFormat.numberFormat'),\n  rep(rg(RES, fe + 4, 1000, 6, 7), { numberFormat: PESOS }, 'userEnteredFormat.numberFormat'),\n  rep(rg(DATOS, 1, 100000, 0, 1), { numberFormat: { type: 'DATE', pattern: 'yyyy-mm-dd' } }, 'userEnteredFormat.numberFormat'),\n  rep(rg(DATOS, 1, 100000, 6, 7), { numberFormat: PESOS }, 'userEnteredFormat.numberFormat'),\n  { updateSheetProperties: { properties: { sheetId: RES, gridProperties: { frozenRowCount: 4 } }, fields: 'gridProperties.frozenRowCount' } },\n  { setBasicFilter: { filter: { range: { sheetId: DATOS, startRowIndex: 0, startColumnIndex: 0, endColumnIndex: 8 } } } },\n);\n// ---- Correo\nconst esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst pesos = (v) => '$' + Math.round(v).toLocaleString('en-US');\nconst pct = (a, b) => b ? (100 * a / b).toFixed(1) + '%' : '0.0%';\nconst resumen = agentes.map(a => {\n  const fs = filas.filter(r => r.agente === a), v = fs.filter(r => r.res === 'Venta / reserva');\n  return { a, leads: fs.length, m: meses.map(m => fs.filter(r => r.mes === m).length), cot: fs.filter(r => r.res === 'Cotización').length,\n    ventas: v.length, monto: v.reduce((s, r) => s + r.monto, 0) };\n});\nconst tot = { leads: filas.length, m: meses.map((_, i) => resumen.reduce((s, r) => s + r.m[i], 0)), cot: resumen.reduce((s, r) => s + r.cot, 0),\n  ventas: resumen.reduce((s, r) => s + r.ventas, 0), monto: resumen.reduce((s, r) => s + r.monto, 0) };\nconst td = 'style=\"padding:6px 10px;border:1px solid #d0d0d0;text-align:center\"', tdl = 'style=\"padding:6px 10px;border:1px solid #d0d0d0\"';\nconst th = 'style=\"padding:6px 10px;border:1px solid #d0d0d0;background:#1F3864;color:#fff\"';\nconst fila = (r, neg) => `<tr${neg ? ' style=\"font-weight:bold;background:#eee\"' : ''}><td ${tdl}>${esc(r.a)}</td><td ${td}>${r.leads}</td>${r.m.map(x => `<td ${td}>${x}</td>`).join('')}<td ${td}>${r.cot}</td><td ${td}><b>${r.ventas}</b></td><td ${td}>${pesos(r.monto)}</td><td ${td}>${pct(r.ventas, r.leads)}</td></tr>`;\nconst ventas = filas.filter(r => r.res === 'Venta / reserva');\nconst tVentas = ventas.length ? `<table style=\"border-collapse:collapse;font-size:13px\"><tr><th ${th}>Fecha de alta</th><th ${th}>Agente</th><th ${th}>Cliente</th><th ${th}>Etapa</th><th ${th}>Monto</th></tr>${ventas.map(r => `<tr><td ${tdl}>${r.fecha}</td><td ${tdl}>${esc(r.agente)}</td><td ${tdl}>${esc(r.nombre)}</td><td ${tdl}>${esc(r.etapa)}</td><td ${td}>${pesos(r.monto)}</td></tr>`).join('')}</table>` : '<p>No hay ventas o reservas registradas en GHL.</p>';\nconst html = `<div style=\"font-family:Arial,sans-serif;font-size:14px;color:#222\">\n<p>Hola María Luisa,</p>\n<p>Este es el reporte de leads y ventas por agente de RS Viajes Matriz, con datos de GHL al ${fmtFecha(hoy.toMillis())} a las ${hoy.toFormat('HH:mm')}.</p>\n<table style=\"border-collapse:collapse;font-size:13px\"><tr><th ${th}>Agente</th><th ${th}>Leads asignados</th>${meses.map(m => `<th ${th}>${esc(m)}</th>`).join('')}<th ${th}>En cotización</th><th ${th}>Ventas / reservas</th><th ${th}>Monto vendido</th><th ${th}>% de venta</th></tr>\n${resumen.map(r => fila(r)).join('')}${fila({ a: 'Total', ...tot }, true)}</table>\n<p style=\"color:#666;font-size:12px\">Leads asignados: oportunidades creadas desde el ${desde}. Una venta o reserva cuenta cuando la oportunidad está en Con Anticipo, Pagado al completo, Mañana sale, En destino, De regreso o Cliente Ganado. Si una venta no aparece, hay que mover la oportunidad a esa etapa en GHL.</p>\n<h3 style=\"font-size:15px\">Ventas y reservas</h3>${tVentas}\n<p><a href=\"${SHEET_URL}\">Ver la hoja completa</a> (cada oportunidad, con filtros).</p>\n<p>Saludos,<br>Xzen Auto</p></div>`;\nreturn [{ json: { para: PARA, asunto: `${prueba ? '[PRUEBA] ' : ''}Reporte de agentes RS Viajes Matriz · ${hoy.setLocale('es').toFormat(\"d 'de' LLLL\")}`, html,\n  valores, formato: { requests }, oportunidades: filas.length } }];\n"
+      },
+      "id": "2242e7ab-f586-45f4-9a53-145c54476b08"
+    },
+    {
+      "name": "Limpiar hoja",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/19pNro6wPdm5L5JBRbe9q92g3el0mntzt6B8NfgSbehk/values:batchClear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ranges: [\"'Datos GHL'!A2:H\", \"Resumen!A1:Z\"] }) }}",
+        "options": {}
+      },
+      "id": "95584519-b191-4754-ae58-1b0248143b9c"
+    },
+    {
+      "name": "Escribir hoja",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/19pNro6wPdm5L5JBRbe9q92g3el0mntzt6B8NfgSbehk/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Armar reporte').first().json.valores) }}",
+        "options": {}
+      },
+      "id": "35f01942-99cd-4e7e-b528-29e8dd91720e"
+    },
+    {
+      "name": "Formato hoja",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        100
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "5tVcEyMfkgXjzc9v",
+          "name": "Xzen_Pruebas"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/19pNro6wPdm5L5JBRbe9q92g3el0mntzt6B8NfgSbehk:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Armar reporte').first().json.formato) }}",
+        "options": {}
+      },
+      "id": "633c7116-5d18-4196-b3f3-0654da738f2b"
+    },
+    {
+      "name": "Enviar a María Luisa",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1540,
+        100
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "giX4xhnEUL2ltIcE",
+          "name": "Gmail Xzen"
+        }
+      },
+      "parameters": {
+        "sendTo": "={{ $('Armar reporte').first().json.para }}",
+        "subject": "={{ $('Armar reporte').first().json.asunto }}",
+        "emailType": "html",
+        "message": "={{ $('Armar reporte').first().json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a92555c6-c2b0-45d2-be19-8a1dda828e8e"
+    }
+  ],
+  "connections": {
+    "L-V 17:00": {
+      "main": [
+        [
+          {
+            "node": "Peticiones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prueba (webhook)": {
+      "main": [
+        [
+          {
+            "node": "Peticiones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Peticiones": {
+      "main": [
+        [
+          {
+            "node": "GHL por agencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL por agencia": {
+      "main": [
+        [
+          {
+            "node": "Armar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar reporte": {
+      "main": [
+        [
+          {
+            "node": "Limpiar hoja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar hoja": {
+      "main": [
+        [
+          {
+            "node": "Escribir hoja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escribir hoja": {
+      "main": [
+        [
+          {
+            "node": "Formato hoja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formato hoja": {
+      "main": [
+        [
+          {
+            "node": "Enviar a María Luisa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
+}
