@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { AskHost, Icon } from './components/ui';
+import { DraftBanner } from './components/DraftBanner';
+import { ask, AskHost, Icon } from './components/ui';
+import { getDraft, loggedSets, setDraft } from './data/draft';
 import { useStore } from './data/store';
 import Admin from './screens/Admin';
 import Community from './screens/Community';
@@ -30,6 +32,7 @@ export default function App() {
 	const [tab, setTab] = useState<Tab>('home');
 	const [openDay, setOpenDay] = useState<string | null>(null);
 	const [running, setRunning] = useState<string | null>(null);
+	const [, setRefresh] = useState(0);
 
 	if (status === 'loading')
 		return (
@@ -82,6 +85,24 @@ export default function App() {
 			</div>
 		);
 
+	/** Empezar un entreno sin pisar nunca otro que esté a medias. */
+	const startWorkout = async (dayId: string) => {
+		const d = getDraft(me.id);
+		const other = d && d.dayId !== dayId ? myPlan?.program.days.find((x) => x.id === d.dayId) : null;
+		if (d && other) {
+			const target = myPlan?.program.days.find((x) => x.id === dayId);
+			const n = loggedSets(d);
+			const startNew = await ask(
+				`Tienes «${other.name}» a medias${n ? ` (${n} ${n === 1 ? 'serie apuntada' : 'series apuntadas'})` : ''}. ¿Lo continúas o lo descartas y empiezas «${target?.name ?? 'este día'}»?`,
+				{ title: 'Entreno a medias', ok: 'Descartar y empezar', cancel: `Continuar ${other.name.split('·')[0].trim()}` },
+			);
+			if (startNew) setDraft(me.id, null);
+			else dayId = other.id;
+		}
+		setRunning(dayId);
+	};
+	const banner2 = <DraftBanner onResume={(id) => setRunning(id)} onChanged={() => setRefresh((n) => n + 1)} />;
+
 	if (running)
 		return (
 			<div className="app" style={{ paddingBottom: 24 }}>
@@ -120,9 +141,10 @@ export default function App() {
 							setOpenDay(id);
 						}}
 						onGo={go}
+						draftBanner={banner2}
 					/>
 				)}
-				{tab === 'train' && <Trainings openDay={openDay} setOpenDay={setOpenDay} onStart={setRunning} />}
+				{tab === 'train' && <Trainings openDay={openDay} setOpenDay={setOpenDay} onStart={startWorkout} draftBanner={banner2} />}
 				{tab === 'diet' && <DietScreen />}
 				{tab === 'progress' && <Progress />}
 				{tab === 'community' && <Community />}

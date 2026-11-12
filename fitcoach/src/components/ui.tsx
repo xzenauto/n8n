@@ -180,11 +180,11 @@ export function LineChart({ points, unit = '' }: { points: Point[]; unit?: strin
 const fmt = (n: number) => (Math.abs(n) >= 100 ? Math.round(n).toString() : (Math.round(n * 10) / 10).toString());
 
 // ---------- Confirmación propia (los diálogos nativos pueden estar bloqueados) ----------
-type AskReq = { msg: string; resolve: (ok: boolean) => void };
+type AskReq = { msg: string; resolve: (ok: boolean) => void; ok?: string; cancel?: string; title?: string };
 let pushAsk: ((r: AskReq) => void) | null = null;
 
-export function ask(msg: string): Promise<boolean> {
-	return new Promise((resolve) => (pushAsk ? pushAsk({ msg, resolve }) : resolve(true)));
+export function ask(msg: string, labels?: { ok?: string; cancel?: string; title?: string }): Promise<boolean> {
+	return new Promise((resolve) => (pushAsk ? pushAsk({ msg, resolve, ...labels }) : resolve(true)));
 }
 
 export function AskHost() {
@@ -201,14 +201,14 @@ export function AskHost() {
 		setReq(null);
 	};
 	return (
-		<Sheet title="¿Seguro?" onClose={() => done(false)}>
+		<Sheet title={req.title ?? '¿Seguro?'} onClose={() => done(false)}>
 			<p style={{ marginTop: 0 }}>{req.msg}</p>
 			<div className="btn-row">
 				<button className="btn ghost" onClick={() => done(false)}>
-					Cancelar
+					{req.cancel ?? 'Cancelar'}
 				</button>
 				<button className="btn dark" onClick={() => done(true)}>
-					Aceptar
+					{req.ok ?? 'Aceptar'}
 				</button>
 			</div>
 		</Sheet>

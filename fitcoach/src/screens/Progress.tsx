@@ -164,19 +164,29 @@ function ExerciseProgress({ userId }: { userId: string }) {
 	const [sel, setSel] = useState<string | null>(null);
 
 	const byExercise = useMemo(() => {
-		const map = new Map<string, { name: string; points: { date: string; kg: number; reps: number }[] }>();
+		// Un ejercicio repetido en varios días se sigue por separado en cada día (cada uno con sus pesos)
+		const map = new Map<string, { key: string; name: string; day: string; points: { date: string; kg: number; reps: number }[] }>();
+		const repeated = new Set<string>();
+		const daysByName = new Map<string, Set<string>>();
+		for (const s of sessions)
+			for (const e of s.entries) {
+				if (!daysByName.has(e.name)) daysByName.set(e.name, new Set());
+				daysByName.get(e.name)!.add(s.dayId);
+			}
+		daysByName.forEach((d, n) => d.size > 1 && repeated.add(n));
 		for (const s of sessions)
 			for (const e of s.entries) {
 				const b = bestSet(e.sets);
 				if (!b) continue;
-				const k = e.name;
-				if (!map.has(k)) map.set(k, { name: e.name, points: [] });
+				const k = `${s.dayId}|${e.name}`;
+				const day = repeated.has(e.name) ? s.dayName.split('·')[0].trim() : '';
+				if (!map.has(k)) map.set(k, { key: k, name: e.name, day, points: [] });
 				map.get(k)!.points.push({ date: s.date, ...b });
 			}
-		return [...map.values()];
+		return [...map.values()].sort((a, b) => a.name.localeCompare(b.name) || a.day.localeCompare(b.day));
 	}, [sessions]);
 
-	const current = byExercise.find((e) => e.name === sel);
+	const current = byExercise.find((e) => e.key === sel);
 	if (current) {
 		const pts = current.points.map((p) => ({ label: formatShort(p.date), value: p.kg }));
 		return (
@@ -185,7 +195,10 @@ function ExerciseProgress({ userId }: { userId: string }) {
 					‹ Todos los ejercicios
 				</button>
 				<div className="card">
-					<div className="card-head">{current.name}</div>
+					<div className="card-head">
+						{current.name}
+						{current.day && <span className="pill">{current.day}</span>}
+					</div>
 					<div className="card-body">
 						<div className="muted" style={{ marginBottom: 6 }}>
 							Mejor serie de cada sesión (kg)

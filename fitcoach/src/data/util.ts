@@ -140,12 +140,15 @@ export function sessionsFor(sessions: Session[], userId: string) {
 	return sessions.filter((s) => s.userId === userId).sort((a, b) => b.date.localeCompare(a.date));
 }
 
-/** Último registro de un ejercicio (por id, o por nombre si cambió de día). */
-export function lastLogOf(sessions: Session[], userId: string, exerciseId: string, name: string) {
-	for (const s of sessionsFor(sessions, userId)) {
-		const e =
-			s.entries.find((x) => x.exerciseId === exerciseId && x.sets.length) ??
-			s.entries.find((x) => x.name === name && x.sets.length);
+/**
+ * Último registro de un ejercicio EN ESE MISMO DÍA del plan. Un ejercicio repetido en otro
+ * día (p. ej. Extensión de cuádriceps el Día 1 y el Día 4) lleva sus propios pesos y no se mezcla.
+ * Se busca por el id del ejercicio y, si el entrenador lo sustituyó, por el nombre dentro del mismo día.
+ */
+export function lastLogOf(sessions: Session[], userId: string, exerciseId: string, name: string, dayId: string) {
+	const sameDay = sessionsFor(sessions, userId).filter((s) => s.dayId === dayId);
+	for (const s of sameDay) {
+		const e = s.entries.find((x) => x.exerciseId === exerciseId && x.sets.length) ?? s.entries.find((x) => x.name === name && x.sets.length);
 		if (e) return { session: s, entry: e };
 	}
 	return null;

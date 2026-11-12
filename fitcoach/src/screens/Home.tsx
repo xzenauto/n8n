@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Tab } from '../App';
 import { EditHabitsButton } from '../components/EditHabits';
 import { NotificationsCard } from '../components/Notifications';
@@ -5,7 +6,7 @@ import { HabitRings, MONTHS, monthStats } from '../components/Habits';
 import { useStore } from '../data/store';
 import { dayFor, formatLong, formatShort, getFood, macrosOf, nextMeal, sessionsFor, toISO, upNext, WEEKDAYS_SHORT, weekdayIndex } from '../data/util';
 
-export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => void; onGo: (t: Tab) => void }) {
+export default function Home({ onOpenDay, onGo, draftBanner }: { onOpenDay: (id: string) => void; onGo: (t: Tab) => void; draftBanner?: ReactNode }) {
 	const { me, myPlan, db } = useStore();
 	const now = new Date();
 	const up = upNext(myPlan?.program, db.sessions, me!.id, now);
@@ -58,6 +59,7 @@ export default function Home({ onOpenDay, onGo }: { onOpenDay: (id: string) => v
 	return (
 		<>
 			<Header name={firstName} now={now} />
+			{draftBanner}
 
 			<div className="hero">
 				<div className="hero-top">

@@ -2,39 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { RestTimer, restIdle, restStart, type RestState } from '../components/RestTimer';
 import { ask, Scale } from '../components/ui';
 import { useStore } from '../data/store';
+import { getDraft, setDraft as storeDraft, type Draft } from '../data/draft';
 import type { SetLog } from '../data/types';
 import { bestSet, formatShort, lastLogOf, parseKg, setTarget, toISO } from '../data/util';
 import { videoFor } from '../data/videos';
 
 type Step = { kind: 'readiness' } | { kind: 'set'; ex: number; set: number } | { kind: 'fatigue' } | { kind: 'done' };
 
-interface Draft {
-	dayId: string;
-	readiness: number | null;
-	fatigue: number | null;
-	note: string;
-	logs: SetLog[][];
-	stepIdx: number;
-	rest?: RestState;
+/** Si el entrenador cambió el día después de empezar, ajusta el borrador a los ejercicios y series actuales. */
+function fitDraft(d: Draft | null, sets: number[], stepCount: number): Draft | null {
+	if (!d) return null;
+	const logs = sets.map((n, i) => Array.from({ length: n }, (_, j) => d.logs[i]?.[j] ?? { reps: '', kg: '', rir: '' }));
+	return { ...d, logs, stepIdx: Math.min(d.stepIdx, stepCount - 2) };
 }
-
-const DRAFT_KEY = 'fitcoach.draft.v1';
-const loadDraft = (dayId: string): Draft | null => {
-	try {
-		const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null') as Draft | null;
-		return d && d.dayId === dayId ? d : null;
-	} catch {
-		return null;
-	}
-};
-const saveDraft = (d: Draft | null) => {
-	try {
-		if (d) localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
-		else localStorage.removeItem(DRAFT_KEY);
-	} catch {
-		/* sin almacenamiento */
-	}
-};
 
 export default function Workout({ dayId, onExit }: { dayId: string; onExit: () => void }) {
 	const { myPlan, me, db, addSession } = useStore();
@@ -51,7 +31,7 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 
 	const [draft, setDraft] = useState<Draft>(
 		() =>
-			loadDraft(dayId) ?? {
+			fitDraft(getDraft(me!.id)?.dayId === dayId ? getDraft(me!.id) : null, day.exercises.map((e) => Math.max(1, e.sets)), steps.length) ?? {
 				dayId,
 				readiness: null,
 				fatigue: null,
@@ -63,7 +43,7 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 	const step = steps[draft.stepIdx];
 
 	useEffect(() => {
-		if (step.kind !== 'done') saveDraft(draft);
+		if (step.kind !== 'done') storeDraft(me!.id, draft);
 	}, [draft, step.kind]);
 
 	useEffect(() => {
@@ -99,7 +79,7 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 				sets: draft.logs[i].filter((s) => s.reps.trim() || s.kg.trim()),
 			})),
 		});
-		saveDraft(null);
+		storeDraft(me!.id, null);
 		go(1);
 	}
 
@@ -109,7 +89,7 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 
 	async function discard() {
 		if (await ask('¿Descartar este entreno? Se perderá lo apuntado.')) {
-			saveDraft(null);
+			storeDraft(me!.id, null);
 			onExit();
 		}
 	}
@@ -170,7 +150,7 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 					exercise={day.exercises[step.ex]}
 					value={draft.logs[step.ex][step.set]}
 					doneSets={draft.logs[step.ex]}
-					last={lastLogOf(db.sessions, me!.id, day.exercises[step.ex].id, day.exercises[step.ex].name)}
+					last={lastLogOf(db.sessions, me!.id, day.exercises[step.ex].id, day.exercises[step.ex].name, day.id)}
 					onChange={(v) =>
 						setDraft((d) => {
 							const logs = d.logs.map((l) => [...l]);

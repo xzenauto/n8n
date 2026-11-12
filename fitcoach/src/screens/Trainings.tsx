@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react';
 import { TopBar } from '../components/ui';
+import { getDraft } from '../data/draft';
 import { useStore } from '../data/store';
 import { videoFor } from '../data/videos';
 import type { TrainingDay } from '../data/types';
@@ -8,9 +10,10 @@ interface Props {
 	openDay: string | null;
 	setOpenDay: (id: string | null) => void;
 	onStart: (dayId: string) => void;
+	draftBanner?: ReactNode;
 }
 
-export default function Trainings({ openDay, setOpenDay, onStart }: Props) {
+export default function Trainings({ openDay, setOpenDay, onStart, draftBanner }: Props) {
 	const { myPlan, db, me } = useStore();
 	if (!myPlan || myPlan.program.days.length === 0)
 		return (
@@ -38,6 +41,7 @@ export default function Trainings({ openDay, setOpenDay, onStart }: Props) {
 	return (
 		<>
 			<TopBar title="Entrenos" sub={program.name} />
+			{draftBanner}
 
 			<div className="section-label">{up.rotation ? (up.todayDone ? 'Hoy has hecho' : 'Te toca') : 'Te toca hoy'}</div>
 			{up.rotation && (
@@ -107,6 +111,7 @@ function DayDetail({ day, onBack, onStart }: { day: TrainingDay; onBack: () => v
 	const { db, me, myPlan } = useStore();
 	const history = sessionsFor(db.sessions, me!.id).filter((s) => s.dayId === day.id);
 	const doneToday = history.some((s) => s.date === toISO(new Date()));
+	const inProgress = getDraft(me!.id)?.dayId === day.id;
 	const cardio = myPlan?.program.cardio ?? [];
 
 	return (
@@ -149,7 +154,7 @@ function DayDetail({ day, onBack, onStart }: { day: TrainingDay; onBack: () => v
 				</table>
 				<div className="card-body">
 					<button className="btn" onClick={onStart} disabled={day.exercises.length === 0}>
-						{doneToday ? 'Repetir entreno' : 'Iniciar entreno'}
+						{inProgress ? 'Continuar entreno' : doneToday ? 'Repetir entreno' : 'Iniciar entreno'}
 					</button>
 					<p className="muted" style={{ textAlign: 'center', margin: '10px 0 0' }}>
 						RIR “F” = al fallo
