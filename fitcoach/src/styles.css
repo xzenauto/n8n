@@ -30,8 +30,8 @@
 html,
 body {
 	margin: 0;
-	/* Sin desplazamiento lateral ni zoom con los dedos */
-	overflow-x: hidden;
+	/* Sin zoom con los dedos. Ojo: nada de overflow en html/body: en iPhone convierte la página
+	   en un contenedor con scroll propio y la barra de menú fija deja de ir pegada abajo. */
 	overscroll-behavior-x: none;
 	touch-action: pan-y;
 	-webkit-text-size-adjust: 100%;
@@ -76,10 +76,11 @@ input[type='time']::-webkit-date-and-time-value {
 
 #root {
 	min-height: 100dvh;
+	overflow-x: clip;
 }
 
 .app {
-	overflow-x: hidden;
+	overflow-x: clip;
 	max-width: 560px;
 	margin: 0 auto;
 	min-height: 100dvh;
@@ -118,6 +119,8 @@ input[type='time']::-webkit-date-and-time-value {
 /* ---------- Navegación inferior ---------- */
 .nav {
 	position: fixed;
+	transform: translateZ(0);
+	will-change: transform;
 	left: 0;
 	right: 0;
 	bottom: 0;
