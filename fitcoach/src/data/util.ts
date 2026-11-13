@@ -249,3 +249,24 @@ export function upNext(program: Program | undefined, sessions: Session[], userId
 	const today = lastSession ? after(lastSession.dayId) : days[0];
 	return { rotation: true, today, todayDone: false, next: days.length > 1 ? { day: after(today.id), label: 'Después' } : null, last };
 }
+
+/**
+ * Valores para copiar en una serie: cada dato (reps, kg, RIR) se toma del entreno más reciente de
+ * ese mismo día y ejercicio en que esa serie lo tenga apuntado. Así un RIR o un peso que se dejó
+ * vacío la semana pasada se busca en semanas anteriores en lugar de copiar un hueco.
+ */
+export function fillValuesOf(sessions: Session[], userId: string, exerciseId: string, name: string, dayId: string, setIndex: number) {
+	const out: { reps: string; kg: string; rir: string } = { reps: '', kg: '', rir: '' };
+	for (const s of sessionsFor(sessions, userId).filter((x) => x.dayId === dayId)) {
+		const e = s.entries.find((x) => x.exerciseId === exerciseId && x.sets.length) ?? s.entries.find((x) => x.name === name && x.sets.length);
+		if (!e) continue;
+		const set = e.sets[setIndex] ?? e.sets[e.sets.length - 1];
+		if (!set) continue;
+		for (const k of ['reps', 'kg', 'rir'] as const) if (!out[k] && set[k]?.trim()) out[k] = set[k].trim();
+		if (out.reps && out.kg && out.rir) break;
+	}
+	return out;
+}
+
+/** RIR objetivo de un ejercicio para rellenar ("1 - 0" → "1", "F" → "F"). */
+export const targetRir = (rir: string) => rir.split('-')[0].trim();

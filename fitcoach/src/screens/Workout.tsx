@@ -4,7 +4,7 @@ import { ask, Scale } from '../components/ui';
 import { useStore } from '../data/store';
 import { getDraft, setDraft as storeDraft, type Draft } from '../data/draft';
 import type { SetLog } from '../data/types';
-import { bestSet, formatShort, lastLogOf, parseKg, setTarget, toISO } from '../data/util';
+import { bestSet, fillValuesOf, formatShort, lastLogOf, parseKg, setTarget, targetRir, toISO } from '../data/util';
 import { videoFor } from '../data/videos';
 
 type Step = { kind: 'readiness' } | { kind: 'set'; ex: number; set: number } | { kind: 'fatigue' } | { kind: 'done' };
@@ -61,7 +61,17 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 			// Entre series: el descanso del día. Al cambiar de ejercicio: 4 minutos.
 			const newExercise = fromSet && toSet && from.kind === 'set' && to.kind === 'set' && from.ex !== to.ex;
 			const rest = delta > 0 && fromSet && toSet ? restStart(newExercise) : delta > 0 && !toSet ? restIdle : d.rest;
-			return { ...d, stepIdx, rest };
+			// Si se apuntaron reps o kg y el RIR quedó vacío, se guarda el RIR objetivo que se veía en gris
+			let logs = d.logs;
+			if (delta > 0 && from?.kind === 'set') {
+				const cur = d.logs[from.ex][from.set];
+				const rir = targetRir(day.exercises[from.ex].rir);
+				if ((cur.reps.trim() || cur.kg.trim()) && !cur.rir.trim() && rir) {
+					logs = d.logs.map((l) => [...l]);
+					logs[from.ex][from.set] = { ...cur, rir };
+				}
+			}
+			return { ...d, stepIdx, rest, logs };
 		});
 
 	function finish() {
@@ -151,6 +161,7 @@ export default function Workout({ dayId, onExit }: { dayId: string; onExit: () =
 					value={draft.logs[step.ex][step.set]}
 					doneSets={draft.logs[step.ex]}
 					last={lastLogOf(db.sessions, me!.id, day.exercises[step.ex].id, day.exercises[step.ex].name, day.id)}
+					fill={fillValuesOf(db.sessions, me!.id, day.exercises[step.ex].id, day.exercises[step.ex].name, day.id, step.set)}
 					onChange={(v) =>
 						setDraft((d) => {
 							const logs = d.logs.map((l) => [...l]);
@@ -213,6 +224,7 @@ interface SetProps {
 	value: SetLog;
 	doneSets: SetLog[];
 	last: ReturnType<typeof lastLogOf>;
+	fill: { reps: string; kg: string; rir: string };
 	onChange: (v: SetLog) => void;
 	onPrev: () => void;
 	onNext: () => void;
@@ -224,11 +236,13 @@ interface SetProps {
 	onRest: (r: RestState) => void;
 }
 
-function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, onChange, onPrev, onNext, isLastSet, isLastExercise, nextExercise, rest, restText, onRest }: SetProps) {
+function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, fill, onChange, onPrev, onNext, isLastSet, isLastExercise, nextExercise, rest, restText, onRest }: SetProps) {
 	const n = Math.max(1, exercise.sets);
 	const prev = last?.entry.sets[setIndex] ?? last?.entry.sets[last.entry.sets.length - 1];
 	const set = (k: keyof SetLog, v: string) => onChange({ ...value, [k]: v });
 	const target = setTarget(exercise.reps, prev);
+	// Valores para los botones: los de la semana pasada, completando huecos con semanas anteriores y el RIR objetivo
+	const f = { ...fill, rir: fill.rir || targetRir(exercise.rir) || '0' };
 	const video = videoFor(exercise);
 	const nextLabel = !isLastSet ? 'Siguiente serie' : isLastExercise ? 'Terminar' : 'Próximo ejercicio';
 
@@ -317,19 +331,17 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 						<input value={value.rir} placeholder={exercise.rir.split('-')[0].trim() || '0'} onChange={(e) => set('rir', e.target.value.toUpperCase())} />
 					</label>
 				</div>
-				{prev && (prev.kg || prev.reps) && (
+				{(f.kg || f.reps) && (
 					<div className="quick-fill">
-						<span className="quick-fill-label">
-							Copiar de la semana pasada ({[prev.reps && `${prev.reps} reps`, prev.kg && `${prev.kg} kg`, prev.rir && `RIR ${prev.rir}`].filter(Boolean).join(' · ')})
-						</span>
-						<button disabled={!prev.kg} onClick={() => onChange({ ...value, kg: prev.kg })}>
+						<span className="quick-fill-label">Copiar de la semana pasada ({[f.reps && `${f.reps} reps`, f.kg && `${f.kg} kg`, `RIR ${f.rir}`].filter(Boolean).join(' · ')})</span>
+						<button disabled={!f.kg} onClick={() => onChange({ ...value, kg: f.kg })}>
 							Mismo peso
 						</button>
-						<button disabled={!prev.kg} onClick={() => onChange({ ...value, kg: prev.kg, rir: prev.rir || value.rir })}>
+						<button disabled={!f.kg} onClick={() => onChange({ ...value, kg: f.kg, rir: f.rir })}>
 							Mismo peso y RIR
 						</button>
-						<button onClick={() => onChange({ kg: prev.kg, reps: prev.reps, rir: prev.rir || value.rir })}>Todo igual</button>
-						<button disabled={!Number(prev.reps)} onClick={() => onChange({ kg: prev.kg, reps: String(Number(prev.reps) + 1), rir: prev.rir || value.rir })}>
+						<button onClick={() => onChange({ kg: f.kg || value.kg, reps: f.reps || value.reps, rir: f.rir })}>Todo igual</button>
+						<button disabled={!Number(f.reps)} onClick={() => onChange({ kg: f.kg || value.kg, reps: String(Number(f.reps) + 1), rir: f.rir })}>
 							Todo igual +1 repe
 						</button>
 					</div>
