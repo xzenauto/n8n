@@ -317,10 +317,20 @@ function SetScreen({ exIndex, setIndex, total, exercise, value, doneSets, last, 
 						<input value={value.rir} placeholder={exercise.rir.split('-')[0].trim() || '0'} onChange={(e) => set('rir', e.target.value.toUpperCase())} />
 					</label>
 				</div>
-				{prev?.kg && !value.kg && target.kind !== 'up' && (
-					<div style={{ padding: '0 14px 14px' }}>
-						<button className="btn ghost sm" style={{ width: '100%' }} onClick={() => onChange({ ...value, kg: prev.kg })}>
-							Usar mismo peso ({prev.kg} kg)
+				{prev && (prev.kg || prev.reps) && (
+					<div className="quick-fill">
+						<span className="quick-fill-label">
+							Copiar de la semana pasada ({[prev.reps && `${prev.reps} reps`, prev.kg && `${prev.kg} kg`, prev.rir && `RIR ${prev.rir}`].filter(Boolean).join(' · ')})
+						</span>
+						<button disabled={!prev.kg} onClick={() => onChange({ ...value, kg: prev.kg })}>
+							Mismo peso
+						</button>
+						<button disabled={!prev.kg} onClick={() => onChange({ ...value, kg: prev.kg, rir: prev.rir || value.rir })}>
+							Mismo peso y RIR
+						</button>
+						<button onClick={() => onChange({ kg: prev.kg, reps: prev.reps, rir: prev.rir || value.rir })}>Todo igual</button>
+						<button disabled={!Number(prev.reps)} onClick={() => onChange({ kg: prev.kg, reps: String(Number(prev.reps) + 1), rir: prev.rir || value.rir })}>
+							Todo igual +1 repe
 						</button>
 					</div>
 				)}

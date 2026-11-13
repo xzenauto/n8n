@@ -1333,3 +1333,38 @@ input[type='time']::-webkit-date-and-time-value {
 	height: auto;
 	margin: 0 0 18px;
 }
+
+/* Botones rápidos para copiar la serie de la semana pasada */
+.quick-fill {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	padding: 0 14px 14px;
+}
+.quick-fill-label {
+	grid-column: 1 / -1;
+	font-size: 11px;
+	font-weight: 700;
+	color: var(--ink-3);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.quick-fill button {
+	border: 1.5px solid var(--ink);
+	background: #fff;
+	color: var(--ink);
+	border-radius: 10px;
+	padding: 10px 6px;
+	font-weight: 800;
+	font-size: 13px;
+	cursor: pointer;
+}
+.quick-fill button:active {
+	background: var(--yellow);
+}
+.quick-fill button:last-child {
+	background: var(--yellow);
+}
+.quick-fill button:disabled {
+	opacity: 0.35;
+}

@@ -1,6 +1,6 @@
 // Service worker de Axis Athlete: guarda la app para abrir rápido y funcionar sin conexión.
 // Los datos (Supabase) nunca se cachean.
-const CACHE = 'appgym-v21';
+const CACHE = 'appgym-v22';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './img/icon-192.png'])));
