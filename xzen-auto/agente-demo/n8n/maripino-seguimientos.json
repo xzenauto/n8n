@@ -22,6 +22,61 @@
       }
     },
     {
+      "id": "c06769ee-f51d-5f95-9f1b-2758b287a33c",
+      "name": "GHL horarios libres",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/calendars/0YwJGtf0m8eI5hEacRMb/free-slots",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-04-15"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "startDate",
+              "value": "={{ Date.now() }}"
+            },
+            {
+              "name": "endDate",
+              "value": "={{ Date.now() + 7 * 864e5 }}"
+            },
+            {
+              "name": "timezone",
+              "value": "America/Mexico_City"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "u8Ru07QTVPNb28I6",
+          "name": "GHL - PIT - XzenAuto"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
       "id": "2085ec79-e1d9-5e03-993d-ace96047749f",
       "name": "GHL leads de Maripino",
       "type": "n8n-nodes-base.httpRequest",
@@ -239,7 +294,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Fin de semana: del sábado a las 17:00 al domingo a medianoche no hay seguimientos,\n// salvo que el cliente haya escrito en las últimas 3 horas (está activo en la conversación).\nconst pausaFinDeSemana = (ultimoInbound) => {\n  const ahoraMx = new Date();\n  const dia = ahoraMx.toLocaleString('en-US', { timeZone: 'America/Mexico_City', weekday: 'short' });\n  const hora = Number(ahoraMx.toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;\n  const pausa = (dia === 'Sat' && hora >= 17) || dia === 'Sun';\n  return pausa && !(ultimoInbound && Date.now() - new Date(ultimoInbound).getTime() < 3 * 3600e3);\n};\n// ¿A quién le toca seguimiento ahora? Horas desde el último mensaje de Maripino sin respuesta: 5, 7 y 12.\nconst HORAS = [5, 7, 12];\nconst H = 3600e3;\nconst candidatos = $('Candidatos').all();\nconst ahora = Date.now();\nconst horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;\nconst silencio = horaMx >= 23 || horaMx < 8;\nconst salida = [];\n\n$input.all().forEach((item, i) => {\n  const c = candidatos[i]?.json;\n  if (!c) return;\n  const prueba = c.tags.includes('test-maripino');\n  const u = prueba ? 60e3 : H; // en pruebas, minutos en lugar de horas\n  if (silencio && !prueba) return;\n\n  let msgs = [];\n  try { const m = item.json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\n  if (!Array.isArray(msgs)) msgs = [];\n  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));\n  const ultimoIn = [...msgs].reverse().find((m) => m.direction === 'inbound');\n  if (!ultimoIn) return;\n  const tIn = new Date(ultimoIn.dateAdded).getTime();\n  const despues = msgs.filter((m) => m.direction === 'outbound' && new Date(m.dateAdded).getTime() > tIn);\n  if (!despues.length) return; // aún no le hemos respondido\n  if (ahora - tIn > 23.5 * H) return; // fuera de la ventana de 24 h de WhatsApp\n  if (!prueba && pausaFinDeSemana(ultimoIn.dateAdded)) return;\n\n  const base = new Date(despues[0].dateAdded).getTime();\n  const ultimoOut = new Date(despues[despues.length - 1].dateAdded).getTime();\n  // El recordatorio del video cuenta como un seguimiento más.\n  const recordatorio = despues.some((m) => /pudo ver el video\\?\\s*🤖\\s*nos encantaría saber/i.test(m.body ?? '')) ? 1 : 0;\n  // Video sin comentar y sin recordatorio (p. ej. se mandó de noche y el recordatorio cayó en horario de silencio):\n  // este seguimiento hace de recordatorio del video.\n  const videoPendiente = !recordatorio && despues.some((m) => /youtu\\.?be/i.test(m.body ?? ''));\n  // Si aún no se le ha mandado el video, el seguimiento cambia de acercamiento y se lo comparte.\n  const enviarVideo = !msgs.some((m) => m.direction === 'outbound' && /youtu\\.?be/i.test(m.body ?? ''));\n  const hechos = Math.max([1, 2, 3].filter((k) => c.tags.includes(`seguimiento-${k}`)).length, 0) + recordatorio;\n  if (hechos >= HORAS.length) return;\n  const paso = hechos + 1;\n  if (ahora < base + HORAS[paso - 1] * u) return;\n  if (ahora - ultimoOut < (prueba ? 1 : 3) * u) return; // al menos 3 h desde nuestro último mensaje\n\n  const historial = msgs.slice(-16).map((m) => `${m.direction === 'inbound' ? 'Cliente' : 'xzen Auto'}: ${String(m.body ?? '').trim()}`)\n    .filter((l) => !l.endsWith(': ')).join('\\n');\n  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial, videoPendiente, enviarVideo } });\n});\nreturn salida;\n"
+        "jsCode": "// Fin de semana: del sábado a las 17:00 al domingo a medianoche no hay seguimientos,\n// salvo que el cliente haya escrito en las últimas 3 horas (está activo en la conversación).\nconst pausaFinDeSemana = (ultimoInbound) => {\n  const ahoraMx = new Date();\n  const dia = ahoraMx.toLocaleString('en-US', { timeZone: 'America/Mexico_City', weekday: 'short' });\n  const hora = Number(ahoraMx.toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;\n  const pausa = (dia === 'Sat' && hora >= 17) || dia === 'Sun';\n  return pausa && !(ultimoInbound && Date.now() - new Date(ultimoInbound).getTime() < 3 * 3600e3);\n};\n// Dos horarios libres del calendario (días distintos, de 9:00 a 18:00, al menos 3 h desde ahora) para proponer la llamada.\nconst horarios = (() => {\n  const libres = []; const j = $('GHL horarios libres').first().json ?? {};\n  for (const [dia, v] of Object.entries(j)) if (/^\\d{4}-\\d\\d-\\d\\d$/.test(dia)) for (const t of v?.slots ?? []) libres.push(t);\n  const tz = 'America/Mexico_City'; const elegidos = []; const dias = new Set();\n  for (const t of libres.sort()) {\n    const d = new Date(t); const h = Number(d.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false })) % 24;\n    const dia = d.toLocaleDateString('en-CA', { timeZone: tz });\n    if (d.getTime() < Date.now() + 3 * 3600e3 || h < 9 || h > 18 || dias.has(dia)) continue;\n    dias.add(dia);\n    const fecha = d.toLocaleDateString('es-MX', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' });\n    const hora = d.toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).replace('AM', 'a.m.').replace('PM', 'p.m.');\n    elegidos.push(`${fecha} a las ${hora}`);\n    if (elegidos.length === 2) break;\n  }\n  return elegidos.length ? elegidos.join(' o el ') + ' (hora de CDMX)' : '';\n})();\n\n// ¿A quién le toca seguimiento ahora? Horas desde el último mensaje de Maripino sin respuesta: 5, 7 y 12.\nconst HORAS = [5, 7, 12];\nconst H = 3600e3;\nconst candidatos = $('Candidatos').all();\nconst ahora = Date.now();\nconst horaMx = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false })) % 24;\nconst silencio = horaMx >= 23 || horaMx < 8;\nconst salida = [];\n\n$input.all().forEach((item, i) => {\n  const c = candidatos[i]?.json;\n  if (!c) return;\n  const prueba = c.tags.includes('test-maripino');\n  const u = prueba ? 60e3 : H; // en pruebas, minutos en lugar de horas\n  if (silencio && !prueba) return;\n\n  let msgs = [];\n  try { const m = item.json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}\n  if (!Array.isArray(msgs)) msgs = [];\n  msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));\n  const ultimoIn = [...msgs].reverse().find((m) => m.direction === 'inbound');\n  if (!ultimoIn) return;\n  const tIn = new Date(ultimoIn.dateAdded).getTime();\n  const despues = msgs.filter((m) => m.direction === 'outbound' && new Date(m.dateAdded).getTime() > tIn);\n  if (!despues.length) return; // aún no le hemos respondido\n  if (ahora - tIn > 23.5 * H) return; // fuera de la ventana de 24 h de WhatsApp\n  if (!prueba && pausaFinDeSemana(ultimoIn.dateAdded)) return;\n\n  const base = new Date(despues[0].dateAdded).getTime();\n  const ultimoOut = new Date(despues[despues.length - 1].dateAdded).getTime();\n  // El recordatorio del video cuenta como un seguimiento más.\n  const recordatorio = despues.some((m) => /pudo ver el video\\?\\s*🤖\\s*nos encantaría saber/i.test(m.body ?? '')) ? 1 : 0;\n  // Video sin comentar y sin recordatorio (p. ej. se mandó de noche y el recordatorio cayó en horario de silencio):\n  // este seguimiento hace de recordatorio del video.\n  const videoPendiente = !recordatorio && despues.some((m) => /youtu\\.?be/i.test(m.body ?? ''));\n  // Si aún no se le ha mandado el video, el seguimiento cambia de acercamiento y se lo comparte.\n  const enviarVideo = !msgs.some((m) => m.direction === 'outbound' && /youtu\\.?be/i.test(m.body ?? ''));\n  const hechos = Math.max([1, 2, 3].filter((k) => c.tags.includes(`seguimiento-${k}`)).length, 0) + recordatorio;\n  if (hechos >= HORAS.length) return;\n  const paso = hechos + 1;\n  if (ahora < base + HORAS[paso - 1] * u) return;\n  if (ahora - ultimoOut < (prueba ? 1 : 3) * u) return; // al menos 3 h desde nuestro último mensaje\n\n  const historial = msgs.slice(-16).map((m) => `${m.direction === 'inbound' ? 'Cliente' : 'xzen Auto'}: ${String(m.body ?? '').trim()}`)\n    .filter((l) => !l.endsWith(': ')).join('\\n');\n  const variante = c.tags.includes('experimento-b') ? 'b' : 'a';\n  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial, videoPendiente, enviarVideo, variante, horarios } });\n});\nreturn salida;\n"
       }
     },
     {
@@ -258,7 +313,7 @@
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: [{ role: 'system', content: \"Eres Maripino, asistente virtual de xzen Auto (automatización con IA para negocios, ahora para agencias de viajes).\\nEl cliente dejó de responder por WhatsApp. Escribe UN mensaje MUY corto de seguimiento: 1 o 2 frases, máximo 25 palabras.\\nDebe sentirse ligero y nada invasivo: sin presión, sin explicar de más, sin listas de beneficios.\\n- NUNCA escriba el nombre del cliente: diríjase a él sin nombre.\\n- Trate de USTED al cliente; amigable y profesional; español de México; nada de caritas (😊, 😉…): como mucho un 🤖.\\n- Retome la conversación con naturalidad, sin repetir textualmente mensajes anteriores.\\n- NUNCA vuelva a preguntar lo mismo que el último mensaje de xzen Auto (si ya se preguntó por el video, no pregunte otra vez por el video): cambie de ángulo.\\n- Tono ligero, nada insistente ni de reclamo; no diga \\\"solo quería saber si…\\\" ni \\\"le escribo de nuevo\\\".\\n- No repita beneficios que ya se dijeron en la conversación ni lo que el cliente ya contó.\\n- Si se indica \\\"Enviar video\\\": NO retome la pregunta pendiente (eso se siente insistente). Cambie de acercamiento:\\n  comparta el video con una frase breve e invítelo a verlo cuando pueda. Incluya el link exacto https://youtu.be/t2bvakV2WMw\\n  Ejemplo: \\\"Le dejo este video corto donde se ve cómo funciona el sistema en una agencia de viajes 🤖 https://youtu.be/t2bvakV2WMw\\\"\\n- Si se indica que el video está pendiente: pregúntele con naturalidad si pudo ver el video y qué le pareció (sin volver a mandar el link).\\n- Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: una sola idea concreta del sistema relacionada con lo que contó (sin volver a preguntar lo mismo). Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.\\n- No mencione precios en el seguimiento. No invente datos. No diga que es un seguimiento automático.\\n- Responda solo con el texto del mensaje.\" }, { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.' + ($json.enviarVideo ? ' Enviar video: aún no se le ha mandado el video.' : '') + ($json.videoPendiente ? ' Video pendiente: el cliente aún no comenta el video y no se le ha preguntado por él.' : '') + '\\n\\nConversación:\\n' + $json.historial } ] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: [{ role: 'system', content: \"Eres Maripino, asistente virtual de xzen Auto (automatización con IA para negocios, ahora para agencias de viajes).\\nEl cliente dejó de responder por WhatsApp. Escribe UN mensaje MUY corto de seguimiento: 1 o 2 frases, máximo 25 palabras.\\nDebe sentirse ligero y nada invasivo: sin presión, sin explicar de más, sin listas de beneficios.\\n- NUNCA escriba el nombre del cliente: diríjase a él sin nombre.\\n- Trate de USTED al cliente; amigable y profesional; español de México; nada de caritas (😊, 😉…): como mucho un 🤖.\\n- Retome la conversación con naturalidad, sin repetir textualmente mensajes anteriores.\\n- NUNCA vuelva a preguntar lo mismo que el último mensaje de xzen Auto (si ya se preguntó por el video, no pregunte otra vez por el video): cambie de ángulo.\\n- Tono ligero, nada insistente ni de reclamo; no diga \\\"solo quería saber si…\\\" ni \\\"le escribo de nuevo\\\".\\n- No repita beneficios que ya se dijeron en la conversación ni lo que el cliente ya contó.\\n- Si se indica \\\"Enviar video\\\": NO retome la pregunta pendiente (eso se siente insistente). Cambie de acercamiento:\\n  comparta el video con una frase breve e invítelo a verlo cuando pueda. Incluya el link exacto https://youtu.be/t2bvakV2WMw\\n  Ejemplo: \\\"Le dejo este video corto donde se ve cómo funciona el sistema en una agencia de viajes 🤖 https://youtu.be/t2bvakV2WMw\\\"\\n- Si se indica que el video está pendiente: pregúntele con naturalidad si pudo ver el video y qué le pareció (sin volver a mandar el link).\\n- Seguimiento 1: retome con naturalidad lo pendiente. Seguimiento 2: una sola idea concreta del sistema relacionada con lo que contó (sin volver a preguntar lo mismo). Seguimiento 3 (último): despedida amable, deje la puerta abierta para cuando quiera retomar o agendar la llamada.\\n- No mencione precios en el seguimiento. No invente datos. No diga que es un seguimiento automático.\\n- Responda solo con el texto del mensaje.\" }, { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.' + ($json.enviarVideo ? ' Enviar video: aún no se le ha mandado el video.' : '') + ($json.videoPendiente && $json.variante !== 'b' ? ' Video pendiente: el cliente aún no comenta el video y no se le ha preguntado por él.' : '') + ($json.variante === 'b' && $json.horarios && $json.paso < 3 ? ' Guion directo: en este seguimiento proponga la videollamada de 20 min en uno de estos horarios: ' + $json.horarios + '. Pregunte cuál le acomoda (no pregunte por el video).' : '') + '\\n\\nConversación:\\n' + $json.historial } ] }) }}",
         "options": {}
       },
       "credentials": {
@@ -365,6 +420,17 @@
   ],
   "connections": {
     "Cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "GHL horarios libres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL horarios libres": {
       "main": [
         [
           {

@@ -155,6 +155,7 @@ return [{ json: {
   // Pruebas: {"simulacion": true, "historial": [{"rol": "cliente"|"maripino", "texto": "..."}]}
   simulacion: b.simulacion === true,
   historialSimulado: Array.isArray(b.historial) ? b.historial : null,
+  varianteForzada: ['a', 'b'].includes(b.variante) ? b.variante : null, // solo para pruebas
 } }];
 """
 
@@ -306,9 +307,17 @@ ${historial.length ? historial.map((m) => `${m.rol}: ${m.texto}`).join('\n') : '
 # Mensaje(s) nuevo(s) del cliente
 ${nuevos.join('\n')}`;
 
+// Experimento A/B: los leads nuevos se reparten 50/50 de forma estable (por su id); los que ya tenían conversación
+// antes del experimento siguen con el guion A. La variante queda en la etiqueta experimento-a / experimento-b.
+const hashId = [...String(ent.contactId)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
+const variante = ent.varianteForzada ?? (tags.includes('experimento-b') ? 'b' : tags.includes('experimento-a') ? 'a'
+  : (!opp ? (hashId % 2 ? 'b' : 'a') : 'a'));
+
 return [{ json: {
   contactId: ent.contactId,
   simulacion: ent.simulacion,
+  variante,
+  sistema: variante === 'b' ? SISTEMA_B : SISTEMA_A,
   nombre: limpio(contacto.firstName),
   nombreCompleto: [contacto.firstName, contacto.lastName].map(limpio).filter(Boolean).join(' '),
   email: limpio(contacto.email),
@@ -454,6 +463,38 @@ Si el cliente pide hablar con una persona, está molesto, o pregunta algo que no
 - Nunca repita una pregunta que ya tenga respuesta en el CRM o en la conversación.
 """
 
+# ---------------------------------------------------------------- experimento A/B del guion
+# A (control): 3 preguntas → video ("¿me cuenta qué le pareció?") → llamada.
+# B (directo a la llamada): 1 pregunta de dolor → valor + video + 2 horarios en el mismo turno; los datos del CRM
+#   (ciudad, inversión, leads) se piden después, sin frenar la agenda.
+_OBJ_INI = SYSTEM.index("# Objetivo de la conversación")
+_OBJ_FIN = SYSTEM.index("# Curso formativo del sistema")
+OBJETIVO_B = """# Objetivo de la conversación (guion directo a la llamada)
+La meta es AGENDAR la videollamada con el equipo lo antes posible, sin interrogatorios.
+1. Primer mensaje: corto, un solo mensaje. Saludo (sin nombre), preséntese como Maripino de xzen Auto y haga UNA
+   pregunta fácil de contestar sobre su dolor. Ejemplo:
+   "Hola, ¿cómo está? Soy Maripino, de xzen Auto 🤖 Gracias por escribirnos. Para orientarle rápido: ¿hoy se le juntan
+   mensajes de clientes que no alcanza a contestar a tiempo?"
+2. Con su respuesta (sea cual sea), en ESE MISMO turno:
+   - Conecte en una frase con lo que hace el sistema (que cada viajero reciba respuesta al momento y nadie se quede sin seguimiento).
+   - Comparta el video como apoyo, no como tarea: "Aquí puede ver cómo funciona en una agencia: https://youtu.be/t2bvakV2WMw"
+   - Proponga la videollamada de 20-30 min por Zoom con 2 horarios concretos (use consultar_disponibilidad), con el más cercano primero.
+     Ejemplo: "Lo más fácil es mostrárselo con su caso en una videollamada de 20 min. ¿Le acomoda hoy a las 4:00 p.m. o mañana a las 10:00 a.m. (hora de CDMX)?"
+   No pida que vea el video y le cuente qué le pareció: eso frena la conversación.
+3. Si duda, dice que está ocupado, que lo ve luego o "yo le aviso": no lo deje abierto. Ofrézcale UN horario concreto
+   más adelante, tomado de consultar_disponibilidad (nunca invente horarios), o pregúntele qué día le queda mejor.
+4. Si pregunta algo (precio, cómo funciona, canales…), respóndale breve y vuelva a proponer 2 horarios.
+5. Datos para el CRM (desde dónde nos contacta, si invierte en anuncios de Facebook, cuántos leads recibe a la semana):
+   NO los pida antes de proponer la llamada. Si el cliente los menciona, guárdelos. Después de agendar puede pedirlos
+   en un solo mensaje para preparar la llamada ("Para preparar la llamada: ¿desde qué ciudad nos escribe, invierte en
+   anuncios de Facebook y cuántas consultas recibe a la semana?").
+   Si dice que NO invierte en anuncios de Facebook, coméntele que el curso formativo del sistema, que ya va incluido,
+   tiene un módulo donde le enseñamos a pautar en Facebook para conseguir leads.
+6. El video se manda una sola vez.
+
+"""
+SYSTEM_B = SYSTEM[:_OBJ_INI] + OBJETIVO_B + SYSTEM[_OBJ_FIN:]
+
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -542,7 +583,7 @@ if (limpio(d.negocio) && !c.negocio) contacto.companyName = limpio(d.negocio);
 const partes = limpio(d.nombre_completo).split(/\s+/).filter(Boolean);
 if (partes.length > 1) { contacto.firstName = partes[0]; contacto.lastName = partes.slice(1).join(' '); }
 
-const tags = ['maripino', c.tagVertical];
+const tags = ['maripino', c.tagVertical, 'experimento-' + c.variante];
 if (salida.videoEnviado) tags.push('video-enviado');
 if (citaOk) tags.push('cita-agendada');
 if (out.atencion_personalizada) tags.push('atencion-personalizada');
@@ -691,6 +732,8 @@ def si(nombre, pos, expresion):
 
 A = "$('Analizar').first().json"
 ANALIZAR = ANALIZAR.replace("__USAR_BUFFER__", "true" if USAR_BUFFER else "false")
+ANALIZAR = ("const SISTEMA_A = " + json.dumps(SYSTEM, ensure_ascii=False) + ";\nconst SISTEMA_B = "
+            + json.dumps(SYSTEM_B, ensure_ascii=False) + ";\n" + ANALIZAR)
 
 nodos = [
     nodo("Mensaje WhatsApp (GHL)", "n8n-nodes-base.webhook", 2, [0, 300],
@@ -744,14 +787,14 @@ nodos = [
                " name: $json.nombreCompleto || $json.nombre || 'Prospecto' }) }}",
         onError="continueRegularOutput"),
     ghl("GHL guardar anuncio", [2000, 120], "PUT", "=" + GHL + "/contacts/{{ " + A + ".contactId }}",
-        cuerpo="={{ JSON.stringify({ tags: [...new Set([...(" + A + ".tags), 'maripino', " + A + ".tagVertical])],"
+        cuerpo="={{ JSON.stringify({ tags: [...new Set([...(" + A + ".tags), 'maripino', " + A + ".tagVertical, 'experimento-' + " + A + ".variante])],"
                " customFields: [{ id: '" + CFG["campos"]["anuncio"] + "', field_value: " + A + ".anuncioTexto }] }) }}",
         onError="continueRegularOutput"),
     nodo("Maripino", "@n8n/n8n-nodes-langchain.agent", 3.1, [2260, 300], {
         "promptType": "define",
         "text": "={{ " + A + ".prompt }}",
         "hasOutputParser": True,
-        "options": {"systemMessage": SYSTEM, "maxIterations": 8, "returnIntermediateSteps": True},
+        "options": {"systemMessage": "={{ " + A + ".sistema }}", "maxIterations": 8, "returnIntermediateSteps": True},
     }, retryOnFail=True, onError="continueErrorOutput"),
     nodo("OpenAI", "@n8n/n8n-nodes-langchain.lmChatOpenAi", 1.2, [2060, 560], {
         "model": {"__rl": True, "mode": "list", "value": "gpt-4.1"},
@@ -951,7 +994,25 @@ return ($('GHL leads de Maripino').first().json.contacts ?? [])
   .map((c) => ({ json: { contactId: c.id, nombre: c.nombre, tags: c.tags } }));
 """
 
-SEG_DECIDIR = FDS_JS + r"""// ¿A quién le toca seguimiento ahora? Horas desde el último mensaje de Maripino sin respuesta: 5, 7 y 12.
+SEG_DECIDIR = FDS_JS + r"""// Dos horarios libres del calendario (días distintos, de 9:00 a 18:00, al menos 3 h desde ahora) para proponer la llamada.
+const horarios = (() => {
+  const libres = []; const j = $('GHL horarios libres').first().json ?? {};
+  for (const [dia, v] of Object.entries(j)) if (/^\d{4}-\d\d-\d\d$/.test(dia)) for (const t of v?.slots ?? []) libres.push(t);
+  const tz = 'America/Mexico_City'; const elegidos = []; const dias = new Set();
+  for (const t of libres.sort()) {
+    const d = new Date(t); const h = Number(d.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false })) % 24;
+    const dia = d.toLocaleDateString('en-CA', { timeZone: tz });
+    if (d.getTime() < Date.now() + 3 * 3600e3 || h < 9 || h > 18 || dias.has(dia)) continue;
+    dias.add(dia);
+    const fecha = d.toLocaleDateString('es-MX', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' });
+    const hora = d.toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).replace('AM', 'a.m.').replace('PM', 'p.m.');
+    elegidos.push(`${fecha} a las ${hora}`);
+    if (elegidos.length === 2) break;
+  }
+  return elegidos.length ? elegidos.join(' o el ') + ' (hora de CDMX)' : '';
+})();
+
+// ¿A quién le toca seguimiento ahora? Horas desde el último mensaje de Maripino sin respuesta: 5, 7 y 12.
 const HORAS = [5, 7, 12];
 const H = 3600e3;
 const candidatos = $('Candidatos').all();
@@ -996,7 +1057,8 @@ $input.all().forEach((item, i) => {
 
   const historial = msgs.slice(-16).map((m) => `${m.direction === 'inbound' ? 'Cliente' : 'xzen Auto'}: ${String(m.body ?? '').trim()}`)
     .filter((l) => !l.endsWith(': ')).join('\n');
-  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial, videoPendiente, enviarVideo } });
+  const variante = c.tags.includes('experimento-b') ? 'b' : 'a';
+  salida.push({ json: { contactId: c.contactId, nombre: c.nombre, paso, historial, videoPendiente, enviarVideo, variante, horarios } });
 });
 return salida;
 """
@@ -1020,7 +1082,8 @@ Debe sentirse ligero y nada invasivo: sin presión, sin explicar de más, sin li
 
 SEG_CUERPO_OPENAI = ("={{ JSON.stringify({ model: 'gpt-4.1', temperature: 0.5, messages: ["
                      "{ role: 'system', content: " + json.dumps(SEG_PROMPT, ensure_ascii=False) + " },"
-                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.' + ($json.enviarVideo ? ' Enviar video: aún no se le ha mandado el video.' : '') + ($json.videoPendiente ? ' Video pendiente: el cliente aún no comenta el video y no se le ha preguntado por él.' : '')"
+                     " { role: 'user', content: 'Seguimiento número ' + $json.paso + ' de 3. No use el nombre del cliente.' + ($json.enviarVideo ? ' Enviar video: aún no se le ha mandado el video.' : '') + ($json.videoPendiente && $json.variante !== 'b' ? ' Video pendiente: el cliente aún no comenta el video y no se le ha preguntado por él.' : '')"
+                     " + ($json.variante === 'b' && $json.horarios && $json.paso < 3 ? ' Guion directo: en este seguimiento proponga la videollamada de 20 min en uno de estos horarios: ' + $json.horarios + '. Pregunte cuál le acomoda (no pregunte por el video).' : '')"
                      " + '\\n\\nConversación:\\n' + $json.historial } ] }) }}")
 
 SEG_MENSAJE = ROBOT_JS + r"""const d = $('¿Toca seguimiento?').all();
@@ -1034,6 +1097,9 @@ return $input.all().map((item, i) => ({ json: {
 seg_nodos = [
     nodo("Cada 15 minutos", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 0],
          {"rule": {"interval": [{"field": "minutes", "minutesInterval": 15}]}}),
+    ghl("GHL horarios libres", [100, 0], "GET", GHL + "/calendars/" + CALENDAR_ID + "/free-slots",
+        query={"startDate": "={{ Date.now() }}", "endDate": "={{ Date.now() + 7 * 864e5 }}", "timezone": "America/Mexico_City"},
+        version_api="2021-04-15", onError="continueRegularOutput", alwaysOutputData=True),
     ghl("GHL leads de Maripino", [200, 0], "POST", GHL + "/contacts/search",
         cuerpo=json.dumps({"locationId": LOCATION_ID, "pageLimit": 100,
                            "filters": [{"field": "tags", "operator": "contains", "value": "maripino"}]})),
@@ -1293,6 +1359,13 @@ const estado = (l) => {
   if (l.tags.some((t) => t.startsWith('seguimiento-'))) return 'En seguimiento';
   return 'En conversación';
 };
+const experimento = ['a', 'b'].map((v) => {
+  const ls = leads.filter((l) => l.tags.includes('experimento-' + v));
+  const agendan = ls.filter((l) => l.tags.includes('cita-agendada')).length;
+  return [v === 'a' ? 'A · 3 preguntas + video' : 'B · directo a la llamada', num(ls.length),
+    num(ls.filter((l) => l.tags.includes('video-enviado') || campo(l.c, 'ubicacion')).length), num(agendan),
+    ls.length ? Math.round(100 * agendan / ls.length) + '%' : '-'];
+});
 const contar = (arr, f) => arr.reduce((m, x) => { const k = f(x); if (k) m[k] = (m[k] || 0) + 1; return m; }, {});
 const porEstado = contar(leads, estado);
 const porEtapa = contar(leads.filter((l) => l.o), (l) => etapaNombre[l.o.pipelineStageId] || 'Otra');
@@ -1340,6 +1413,7 @@ ${h2('Leads por anuncio (GHL)')}${tabla(['Anuncio', 'Ayer', '7 días', 'Total'],
 ${h2('Anuncios · ayer')}${meta.ayer ? tabla(cabMeta, filasMeta(meta.ayer, deAyer)) : `<p style="color:#b00">⚠️ Sin datos de Meta (${esc(metaError)}). Revisa la credencial «Meta Ads XzenAuto» en n8n.</p>`}
 ${meta.semana ? h2('Anuncios · últimos 7 días') + tabla(cabMeta, filasMeta(meta.semana, deSemana)) : ''}
 ${meta.total ? h2('Anuncios · desde el inicio') + tabla(cabMeta, filasMeta(meta.total, leads)) : ''}
+${h2('Experimento de guion (A: 3 preguntas + video · B: directo a la llamada)')}${tabla(['Variante', 'Leads', 'Contestan', 'Agendan', 'Tasa de agenda'], experimento)}
 ${h2('Estado de los leads (total)')}${tabla(['Estado', 'Leads'], Object.entries(porEstado).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, num(v)]))}
 ${h2('Pipeline XzenAuto')}${tabla(['Columna', 'Oportunidades'], (pipe?.stages ?? []).map((s) => [esc(s.name), num(porEtapa[s.name] || 0)]))}
 ${h2('Ciudades que más nos contactan')}${ciudades.length ? tabla(['Ciudad', 'Leads'], ciudades.map(([k, v]) => [esc(k), num(v)])) : '<p>Aún sin datos.</p>'}

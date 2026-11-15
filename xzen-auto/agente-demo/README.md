@@ -84,6 +84,13 @@ cuando el cliente escribe.
 - Si el cliente muestra interés, ofrece 2-3 horarios en ese mismo mensaje (sin preguntar antes "¿le comparto opciones?").
 - Si el video se mandó y el recordatorio de 1 h cayó en horario de silencio, el primer seguimiento hace de recordatorio del video.
 
+## Experimento A/B del guion (desde el 15 nov)
+
+Cada lead nuevo se asigna 50/50 a **A** (3 preguntas → video → horarios) o **B** (1 pregunta de dolor → valor + video +
+2 horarios en el mismo turno; datos del CRM después de agendar). Etiquetas `experimento-a` / `experimento-b`; en la B los
+seguimientos proponen 2 horarios reales del calendario. Resultados en el reporte diario. Estudio completo:
+[estudio-agendas.md](estudio-agendas.md).
+
 ## Precio (solo si el cliente pregunta)
 
 Promoción de noviembre: implementación $5,000 MXN y el primer mes de prueba gratis; si continúa, $2,000 MXN mensuales.
