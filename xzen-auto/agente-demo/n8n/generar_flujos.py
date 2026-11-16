@@ -223,6 +223,10 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
   try { const m = $('GHL mensajes').first().json.messages; msgs = (m && (m.messages || m)) || []; } catch (e) {}
   if (!Array.isArray(msgs)) msgs = [];
   msgs = msgs.filter((m) => /WHATSAPP/.test(m.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+  // Notas de voz: sus transcripciones (nodo "Juntar transcripciones") reemplazan el cuerpo vacío del mensaje.
+  let transcritos = {};
+  try { transcritos = $('Juntar transcripciones').first().json.transcripciones ?? {}; } catch (e) {}
+  msgs = msgs.map((m) => transcritos[m.id] ? { ...m, body: `[nota de voz] ${transcritos[m.id]}` } : m);
   // Cliente directo: si mandó varios mensajes seguidos, el evento "Contacto creado" (el primero) no lo atiende;
   // lo atiende la ejecución del último mensaje.
   if (esDirecto && ent.contactoCreado && msgs.filter((m) => m.direction === 'inbound').length > 1) return [];
@@ -246,8 +250,10 @@ if (ent.simulacion || (esPrueba && ent.historialSimulado)) {
   }
   let corte = msgs.length;
   while (corte > 0 && msgs[corte - 1].direction === 'inbound') corte--;
-  nuevos = (buffer.textos ?? []).length ? buffer.textos.map(limpio)
-    : msgs.slice(corte).map((m) => limpio(m.body) || '[audio, imagen o archivo sin texto]');
+  // Los mensajes nuevos se toman del historial de GHL (incluye las notas de voz transcritas); el buffer solo de respaldo.
+  const delHistorial = msgs.slice(corte).map((m) => limpio(m.body) || ((m.attachments ?? []).length
+    ? '[envió una imagen o archivo sin texto]' : '[mensaje sin texto]'));
+  nuevos = delHistorial.length ? delHistorial : (buffer.textos ?? []).map(limpio);
   historial = msgs.slice(Math.max(0, corte - 20), corte)
     .map((m) => ({ rol: m.direction === 'inbound' ? 'Cliente' : 'xzen Auto', texto: limpio(m.body) }))
     .filter((m) => m.texto);
@@ -461,6 +467,28 @@ Si el cliente pide hablar con una persona, está molesto, o pregunta algo que no
 # Reglas
 - No invente funciones, integraciones, clientes, casos de éxito ni resultados.
 - Nunca repita una pregunta que ya tenga respuesta en el CRM o en la conversación.
+"""
+
+AUDIOS = r"""// Notas de voz del cliente que aún no tienen respuesta (los últimos mensajes entrantes): se transcriben.
+let m = $json.messages; m = (m && (m.messages || m)) || [];
+if (!Array.isArray(m)) m = [];
+m = m.filter((x) => /WHATSAPP/.test(x.messageType ?? '')).sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+let corte = m.length;
+while (corte > 0 && m[corte - 1].direction === 'inbound') corte--;
+const audios = m.slice(corte).slice(-5).flatMap((x) => (x.attachments ?? [])
+  .filter((u) => /\.(ogg|oga|opus|mp3|m4a|aac|amr|wav|webm)(\?|$)/i.test(String(u)))
+  .slice(0, 1).map((url) => ({ json: { id: x.id, url } })));
+return audios.length ? audios : [{ json: { sinAudios: true } }];
+"""
+
+JUNTAR_AUDIOS = r"""// Une las transcripciones por id de mensaje (si una falla, ese audio queda como "[mensaje sin texto]").
+const pend = $('Audios pendientes').all();
+const transcripciones = {};
+$input.all().forEach((it, i) => {
+  const t = String(it.json.text ?? '').trim();
+  if (t && pend[i]?.json.id) transcripciones[pend[i].json.id] = t;
+});
+return [{ json: { transcripciones } }];
 """
 
 # ---------------------------------------------------------------- experimento A/B del guion
@@ -767,6 +795,25 @@ nodos = [
     ghl("GHL mensajes", [1200, 300], "GET",
         "=" + GHL + "/conversations/{{ ($json.conversations || [])[0]?.id || 'sin-conversacion' }}/messages",
         query={"limit": "40"}, onError="continueRegularOutput", alwaysOutputData=True),
+    # Notas de voz → texto (OpenAI). Si falla la descarga o la transcripción, sigue sin ella.
+    nodo("Audios pendientes", "n8n-nodes-base.code", 2, [1250, 500], {"jsCode": AUDIOS}),
+    si("¿Hay audios?", [1300, 500], "={{ !!$json.url }}"),
+    nodo("Descargar audio", "n8n-nodes-base.httpRequest", 4.2, [1350, 640], {
+        "url": "={{ $json.url }}",
+        "options": {"response": {"response": {"responseFormat": "file", "outputPropertyName": "audio"}}},
+    }, onError="continueRegularOutput"),
+    nodo("Transcribir audio", "n8n-nodes-base.httpRequest", 4.2, [1400, 640], {
+        "method": "POST", "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "openAiApi",
+        "sendBody": True, "contentType": "multipart-form-data",
+        "bodyParameters": {"parameters": [
+            {"parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "audio"},
+            {"name": "model", "value": "gpt-4o-mini-transcribe"},
+            {"name": "language", "value": "es"},
+        ]},
+        "options": {},
+    }, CRED_OPENAI, onError="continueRegularOutput"),
+    nodo("Juntar transcripciones", "n8n-nodes-base.code", 2, [1450, 500], {"jsCode": JUNTAR_AUDIOS}),
     nodo("Analizar", "n8n-nodes-base.code", 2, [1400, 300], {"jsCode": ANALIZAR}),
     # Cliente que no viene de un anuncio → oportunidad en Atención personalizada + etiqueta + correo.
     si("¿Cliente directo?", [1500, 300], "={{ $json.directo === true }}"),
@@ -918,9 +965,15 @@ if not USAR_BUFFER:
 cadena = (["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Buffer · guardar", "Esperar ráfaga (12 s)", "Buffer · tomar",
            "¿Último mensaje?", "GHL contacto"] if USAR_BUFFER else
           ["Mensaje WhatsApp (GHL)", "Normalizar entrada", "Esperar ráfaga (12 s)", "GHL contacto"]) + [
-          "GHL oportunidades", "GHL conversación", "GHL mensajes", "Analizar", "¿Cliente directo?"]
+          "GHL oportunidades", "GHL conversación", "GHL mensajes", "Audios pendientes", "¿Hay audios?"]
 for a, b in zip(cadena, cadena[1:]):
     une(a, b)
+une("¿Hay audios?", "Descargar audio", salida=0)
+une("Descargar audio", "Transcribir audio")
+une("Transcribir audio", "Juntar transcripciones")
+une("Juntar transcripciones", "Analizar")
+une("¿Hay audios?", "Analizar", salida=1)
+une("Analizar", "¿Cliente directo?")
 une("¿Cliente directo?", "GHL oportunidad directo", salida=0)
 une("GHL oportunidad directo", "GHL etiqueta directo")
 une("GHL etiqueta directo", "Correo nuevo cliente")

@@ -91,6 +91,11 @@ Cada lead nuevo se asigna 50/50 a **A** (3 preguntas → video → horarios) o *
 seguimientos proponen 2 horarios reales del calendario. Resultados en el reporte diario. Estudio completo:
 [estudio-agendas.md](estudio-agendas.md).
 
+## Notas de voz
+
+Si el cliente manda audios, se descargan y se transcriben con OpenAI (gpt-4o-mini-transcribe, español) antes de que
+Maripino conteste; le llegan como «[nota de voz] …». Si la transcripción falla, Maripino lo ve como mensaje sin texto.
+
 ## Precio (solo si el cliente pregunta)
 
 Promoción de noviembre: implementación $5,000 MXN y el primer mes de prueba gratis; si continúa, $2,000 MXN mensuales.
