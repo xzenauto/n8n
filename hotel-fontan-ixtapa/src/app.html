@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13313D">
+<title>Fontán Ixtapa Huéspedes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: app móvil de una columna, encabezado fijo + barra de pestañas inferior; en escritorio se centra como teléfono. */
+:root{
+  --ink:#13313D;          /* azul profundo del logotipo */
+  --teal:#3E8B93;         /* turquesa del isotipo */
+  --teal-strong:#2F6F76;
+  --mist:#B6CCD0;         /* fondo del logotipo */
+  --bg:#EDF3F4;
+  --surface:#FFFFFF;
+  --surface-2:#F4F8F9;
+  --line:#D5E2E4;
+  --muted:#5A7279;
+  --sun:#D9774A;          /* atardecer del Pacífico, sólo para "ahora" */
+  --sun-soft:#FBE7DC;
+  --ok:#2E8B5B; --ok-soft:#DDF1E6;
+  --warn:#B7791F; --warn-soft:#FBEFD5;
+  --on-teal:#FFFFFF;
+  --shadow:0 1px 2px rgba(19,49,61,.06),0 8px 24px rgba(19,49,61,.08);
+  --f-display:"Outfit","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
+  --r:16px; --r-sm:10px;
+  --tabbar:64px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#E3EEF0;--teal:#5FB0B8;--teal-strong:#7CC3CA;--mist:#2A4A55;--bg:#0A1C23;--surface:#112A33;--surface-2:#16343E;--line:#22434E;--muted:#93ADB3;--sun:#F0956B;--sun-soft:#3A2A22;--ok:#5CC18C;--ok-soft:#173A2A;--warn:#E3B05A;--warn-soft:#3A3020;--on-teal:#06222A;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#E3EEF0;--teal:#5FB0B8;--teal-strong:#7CC3CA;--mist:#2A4A55;--bg:#0A1C23;--surface:#112A33;--surface-2:#16343E;--line:#22434E;--muted:#93ADB3;--sun:#F0956B;--sun-soft:#3A2A22;--ok:#5CC18C;--ok-soft:#173A2A;--warn:#E3B05A;--warn-soft:#3A3020;--on-teal:#06222A;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:6px}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.15;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.6rem;font-weight:600}
+h2{font-size:1.2rem;font-weight:600}
+h3{font-size:1rem;font-weight:600}
+p{margin:0}
+img{max-width:100%;display:block}
+[hidden]{display:none!important}
+.eyebrow{font:600 .7rem/1 var(--f-display);text-transform:uppercase;letter-spacing:.14em;color:var(--teal)}
+.muted{color:var(--muted)}
+.small{font-size:.82rem}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- marco ---------- */
+.app{max-width:480px;margin:0 auto;min-height:100%;background:var(--bg);position:relative;padding-bottom:calc(var(--tabbar) + env(safe-area-inset-bottom,0px) + 24px)}
+@media (min-width:600px){body{background:var(--mist)}.app{box-shadow:0 0 0 1px var(--line),0 30px 80px rgba(19,49,61,.18)}}
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;gap:12px;border-bottom:1px solid transparent}
+.topbar.scrolled{border-bottom-color:var(--line)}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-decoration:none;color:inherit}
+.brand svg{width:34px;height:34px;flex:none}
+.brand b{font:600 1.05rem/1 var(--f-display);letter-spacing:.06em;display:block}
+.brand span{font:500 .62rem/1 var(--f-display);letter-spacing:.32em;color:var(--teal);display:block;margin-top:4px}
+.room-chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font:600 .8rem/1 var(--f-display);display:flex;align-items:center;gap:6px}
+.icon-btn{color:var(--ink);position:relative;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.icon-btn svg{width:18px;height:18px}
+.badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--sun);color:#fff;font:700 .68rem/18px var(--f-display);text-align:center}
+
+main{padding:4px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:22px}
+section.view{display:flex;flex-direction:column;gap:22px;animation:fade .25s ease}
+@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){section.view{animation:none}*{transition:none!important}}
+
+/* ---------- tabbar ---------- */
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:30;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+.tabbar a{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;text-decoration:none;color:var(--muted);font:500 .68rem/1.1 var(--f-display);border-radius:12px}
+.tabbar a svg{width:22px;height:22px}
+.tabbar a[aria-current="page"]{color:var(--teal-strong)}
+.tabbar a[aria-current="page"] svg{stroke-width:2.2}
+
+/* ---------- piezas ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sec-head a,.link{color:var(--teal-strong);font:600 .85rem var(--f-display);text-decoration:none;background:none;border:0;padding:0}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font:600 .72rem/1.4 var(--f-display);white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.open{background:var(--ok-soft);color:var(--ok)}
+.pill.soon{background:var(--warn-soft);color:var(--warn)}
+.pill.closed{background:var(--surface-2);color:var(--muted)}
+.pill.now{background:var(--sun-soft);color:var(--sun)}
+.pill.info{background:color-mix(in srgb,var(--teal) 14%,transparent);color:var(--teal-strong)}
+.pill.plain::before{display:none}
+.demo-note{display:flex;gap:8px;align-items:flex-start;font-size:.78rem;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line);border-radius:var(--r-sm);padding:8px 10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;padding:13px 18px;font:600 .95rem/1 var(--f-display);background:var(--teal);color:var(--on-teal);text-decoration:none;transition:transform .1s,background .2s}
+.btn:active{transform:scale(.98)}
+.btn:hover{background:var(--teal-strong)}
+.btn.block{width:100%}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+/* hero */
+.hero{position:relative;border-radius:22px;overflow:hidden;min-height:210px;display:flex;align-items:flex-end;color:#fff;background:#13313D}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(19,49,61,0) 25%,rgba(19,49,61,.88) 100%)}
+.hero-body{position:relative;z-index:1;padding:18px;display:flex;flex-direction:column;gap:6px;width:100%}
+.hero-body .eyebrow{color:#CFE5E8}
+.hero-body h1{color:#fff}
+.stay{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:#E1EEF0}
+.stay b{color:#fff;font-weight:600}
+
+/* ahora */
+.now-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--sun-soft);border:1px solid color-mix(in srgb,var(--sun) 30%,transparent);border-radius:var(--r);padding:14px}
+.now-time{font:600 1.35rem/1 var(--f-display);color:var(--sun);font-variant-numeric:tabular-nums;text-align:center}
+.now-time small{display:block;font:600 .62rem/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase;margin-top:5px}
+
+/* acciones */
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.action{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;background:none;border:0;padding:0;font:500 .74rem/1.2 var(--f-display);color:var(--ink)}
+.action i{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);color:var(--teal-strong);transition:transform .15s}
+.action:hover i{transform:translateY(-2px)}
+.action i svg{width:26px;height:26px}
+.action.primary i{background:var(--teal);color:var(--on-teal);border-color:var(--teal)}
+@media (max-width:360px){.actions{grid-template-columns:repeat(3,1fr)}}
+
+/* lista */
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:13px 14px;border-top:1px solid var(--line);min-width:0}
+.row:first-child{border-top:0}
+.row .ic{width:38px;height:38px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;color:var(--teal-strong)}
+.row .ic svg{width:20px;height:20px}
+.row .txt{min-width:0}
+.row .txt b{display:block;font-weight:600}
+.row .txt span{display:block;font-size:.8rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{padding:22px 16px;text-align:center;color:var(--muted);font-size:.88rem}
+
+/* segment */
+.segment{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:4px;overflow-x:auto;scrollbar-width:none}
+.segment::-webkit-scrollbar{display:none}
+.segment button{flex:1 0 auto;border:0;background:none;border-radius:10px;padding:9px 12px;font:600 .82rem/1 var(--f-display);color:var(--muted);white-space:nowrap}
+.segment button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font:600 .8rem/1 var(--f-display);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip small{display:block;font-weight:500;font-size:.68rem;opacity:.7;margin-top:3px}
+
+/* formularios */
+form{display:flex;flex-direction:column;gap:16px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field>label,.field>.lbl{font:600 .82rem var(--f-display)}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 13px;font-size:.95rem}
+textarea{min-height:84px;resize:vertical}
+.opt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.opt{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;font:500 .76rem/1.15 var(--f-display);text-align:center;color:var(--ink)}
+.opt svg{width:22px;height:22px;color:var(--teal-strong)}
+.opt[aria-pressed="true"]{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 10%,var(--surface));box-shadow:0 0 0 1px var(--teal) inset}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.stepper button{width:40px;height:40px;border:0;background:none;font:600 1.15rem var(--f-display);color:var(--teal-strong)}
+.stepper output{min-width:34px;text-align:center;font:600 1rem var(--f-display);font-variant-numeric:tabular-nums}
+
+/* menú */
+.menu-item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.menu-item:first-child{border-top:0}
+.menu-item b{font-weight:600}
+.menu-item p{font-size:.8rem;color:var(--muted)}
+.qty{display:flex;align-items:center;gap:6px}
+.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font:600 1rem/1 var(--f-display);color:var(--teal-strong)}
+.qty button.add{background:var(--teal);color:var(--on-teal);border-color:var(--teal)}
+.qty output{min-width:18px;text-align:center;font:600 .95rem var(--f-display)}
+.cart-bar{position:sticky;bottom:calc(var(--tabbar) + env(safe-area-inset-bottom,0px) + 8px);z-index:5}
+
+/* restaurantes */
+.rest{display:flex;flex-direction:column;gap:10px}
+.rest-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.rest-head>div{min-width:0}
+.sched{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.84rem}
+.sched dt{color:var(--muted)}
+.sched dd{margin:0;font-variant-numeric:tabular-nums}
+.sched .cur{color:var(--ok);font-weight:600}
+.banner-img{border-radius:var(--r);overflow:hidden;aspect-ratio:16/7;max-width:100%}
+.banner-img img{width:100%;height:100%;object-fit:cover}
+
+/* timeline actividades */
+.timeline{display:flex;flex-direction:column}
+.act{display:grid;grid-template-columns:54px 1fr;gap:12px;position:relative;padding-bottom:16px}
+.act::before{content:"";position:absolute;left:62px;top:14px;bottom:0;width:2px;background:var(--line)}
+.act:last-child::before{display:none}
+.act time{font:600 .9rem/1 var(--f-display);font-variant-numeric:tabular-nums;padding-top:12px;text-align:right}
+.act .card{padding:12px 14px;display:flex;flex-direction:column;gap:6px;margin-left:12px;position:relative}
+.act .card::before{content:"";position:absolute;left:-19px;top:14px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--teal)}
+.act.live .card{border-color:var(--sun);box-shadow:0 0 0 1px var(--sun) inset}
+.act.live .card::before{background:var(--sun);border-color:var(--sun)}
+.act.past{opacity:.55}
+.act-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.act-foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.remind{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font:600 .74rem var(--f-display);color:var(--teal-strong)}
+.remind[aria-pressed="true"]{background:var(--teal);color:var(--on-teal);border-color:var(--teal)}
+
+/* mapa */
+.map-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;position:relative}
+.map-wrap svg{width:100%;height:auto;display:block}
+.zone{cursor:pointer}
+.zone .shape{transition:opacity .2s, stroke-width .2s}
+.zone:hover .shape,.zone.sel .shape{stroke:var(--ink);stroke-width:2.5}
+.zone.dim{opacity:.25}
+.map-label{font:600 9.5px var(--f-display);fill:var(--ink);pointer-events:none}
+.map-pin{pointer-events:none}
+.place-card{display:flex;flex-direction:column;gap:8px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,28,35,.45);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,105%);width:100%;max-width:480px;max-height:88%;overflow:auto;z-index:41;background:var(--bg);border-radius:22px 22px 0 0;
+  padding:10px max(18px,env(safe-area-inset-right,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;gap:16px}
+.sheet.on{transform:translate(-50%,0)}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 4px}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.x{width:34px;height:34px;border-radius:50%;border:0;background:var(--surface-2);font-size:1.1rem;line-height:1}
+
+/* estados solicitud */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+.steps i{height:4px;border-radius:2px;background:var(--line)}
+.steps i.on{background:var(--teal)}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--tabbar) + env(safe-area-inset-bottom,0px) + 16px);transform:translate(-50%,20px);opacity:0;z-index:60;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:14px;font:500 .88rem var(--f-display);width:max-content;max-width:calc(100% - 32px);transition:.25s;pointer-events:none;display:flex;gap:10px;align-items:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+.contact{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.contact a{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:inherit}
+.contact a b{font:600 .95rem var(--f-display)}
+.contact .card{padding:14px}
+footer.foot{font-size:.74rem;color:var(--muted);text-align:center;padding:10px 0 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar" id="topbar">
+    <a class="brand" href="#inicio" aria-label="Fontán Ixtapa, inicio">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="31" fill="#3E8B93"/>
+        <g fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round">
+          <path d="M17 50V30c0-8 6-14 14-14h18"/>
+          <path d="M23 50V31c0-5 4-9 9-9h17"/>
+          <path d="M29 50V32c0-2 1.5-4 4-4h16"/>
+          <path d="M35 50V40c0-2 1.2-3.5 3.5-3.5H47"/>
+        </g>
+      </svg>
+      <div><b>FONTÁN</b><span>IXTAPA</span></div>
+    </a>
+    <button class="room-chip" id="roomChip" type="button" aria-label="Editar datos de la estancia">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>
+      <span id="roomChipTxt">Hab. —</span>
+    </button>
+    <a class="icon-btn" href="#solicitudes" aria-label="Mis solicitudes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+      <span class="badge" id="reqBadge" hidden>0</span>
+    </a>
+  </header>
+
+  <main id="main"></main>
+
+  <nav class="tabbar" aria-label="Secciones">
+    <a href="#inicio" data-tab="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</a>
+    <a href="#servicio" data-tab="servicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16"/><path d="M5 17a7 7 0 0 1 14 0"/><path d="M12 8V6"/><path d="M3 20h18"/></svg>Servicio</a>
+    <a href="#restaurantes" data-tab="restaurantes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8a2 2 0 0 0 2 2v8"/><path d="M11 3v8"/><path d="M3 3v8a2 2 0 0 0 2 2"/><path d="M17 21V3c2.5 1 4 3.5 4 7v3h-4"/></svg>Restaurantes</a>
+    <a href="#actividades" data-tab="actividades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Actividades</a>
+    <a href="#mapa" data-tab="mapa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Mapa</a>
+  </nav>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN
+   webhookUrl: URL de un Webhook de n8n (método POST). Si está vacío, la app
+   funciona en modo demostración y guarda las solicitudes sólo en este teléfono.
+   ===================================================================== */
+const CONFIG = {
+  webhookUrl: "",
+  hotelTZ: "America/Mexico_City",
+  whatsapp: "5580274454",
+  telefono: "5597080015",
+  email: "reservaciones@hotelfontanixtapa.com",
+  direccion: "Blvd. Paseo Ixtapa s/n, Lote 15-A, Zona Hotelera I, Ixtapa Zihuatanejo, Gro."
+};
+
+const IMG = {
+  fachada: "__IMG_FACHADA__",
+  alberca: "__IMG_ALBERCA__",
+  gastro: "__IMG_GASTRO__",
+  actividades: "__IMG_ACTIVIDADES__"
+};
+
+/* ---------- íconos ---------- */
+const I = (d, extra="") => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
+const ICON = {
+  tool: I('<path d="M14.7 6.3a4 4 0 0 0 5 5L21 13l-8 8-3-3 8-8-1.3-1.3a4 4 0 0 0-5-5L13 5z"/><path d="M3 21l6-6"/>'),
+  coffee: I('<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3v3M12 3v3"/>'),
+  moon: I('<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>'),
+  bag: I('<rect x="5" y="7" width="14" height="13" rx="2"/><path d="M9 7V4h6v3"/><path d="M9 20v1M15 20v1"/>'),
+  sparkle: I('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 2 .3.3-2 .7"/>'),
+  calendar: I('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+  map: I('<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'),
+  chat: I('<path d="M21 12a8 8 0 0 1-11.8 7L3 21l2-5.8A8 8 0 1 1 21 12z"/>'),
+  snow: I('<path d="M12 2v20M4.9 7l14.2 10M4.9 17L19.1 7"/>'),
+  tv: I('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 21h8M9 3l3 3 3-3"/>'),
+  drop: I('<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>'),
+  bolt: I('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'),
+  lock: I('<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'),
+  door: I('<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17"/><path d="M3 21h18"/><circle cx="15" cy="12" r="1"/>'),
+  wifi: I('<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r=".8"/>'),
+  bed: I('<path d="M3 18V8M21 18v-5a3 3 0 0 0-3-3H10v5"/><path d="M3 15h18"/><circle cx="6.5" cy="11.5" r="1.5"/>'),
+  towel: I('<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M6 8h12M10 13h4"/>'),
+  bottle: I('<path d="M10 2h4v3l1 2v13a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V7l1-2z"/><path d="M9 12h6"/>'),
+  more: I('<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'),
+  check: I('<path d="M5 12l5 5L20 7"/>'),
+  clock: I('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  pin: I('<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>'),
+  phone: I('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>'),
+  mail: I('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'),
+  info: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'),
+  fork: I('<path d="M7 3v8a2 2 0 0 0 2 2v8"/><path d="M11 3v8"/><path d="M3 3v8a2 2 0 0 0 2 2"/><path d="M17 21V3c2.5 1 4 3.5 4 7v3h-4"/>'),
+  pillow: I('<path d="M4 7c3-2 13-2 16 0 1 3 1 7 0 10-3 2-13 2-16 0-1-3-1-7 0-10z"/>')
+};
+
+/* ---------- datos del hotel (fuente: hotelfontanixtapa.com/gastronomia) ---------- */
+const RESTAURANTES = [
+  { id:"real-palapa", nombre:"Real Palapa", tipo:"Buffet · cocina mexicana", incluido:true, zona:"real-palapa",
+    desc:"Amplia variedad de platillos mexicanos, opciones saludables, fruta fresca, panadería y postres.",
+    horario:[["Desayuno","07:00","11:00"],["Comida","13:00","17:00"],["Cena","19:00","22:30"]] },
+  { id:"miramar", nombre:"Miramar", tipo:"Buffet · ambiente relajado", incluido:true, zona:"miramar",
+    desc:"Preparaciones frescas y opciones equilibradas para compartir en familia.",
+    horario:[["Desayuno","07:30","12:00"],["Comida","13:30","16:00"],["Cena","19:30","22:00"]], nota:"Cena según temporada." },
+  { id:"jardin", nombre:"Jardín", tipo:"Buffet · estaciones", incluido:true, zona:"jardin",
+    desc:"Estaciones de ensaladas, carnes, postres y diferentes preparaciones.",
+    horario:[["Desayuno","07:30","11:00"],["Comida","14:00","16:00"],["Cena","19:30","22:00"]] },
+  { id:"cafe-del-mar", nombre:"Café del Mar", tipo:"Snacks · antojitos · taquiza", incluido:true, zona:"cafe-del-mar",
+    desc:"Rincón casual para snacks, antojitos y la tradicional taquiza entre actividades.",
+    horario:[["Desayuno","08:00","10:00"],["Snacks","12:00","18:00"],["Cena","20:00","22:00"]] },
+  { id:"hacienda", nombre:"Restaurante La Hacienda", tipo:"Especialidad · cortes al estilo espadas", incluido:false, reservable:true, zona:"hacienda",
+    desc:"Ambiente familiar para disfrutar cortes servidos al estilo espadas, pensado para compartir.",
+    horario:null, slots:["18:30","19:00","19:30","20:00","20:30","21:00","21:30"] },
+  { id:"kantina", nombre:"Kantina Sports Bar", tipo:"Especialidad · pizzas, hamburguesas, alitas", incluido:false, reservable:true, zona:"kantina",
+    desc:"Sports bar para ver el partido con botanas y bebidas. Abierto al público en general.",
+    horario:null, slots:["14:00","16:00","18:00","19:00","20:00","21:00"] },
+  { id:"snack-bar", nombre:"Snack bar · Marisquería", tipo:"Especialidad · sabores del mar", incluido:false, reservable:true, zona:"snack-bar",
+    desc:"Ceviches, camarones al coco y otras especialidades del mar a la carta.",
+    horario:null, slots:["13:00","13:30","14:00","14:30","15:00","15:30","16:00"] }
+];
+
+/* Programa de entretenimiento de EJEMPLO, armado con las actividades que menciona el sitio.
+   Sustituir por el programa real del día (p. ej. desde n8n / Google Sheets). */
+const ACT_BASE = [
+  { t:"07:30", d:60,  n:"Bicitour ecológico 14 km", l:"Salida en Lobby", c:"adultos", desc:"Recorrido por la ciclovía de Ixtapa. Incluye bicicleta y casco." },
+  { t:"09:00", d:45,  n:"Bicitour familiar 4 km", l:"Salida en Lobby", c:"familia", desc:"Ruta corta y tranquila para ir con niñas y niños." },
+  { t:"10:00", d:120, n:"Viko Club: exploradores del planeta", l:"Viko Club", c:"ninos", desc:"Juegos y retos para aprender a cuidar el mar con Viko. De 4 a 12 años." },
+  { t:"11:00", d:45,  n:"Aquaeróbics", l:"Alberca principal", c:"adultos", desc:"Clase de ejercicio en el agua con música." },
+  { t:"12:00", d:60,  n:"Volleyball de playa", l:"Playa", c:"adultos", desc:"Sujeto a condiciones de marea." },
+  { t:"13:00", d:60,  n:"Taller de reciclaje con Viko", l:"Viko Club", c:"ninos", desc:"Manualidades con materiales reutilizados." },
+  { t:"16:00", d:60,  n:"Dinámicas en alberca", l:"Alberca principal", c:"familia", desc:"Juegos y concursos para toda la familia." },
+  { t:"17:30", d:45,  n:"Mini disco Viko", l:"Teatro", c:"ninos", desc:"Bailes y canciones antes de la cena." },
+  { t:"20:00", d:90,  n:"Música en vivo", l:"Lobby bar", c:"noche", desc:"Trío y música para cenar." },
+  { t:"21:30", d:90,  n:"__SHOW__", l:"Teatro", c:"noche", desc:"__SHOWDESC__" }
+];
+const SHOWS = [
+  ["Noche mexicana","Show de baile folclórico y música tradicional."],
+  ["Noche DJ en la alberca","Música para bailar bajo las estrellas."],
+  ["Show musical","Espectáculo de canto y baile del equipo de animación."],
+  ["Noche temática: Caribe","Ritmos tropicales y concurso de baile."],
+  ["Noche DJ","Sesión de DJ con éxitos de todas las épocas."],
+  ["Show de baile","Coreografías del equipo de entretenimiento."],
+  ["Noche de karaoke","Sube al escenario con tu familia."]
+];
+const CAT = { familia:"Familia", adultos:"Adolescentes y adultos", ninos:"Viko Club", noche:"Noche" };
+
+/* Menú de room service de EJEMPLO */
+const MENU = {
+  desayuno: { horario:["07:00","11:00"], items:[
+    {id:"chilaquiles",n:"Chilaquiles verdes o rojos",d:"Con crema, queso y cebolla. Agrega huevo o pollo en notas."},
+    {id:"huevos",n:"Huevos al gusto",d:"Revueltos, estrellados o a la mexicana, con frijoles."},
+    {id:"hotcakes",n:"Hot cakes",d:"Tres piezas con mantequilla y miel de maple."},
+    {id:"molletes",n:"Molletes",d:"Con frijol, queso gratinado y pico de gallo."},
+    {id:"fruta",n:"Plato de fruta de temporada",d:"Papaya, melón, sandía y piña."},
+    {id:"pan",n:"Canasta de pan dulce",d:"Selección de la panadería del hotel."},
+    {id:"cafe",n:"Café de olla",d:"Jarra para dos tazas."},
+    {id:"jugo",n:"Jugo de naranja natural",d:"Vaso de 350 ml."}
+  ]},
+  cena: { horario:["19:00","22:30"], items:[
+    {id:"club",n:"Club sándwich",d:"Con papas a la francesa."},
+    {id:"hamburguesa",n:"Hamburguesa clásica",d:"Res, queso amarillo, tocino y papas."},
+    {id:"tacos-pescado",n:"Tacos de pescado",d:"Tres piezas estilo Baja con col y chipotle."},
+    {id:"cesar",n:"Ensalada César",d:"Con pollo a la parrilla."},
+    {id:"pasta",n:"Pasta pomodoro",d:"Tomate, albahaca y parmesano."},
+    {id:"pizza",n:"Pizza margarita",d:"Individual, horneada al momento."},
+    {id:"flan",n:"Flan napolitano",d:"Con cajeta."},
+    {id:"bebidas",n:"Agua o refresco",d:"Indica cuál en notas."}
+  ]}
+};
+
+const MANT = [
+  {id:"ac",n:"Aire acondicionado",i:"snow"},{id:"tv",n:"TV / control",i:"tv"},{id:"plomeria",n:"Baño / agua",i:"drop"},
+  {id:"luz",n:"Luz / contactos",i:"bolt"},{id:"caja",n:"Caja de seguridad",i:"lock"},{id:"puerta",n:"Puerta / llave",i:"door"},
+  {id:"wifi",n:"WiFi",i:"wifi"},{id:"mobiliario",n:"Mobiliario",i:"bed"},{id:"otro",n:"Otro",i:"more"}
+];
+const AMEN = [
+  {id:"toallas",n:"Toallas extra",i:"towel"},{id:"toallas-alberca",n:"Toallas de alberca",i:"towel"},{id:"almohadas",n:"Almohadas",i:"pillow"},
+  {id:"agua",n:"Agua embotellada",i:"bottle"},{id:"amenidades",n:"Shampoo y jabón",i:"drop"},{id:"limpieza",n:"Limpieza de habitación",i:"sparkle"},
+  {id:"cuna",n:"Cuna",i:"bed"},{id:"plancha",n:"Plancha",i:"bolt"},{id:"otro",n:"Otro",i:"more"}
+];
+
+/* ---------- mapa ilustrativo (no a escala) ---------- */
+const ZONAS = [
+  {id:"lobby",n:"Lobby y Recepción",cat:"servicios",desc:"Check-in, concierge y punto de salida de los bicitours.",h:"24 horas"},
+  {id:"torre",n:"Torre de habitaciones",cat:"servicios",desc:"Elevadores junto al lobby. Pisos con vista al mar o al jardín.",h:null},
+  {id:"real-palapa",n:"Real Palapa",cat:"comer",rest:"real-palapa"},
+  {id:"miramar",n:"Miramar",cat:"comer",rest:"miramar"},
+  {id:"jardin",n:"Jardín",cat:"comer",rest:"jardin"},
+  {id:"cafe-del-mar",n:"Café del Mar",cat:"comer",rest:"cafe-del-mar"},
+  {id:"hacienda",n:"La Hacienda",cat:"comer",rest:"hacienda"},
+  {id:"kantina",n:"Kantina Sports Bar",cat:"comer",rest:"kantina"},
+  {id:"snack-bar",n:"Snack bar · Marisquería",cat:"comer",rest:"snack-bar"},
+  {id:"alberca",n:"Alberca principal",cat:"albercas",desc:"Dinámicas, aquaeróbics y bar de alberca.",h:"09:00 – 19:00"},
+  {id:"alberca-ninos",n:"Chapoteadero",cat:"albercas",desc:"Alberca de poca profundidad para los más pequeños. Siempre con supervisión de un adulto.",h:"09:00 – 18:00"},
+  {id:"viko",n:"Viko Club",cat:"diversion",desc:"Actividades supervisadas para niñas y niños con Viko, nuestro embajador del planeta.",h:"10:00 – 18:00"},
+  {id:"teatro",n:"Teatro",cat:"diversion",desc:"Shows nocturnos, mini disco y noches temáticas.",h:"Según programa"},
+  {id:"playa",n:"Playa",cat:"diversion",desc:"Volleyball de playa sujeto a marea. Respeta las banderas de seguridad.",h:"Amanecer – atardecer"},
+  {id:"salones",n:"Salones y Centro de Convenciones",cat:"servicios",desc:"Reuniones, convenciones y celebraciones.",h:null},
+  {id:"artesanal",n:"B Artesanal Concept Store",cat:"servicios",desc:"Productos de artistas, artesanos y proyectos con impacto social.",h:null},
+  {id:"entrada",n:"Entrada y estacionamiento",cat:"servicios",desc:"Acceso por Blvd. Paseo de Ixtapa.",h:null}
+];
+
+/* =====================================================================
+   ESTADO
+   ===================================================================== */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("fontan:"+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem("fontan:"+k, JSON.stringify(v)); }catch(e){} }
+};
+const state = {
+  guest: store.get("guest", { nombre:"Familia Herrera", habitacion:"1204", salida:"", demo:true }),
+  requests: store.get("requests", null),
+  reminders: store.get("reminders", {}),
+  servTab: "mantenimiento",
+  rsMeal: null, cart: {},
+  actDay: 0, actFilter: "todos",
+  mapFilter: "todos", mapSel: null
+};
+if (!state.guest.salida) { const d = new Date(Date.now() + 3*864e5); state.guest.salida = d.toISOString().slice(0,10); }
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const toMin = hhmm => { const [h,m] = hhmm.split(":").map(Number); return h*60+m; };
+const fmt = m => { m = ((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
+function hotelNow(){
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:CONFIG.hotelTZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+  return { date:`${p.year}-${p.month}-${p.day}`, min: Number(p.hour)*60 + Number(p.minute) };
+}
+const dateFromISO = iso => { const [y,m,d] = iso.split("-").map(Number); return new Date(Date.UTC(y,m-1,d,12)); };
+const addDays = (iso,n) => { const d = dateFromISO(iso); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+const fmtDay = (iso,opts={weekday:"short",day:"numeric"}) => new Intl.DateTimeFormat("es-MX",{...opts,timeZone:"UTC"}).format(dateFromISO(iso));
+function greeting(){ const m = hotelNow().min; return m < 720 ? "Buenos días" : m < 1140 ? "Buenas tardes" : "Buenas noches"; }
+
+function restStatus(r){
+  if (!r.horario) return { cls:"info", txt:"Con reservación", cur:null };
+  const now = hotelNow().min;
+  for (const [n,a,b] of r.horario){ const A=toMin(a), B=toMin(b);
+    if (now>=A && now<B) return { cls:"open", txt:`Abierto · ${n.toLowerCase()} hasta ${b}`, cur:n }; }
+  for (const [n,a] of r.horario){ const A=toMin(a);
+    if (A>now) return { cls: A-now<=60 ? "soon":"closed", txt:`Abre ${a} · ${n.toLowerCase()}`, cur:null }; }
+  return { cls:"closed", txt:`Cerrado · abre mañana ${r.horario[0][1]}`, cur:null };
+}
+
+function dayActivities(offset){
+  const iso = addDays(hotelNow().date, offset);
+  const idx = dateFromISO(iso).getUTCDay();
+  return ACT_BASE.map((a,i) => {
+    const show = SHOWS[(idx + offset) % SHOWS.length];
+    return { ...a, id:`${iso}-${i}`, n: a.n==="__SHOW__"?show[0]:a.n, desc: a.desc==="__SHOWDESC__"?show[1]:a.desc,
+      start: toMin(a.t), end: toMin(a.t)+a.d, date: iso };
+  });
+}
+
+/* ---------- solicitudes ---------- */
+const STATUS = ["Recibida","Asignada","En camino","Completada"];
+function seedRequests(){
+  const now = Date.now();
+  return [
+    { id:"R-"+(now-1).toString(36).slice(-5).toUpperCase(), tipo:"amenidades", titulo:"Toallas de alberca (×4)", detalle:"", creada: now-26*60000, demo:true },
+    { id:"R-"+(now-2).toString(36).slice(-5).toUpperCase(), tipo:"reserva", titulo:"Pre-reservación · La Hacienda", detalle:"Mañana 20:00 · 4 personas", creada: now-3*3600000, demo:true }
+  ];
+}
+if (!state.requests){ state.requests = seedRequests(); store.set("requests", state.requests); }
+function reqStep(r){
+  if (r.estado != null) return r.estado;                 // estado real desde el backend
+  const mins = (Date.now() - r.creada)/60000;            // simulación en modo demo
+  return mins < 1 ? 0 : mins < 4 ? 1 : mins < 12 ? 2 : 3;
+}
+function activeCount(){ return state.requests.filter(r => reqStep(r) < 3).length; }
+
+async function sendRequest(tipo, titulo, detalle, payload={}){
+  const req = { id:"R-"+Date.now().toString(36).slice(-5).toUpperCase(), tipo, titulo, detalle, creada: Date.now() };
+  const body = { ...req, hotel:"Fontán Ixtapa", habitacion: state.guest.habitacion, huesped: state.guest.nombre, creadaISO: new Date().toISOString(), ...payload };
+  let enviado = false;
+  if (CONFIG.webhookUrl){
+    try{
+      const r = await fetch(CONFIG.webhookUrl, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+      enviado = r.ok;
+    }catch(e){ enviado = false; }
+    if (!enviado){ toast("No pudimos enviar tu solicitud. Revisa tu conexión o escríbenos por WhatsApp."); return false; }
+  }
+  state.requests.unshift(req); store.set("requests", state.requests);
+  updateBadge();
+  toast(CONFIG.webhookUrl ? `Solicitud ${req.id} enviada al hotel` : `Solicitud ${req.id} registrada (modo demo)`);
+  return true;
+}
+
+/* =====================================================================
+   VISTAS
+   ===================================================================== */
+const VIEWS = {
+inicio(){
+  const now = hotelNow();
+  const acts = dayActivities(0);
+  const live = acts.find(a => now.min>=a.start && now.min<a.end);
+  const next = acts.find(a => a.start>now.min);
+  const highlight = live || next;
+  const openRests = RESTAURANTES.filter(r => restStatus(r).cls==="open");
+  const recent = state.requests.slice(0,3);
+  const salida = fmtDay(state.guest.salida,{weekday:"long",day:"numeric",month:"short"});
+  return `
+  <section class="view">
+    <div class="hero">
+      <img src="${IMG.alberca}" alt="Albercas del Hotel Fontán Ixtapa frente al mar">
+      <div class="hero-body">
+        <span class="eyebrow">${greeting()}</span>
+        <h1>${esc(state.guest.nombre)}</h1>
+        <div class="stay"><span>Habitación <b class="num">${esc(state.guest.habitacion)}</b></span><span>Salida <b>${esc(salida)}, 12:00</b></span><span>Plan <b>Todo incluido</b></span></div>
+      </div>
+    </div>
+
+    ${highlight ? `
+    <a class="now-card" href="#actividades" style="text-decoration:none;color:inherit">
+      <div class="now-time">${live ? "AHORA" : highlight.t}<small>${live ? "en curso" : "siguiente"}</small></div>
+      <div style="min-width:0"><b style="font-family:var(--f-display)">${esc(highlight.n)}</b><div class="small muted">${esc(highlight.l)} · ${CAT[highlight.c]}</div></div>
+      <span class="link">Ver</span>
+    </a>` : ""}
+
+    <div class="actions" role="list">
+      ${action("mantenimiento","Mantenimiento","tool",true)}
+      ${action("desayuno","Desayuno a la habitación","coffee")}
+      ${action("cena","Cena a la habitación","moon")}
+      ${action("maletas","Recoger maletas","bag")}
+      ${action("amenidades","Toallas y limpieza","sparkle")}
+      ${action("reservar","Reservar especialidad","calendar")}
+      ${action("mapa","Mapa del hotel","map")}
+      ${action("contacto","Hablar con recepción","chat")}
+    </div>
+
+    <div class="sec-head"><h2>Abierto ahora</h2><a href="#restaurantes">Todos los horarios</a></div>
+    <div class="list">
+      ${openRests.length ? openRests.map(r => { const s = restStatus(r); return `
+        <a class="row" href="#restaurantes" style="text-decoration:none;color:inherit">
+          <span class="ic">${ICON.fork}</span>
+          <span class="txt"><b>${esc(r.nombre)}</b><span>${esc(r.tipo)}</span></span>
+          <span class="pill ${s.cls}">${esc(s.cur)}</span>
+        </a>`; }).join("") : `<div class="empty">Ningún restaurante incluido está abierto en este momento. ${nextOpening()}</div>`}
+    </div>
+
+    <div class="sec-head"><h2>Mis solicitudes</h2><a href="#solicitudes">Ver todas</a></div>
+    ${reqList(recent)}
+
+    <div class="sec-head"><h2>Contacto</h2></div>
+    ${contactBlock()}
+    <footer class="foot">Hotel Fontán Ixtapa · Empresa B Certificada<br>${esc(CONFIG.direccion)}</footer>
+  </section>`;
+},
+
+servicio(){
+  const t = state.servTab;
+  return `
+  <section class="view">
+    <div><span class="eyebrow">Habitación ${esc(state.guest.habitacion)}</span><h1>¿Qué necesitas?</h1></div>
+    <div class="segment" role="group" aria-label="Tipo de servicio">
+      ${[["mantenimiento","Mantenimiento"],["roomservice","Room service"],["amenidades","Amenidades"],["maletas","Maletas"]].map(([k,n]) =>
+        `<button type="button" data-serv="${k}" aria-pressed="${t===k}">${n}</button>`).join("")}
+    </div>
+    ${ t==="mantenimiento" ? formMant() : t==="roomservice" ? formRoomService() : t==="amenidades" ? formAmen() : formMaletas() }
+  </section>`;
+},
+
+restaurantes(){
+  const inc = RESTAURANTES.filter(r=>r.incluido), esp = RESTAURANTES.filter(r=>!r.incluido);
+  return `
+  <section class="view">
+    <div><span class="eyebrow">Gastronomía</span><h1>Restaurantes y horarios</h1></div>
+    <div class="banner-img"><img src="${IMG.fachada}" alt="Kantina Sports Bar del hotel"></div>
+    <div class="sec-head"><h2>Incluidos en tu todo incluido</h2></div>
+    ${inc.map(restCard).join("")}
+    <div class="sec-head"><h2>Especialidades</h2><span class="pill plain closed">Consumo adicional</span></div>
+    <p class="small muted">Haz tu pre-reservación y el equipo del restaurante te confirmará disponibilidad.</p>
+    ${esp.map(restCard).join("")}
+  </section>`;
+},
+
+actividades(){
+  const today = hotelNow();
+  const acts = dayActivities(state.actDay).filter(a => state.actFilter==="todos" || a.c===state.actFilter);
+  const isToday = state.actDay===0;
+  return `
+  <section class="view">
+    <div><span class="eyebrow">Entretenimiento</span><h1>Actividades del día</h1></div>
+    <div class="chips" role="group" aria-label="Día">
+      ${[0,1,2,3,4,5,6].map(i => { const iso = addDays(today.date,i); return `
+        <button type="button" class="chip" data-day="${i}" aria-pressed="${state.actDay===i}">${i===0?"Hoy":i===1?"Mañana":esc(fmtDay(iso,{weekday:"short"}))}<small>${esc(fmtDay(iso,{day:"numeric",month:"short"}))}</small></button>`; }).join("")}
+    </div>
+    <div class="segment" role="group" aria-label="Filtrar por público">
+      ${[["todos","Todo"],["familia","Familia"],["adultos","Adultos"],["ninos","Viko Club"],["noche","Noche"]].map(([k,n]) =>
+        `<button type="button" data-actf="${k}" aria-pressed="${state.actFilter===k}">${n}</button>`).join("")}
+    </div>
+    <div class="timeline">
+      ${acts.length ? acts.map(a => {
+        const live = isToday && today.min>=a.start && today.min<a.end;
+        const past = isToday && today.min>=a.end;
+        const on = !!state.reminders[a.id];
+        return `
+        <div class="act ${live?"live":""} ${past?"past":""}">
+          <time>${a.t}</time>
+          <div class="card">
+            <div class="act-meta">${live?`<span class="pill now">En curso</span>`:""}<span class="pill plain info">${CAT[a.c]}</span></div>
+            <h3>${esc(a.n)}</h3>
+            <p class="small muted">${esc(a.desc)}</p>
+            <div class="act-foot"><span class="small">${ICON.pin.replace('<svg','<svg width="14" height="14" style="vertical-align:-2px"')} ${esc(a.l)} · ${fmt(a.start)}–${fmt(a.end)}</span>
+              ${past?"":`<button type="button" class="remind" data-remind="${a.id}" data-name="${esc(a.n)}" aria-pressed="${on}">${on?"Te avisamos":"Recordarme"}</button>`}
+            </div>
+          </div>
+        </div>`; }).join("") : `<div class="list"><div class="empty">No hay actividades en esta categoría ese día.</div></div>`}
+    </div>
+    <div class="demo-note">${ICON.info.replace('<svg','<svg width="16" height="16" style="flex:none"')}<span>Programa de ejemplo con las actividades que ofrece el hotel (bicitours de 14 y 4 km, volleyball de playa, dinámicas en alberca, música en vivo, noches DJ y temáticas, Viko Club). El programa real se carga desde el equipo de entretenimiento.</span></div>
+  </section>`;
+},
+
+mapa(){
+  const sel = state.mapSel ? ZONAS.find(z=>z.id===state.mapSel) : null;
+  return `
+  <section class="view">
+    <div><span class="eyebrow">Instalaciones</span><h1>Mapa del hotel</h1></div>
+    <div class="segment" role="group" aria-label="Filtrar mapa">
+      ${[["todos","Todo"],["comer","Comer"],["albercas","Albercas"],["diversion","Diversión"],["servicios","Servicios"]].map(([k,n]) =>
+        `<button type="button" data-mapf="${k}" aria-pressed="${state.mapFilter===k}">${n}</button>`).join("")}
+    </div>
+    <div class="map-wrap">${mapSVG()}</div>
+    ${sel ? placeCard(sel) : `<p class="small muted">Toca un área del mapa para ver horarios y detalles.</p>`}
+    <div class="list">
+      ${ZONAS.filter(z => state.mapFilter==="todos" || z.cat===state.mapFilter).map(z => `
+        <button type="button" class="row" data-zone="${z.id}" style="background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;width:100%">
+          <span class="ic">${ICON[{comer:"fork",albercas:"drop",diversion:"sparkle",servicios:"pin"}[z.cat]]}</span>
+          <span class="txt"><b>${esc(z.n)}</b><span>${esc(zoneHours(z) || z.desc || "")}</span></span>
+          <span class="link">Ver</span>
+        </button>`).join("")}
+    </div>
+    <div class="demo-note">${ICON.info.replace('<svg','<svg width="16" height="16" style="flex:none"')}<span>Mapa ilustrativo, no está a escala. La ubicación de cada área se ajusta con el plano oficial del hotel.</span></div>
+  </section>`;
+},
+
+solicitudes(){
+  return `
+  <section class="view">
+    <div><span class="eyebrow">Habitación ${esc(state.guest.habitacion)}</span><h1>Mis solicitudes</h1></div>
+    ${reqList(state.requests, true)}
+    ${!CONFIG.webhookUrl ? `<div class="demo-note">${ICON.info.replace('<svg','<svg width="16" height="16" style="flex:none"')}<span>Modo demostración: las solicitudes se guardan en este teléfono y su avance se simula. Al conectar el webhook de n8n, cada solicitud llega al equipo del hotel.</span></div>` : ""}
+    <button type="button" class="btn ghost block" data-go="servicio">Nueva solicitud</button>
+  </section>`;
+}
+};
+
+/* ---------- piezas de vista ---------- */
+function action(key,label,icon,primary){ return `<button type="button" role="listitem" class="action ${primary?"primary":""}" data-action="${key}"><i>${ICON[icon]}</i>${label}</button>`; }
+
+function nextOpening(){
+  const now = hotelNow().min; let best=null;
+  for (const r of RESTAURANTES.filter(r=>r.horario)) for (const [n,a] of r.horario){ const A=toMin(a); if (A>now && (!best || A<best.A)) best={A,r,n}; }
+  return best ? `El siguiente en abrir es ${best.r.nombre} a las ${fmt(best.A)}.` : "Los restaurantes abren a partir de las 07:00.";
+}
+
+function contactBlock(){
+  return `<div class="contact">
+    <a class="card" href="https://wa.me/52${CONFIG.whatsapp}" target="_blank" rel="noopener"><span class="ic" style="color:var(--teal-strong)">${ICON.chat.replace('<svg','<svg width="22" height="22"')}</span><b>WhatsApp</b><span class="small muted num">${CONFIG.whatsapp.replace(/(\d{2})(\d{4})(\d{4})/,"$1 $2 $3")}</span></a>
+    <a class="card" href="tel:${CONFIG.telefono}"><span class="ic" style="color:var(--teal-strong)">${ICON.phone.replace('<svg','<svg width="22" height="22"')}</span><b>Teléfono</b><span class="small muted num">${CONFIG.telefono.replace(/(\d{2})(\d{4})(\d{4})/,"$1 $2 $3")}</span></a>
+  </div>`;
+}
+
+function reqList(list, full){
+  if (!list.length) return `<div class="list"><div class="empty">Aún no tienes solicitudes. Cuando pidas algo, aquí verás su avance.</div></div>`;
+  const ic = {mantenimiento:"tool",roomservice:"coffee",amenidades:"sparkle",maletas:"bag",reserva:"calendar"};
+  return `<div class="list">${list.map(r => { const s = reqStep(r); const t = new Date(r.creada);
+    return `<div class="row" style="align-items:start">
+      <span class="ic">${ICON[ic[r.tipo]||"info"]}</span>
+      <span class="txt"><b>${esc(r.titulo)}</b><span>${esc(r.detalle || "")}${r.detalle?" · ":""}${t.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})} · ${esc(r.id)}</span>
+        ${full ? `<span class="steps" aria-label="Avance: ${STATUS[s]}">${STATUS.map((_,i)=>`<i class="${i<=s?"on":""}"></i>`).join("")}</span>` : ""}</span>
+      <span class="pill ${s===3?"open":s===0?"soon":"info"}">${STATUS[s]}</span>
+    </div>`; }).join("")}</div>`;
+}
+
+function optGrid(list, name, multi){
+  return `<div class="opt-grid" role="group" data-optgroup="${name}" data-multi="${multi?1:0}">${list.map(o =>
+    `<button type="button" class="opt" data-opt="${o.id}" aria-pressed="false">${ICON[o.i]}${esc(o.n)}</button>`).join("")}</div>`;
+}
+
+function formMant(){
+  return `<form id="fMant" novalidate>
+    <div class="field"><span class="lbl">¿Qué falla?</span>${optGrid(MANT,"mant",false)}</div>
+    <div class="field"><label for="mantDesc">Cuéntanos más</label><textarea id="mantDesc" placeholder="Ej. El aire acondicionado hace ruido y no enfría."></textarea></div>
+    <div class="field"><span class="lbl">¿Cuándo podemos pasar?</span>
+      <div class="segment" role="group" data-optgroup="mantWhen" data-multi="0">
+        <button type="button" class="opt-s" data-opt="ahora" aria-pressed="true">Lo antes posible</button>
+        <button type="button" class="opt-s" data-opt="ausente" aria-pressed="false">Cuando no esté</button>
+        <button type="button" class="opt-s" data-opt="llamar" aria-pressed="false">Llámenme antes</button>
+      </div></div>
+    <button class="btn block" type="submit">Enviar a mantenimiento</button>
+  </form>`;
+}
+
+function formAmen(){
+  return `<form id="fAmen" novalidate>
+    <div class="field"><span class="lbl">Elige lo que necesitas</span>${optGrid(AMEN,"amen",true)}</div>
+    <div class="field"><label for="amenNotes">Notas</label><textarea id="amenNotes" placeholder="Ej. 4 toallas de alberca y 2 almohadas extra."></textarea></div>
+    <button class="btn block" type="submit">Pedir a ama de llaves</button>
+  </form>`;
+}
+
+function formMaletas(){
+  const now = hotelNow(); const slots=[]; let m = Math.ceil((now.min+30)/30)*30;
+  for (let i=0;i<8;i++){ slots.push(fmt(m)); m+=30; }
+  return `<form id="fMal" novalidate>
+    <div class="card" style="display:flex;gap:12px;align-items:center">${ICON.bag.replace('<svg','<svg width="28" height="28" style="color:var(--teal-strong);flex:none"')}
+      <p class="small">Un botones pasará a tu habitación por el equipaje y lo resguardará en Recepción o lo llevará a tu transporte. La salida es a las 12:00.</p></div>
+    <div class="field"><span class="lbl">¿A qué hora pasamos?</span>
+      <div class="chips" role="group" data-optgroup="malHora" data-multi="0">${slots.map((s,i)=>`<button type="button" class="chip" data-opt="${s}" aria-pressed="${i===0}">${s}</button>`).join("")}</div></div>
+    <div class="field"><span class="lbl">Número de piezas</span>
+      <div class="stepper"><button type="button" data-step="-1" aria-label="Menos">−</button><output id="malN">2</output><button type="button" data-step="1" aria-label="Más">+</button></div></div>
+    <div class="field"><label for="malDest">¿A dónde las llevamos?</label>
+      <select id="malDest"><option>Resguardo en Recepción</option><option>Directo a mi taxi o transporte</option><option>Cambio de habitación</option></select></div>
+    <button class="btn block" type="submit">Solicitar botones</button>
+  </form>`;
+}
+
+function formRoomService(){
+  const now = hotelNow().min;
+  if (!state.rsMeal) state.rsMeal = now < toMin("15:00") ? "desayuno" : "cena";
+  const meal = MENU[state.rsMeal];
+  const [a,b] = meal.horario.map(toMin);
+  const slots=[]; let m = Math.max(a, Math.ceil((now+30)/15)*15);
+  const futureDay = m > b - 15;
+  if (futureDay) m = a;
+  for (let i=0;i<10 && m<=b-15;i++){ slots.push(fmt(m)); m+=15; }
+  const count = Object.values(state.cart).reduce((s,v)=>s+v,0);
+  return `
+    <div class="segment" role="group" aria-label="Comida">
+      <button type="button" data-meal="desayuno" aria-pressed="${state.rsMeal==="desayuno"}">${ICON.coffee.replace('<svg','<svg width="16" height="16" style="vertical-align:-3px"')} Desayuno</button>
+      <button type="button" data-meal="cena" aria-pressed="${state.rsMeal==="cena"}">${ICON.moon.replace('<svg','<svg width="16" height="16" style="vertical-align:-3px"')} Cena</button>
+    </div>
+    <p class="small muted">Servicio a la habitación de ${meal.horario[0]} a ${meal.horario[1]}${futureDay?". Tu pedido quedará programado para mañana.":"."} Puede aplicar cargo por servicio.</p>
+    <div class="list">${meal.items.map(it => { const q = state.cart[it.id]||0; return `
+      <div class="menu-item"><div><b>${esc(it.n)}</b><p>${esc(it.d)}</p></div>
+        <div class="qty">${q?`<button type="button" data-cart="${it.id}" data-d="-1" aria-label="Quitar ${esc(it.n)}">−</button><output>${q}</output>`:""}<button type="button" class="add" data-cart="${it.id}" data-d="1" aria-label="Agregar ${esc(it.n)}">+</button></div>
+      </div>`; }).join("")}</div>
+    <form id="fRS" novalidate>
+      <div class="field"><span class="lbl">Hora de entrega${futureDay?" (mañana)":""}</span>
+        <div class="chips" role="group" data-optgroup="rsHora" data-multi="0">${slots.map((s,i)=>`<button type="button" class="chip" data-opt="${s}" aria-pressed="${i===0}">${s}</button>`).join("")}</div></div>
+      <div class="field"><label for="rsNotes">Notas para la cocina</label><textarea id="rsNotes" placeholder="Alergias, término, sin cebolla…"></textarea></div>
+      <div class="cart-bar"><button class="btn block" type="submit" ${count?"":"disabled"}>${count?`Pedir ${count} platillo${count>1?"s":""}`:"Agrega platillos para pedir"}</button></div>
+    </form>
+    <div class="demo-note">${ICON.info.replace('<svg','<svg width="16" height="16" style="flex:none"')}<span>Menú y horario de room service de ejemplo. Se reemplazan por la carta oficial del hotel.</span></div>`;
+}
+
+function restCard(r){
+  const s = restStatus(r);
+  return `<article class="card rest" id="r-${r.id}">
+    <div class="rest-head"><div><h3>${esc(r.nombre)}</h3><p class="small muted">${esc(r.tipo)}</p></div><span class="pill ${s.cls}">${esc(s.txt)}</span></div>
+    <p class="small">${esc(r.desc)}</p>
+    ${r.horario ? `<dl class="sched">${r.horario.map(([n,a,b]) => `<dt class="${s.cur===n?"cur":""}">${n}</dt><dd class="${s.cur===n?"cur":""}">${a} – ${b}</dd>`).join("")}</dl>${r.nota?`<p class="small muted">${esc(r.nota)}</p>`:""}`
+      : `<p class="small muted">Horario por confirmar con el restaurante.</p>`}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${r.reservable ? `<button type="button" class="btn" data-reserve="${r.id}">${ICON.calendar.replace('<svg','<svg width="18" height="18"')} Pre-reservar</button>` : ""}
+      <button type="button" class="btn ghost" data-showmap="${r.zona}">${ICON.pin.replace('<svg','<svg width="18" height="18"')} Ver en mapa</button>
+    </div>
+  </article>`;
+}
+
+function zoneHours(z){
+  if (z.rest){ const r = RESTAURANTES.find(x=>x.id===z.rest); return restStatus(r).txt; }
+  return z.h ? "Horario: "+z.h : "";
+}
+function placeCard(z){
+  const r = z.rest ? RESTAURANTES.find(x=>x.id===z.rest) : null;
+  return `<div class="card place-card">
+    <div class="rest-head"><div><span class="eyebrow">${{comer:"Comer",albercas:"Albercas",diversion:"Diversión",servicios:"Servicios"}[z.cat]}</span><h2>${esc(z.n)}</h2></div>
+      ${r ? `<span class="pill ${restStatus(r).cls}">${esc(restStatus(r).txt)}</span>` : z.h ? `<span class="pill plain info">${esc(z.h)}</span>` : ""}</div>
+    <p class="small">${esc(r ? r.desc : z.desc)}</p>
+    ${r ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${r.reservable?`<button type="button" class="btn" data-reserve="${r.id}">Pre-reservar</button>`:""}<a class="btn ghost" href="#restaurantes" data-scroll="r-${r.id}">Ver horarios</a></div>` : ""}
+  </div>`;
+}
+
+function mapSVG(){
+  const f = state.mapFilter, sel = state.mapSel;
+  const Z = (id, inner, lx, ly, label) => {
+    const z = ZONAS.find(q=>q.id===id);
+    const dim = f!=="todos" && z.cat!==f;
+    return `<g class="zone ${dim?"dim":""} ${sel===id?"sel":""}" data-zone="${id}" role="button" tabindex="0" aria-label="${esc(z.n)}">${inner}${label!==false?`<text class="map-label" x="${lx}" y="${ly}" text-anchor="middle">${esc(label||z.n)}</text>`:""}</g>`;
+  };
+  const C = { comer:"#E9C9A8", albercas:"#7FC3CB", diversion:"#F2B98F", servicios:"#C9D9DC", build:"#DCE6E8" };
+  return `<svg viewBox="0 0 360 500" role="img" aria-label="Mapa ilustrativo del Hotel Fontán Ixtapa">
+    <defs>
+      <pattern id="waves" width="24" height="10" patternUnits="userSpaceOnUse"><path d="M0 5 Q6 0 12 5 T24 5" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width="1.4"/></pattern>
+      <pattern id="grass" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".9" fill="#7FA88A" fill-opacity=".35"/></pattern>
+    </defs>
+    <rect width="360" height="500" fill="#E4EEE6"/>
+    <rect width="360" height="500" fill="url(#grass)"/>
+    <!-- boulevard -->
+    <rect x="0" y="0" width="360" height="34" fill="#C7CFD1"/>
+    <line x1="0" y1="17" x2="360" y2="17" stroke="#fff" stroke-width="1.5" stroke-dasharray="10 8"/>
+    <text x="12" y="13" font-family="Outfit,system-ui,sans-serif" font-size="8.5" font-weight="600" fill="#13313D" letter-spacing="1.5">BLVD. PASEO DE IXTAPA</text>
+    <!-- mar y playa -->
+    <path d="M0 420 C60 410 120 428 180 418 S300 410 360 420 V500 H0Z" fill="#3E8B93"/>
+    <path d="M0 420 C60 410 120 428 180 418 S300 410 360 420 V500 H0Z" fill="url(#waves)"/>
+    <text x="180" y="482" text-anchor="middle" font-family="Outfit,system-ui,sans-serif" font-size="11" font-weight="600" fill="#fff" letter-spacing="4">OCÉANO PACÍFICO</text>
+    ${Z("playa",`<path class="shape" d="M0 388 C80 380 140 396 200 388 S310 380 360 390 V422 C300 410 240 420 180 418 S60 410 0 420Z" fill="#F1E2C2" stroke="#D9C59C"/>`,300,407,"Playa")}
+    <!-- caminos -->
+    <path d="M180 34 V120 M180 150 V380 M70 270 H290" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".85"/>
+    ${Z("entrada",`<rect class="shape" x="148" y="38" width="64" height="26" rx="6" fill="${C.servicios}" stroke="#9FB8BD"/>`,180,55,"Entrada")}
+    ${Z("salones",`<rect class="shape" x="16" y="44" width="96" height="60" rx="8" fill="${C.servicios}" stroke="#9FB8BD"/>`,64,72,"Salones")}
+    ${Z("artesanal",`<rect class="shape" x="16" y="112" width="96" height="26" rx="6" fill="${C.servicios}" stroke="#9FB8BD"/>`,64,129,"B Artesanal")}
+    ${Z("torre",`<rect class="shape" x="232" y="44" width="112" height="132" rx="8" fill="#13313D" fill-opacity=".85" stroke="#13313D"/><g stroke="#B6CCD0" stroke-opacity=".5">${Array.from({length:7},(_,i)=>`<line x1="242" y1="${58+i*16}" x2="334" y2="${58+i*16}"/>`).join("")}</g>`,288,190,"Habitaciones")}
+    ${Z("lobby",`<rect class="shape" x="130" y="72" width="100" height="58" rx="8" fill="#B6CCD0" stroke="#3E8B93" stroke-width="1.5"/>`,180,98,"Lobby")}
+    ${Z("kantina",`<rect class="shape" x="16" y="150" width="96" height="40" rx="8" fill="${C.comer}" stroke="#CFA27A"/>`,64,174,"Kantina")}
+    ${Z("hacienda",`<rect class="shape" x="16" y="198" width="96" height="44" rx="8" fill="${C.comer}" stroke="#CFA27A"/>`,64,224,"La Hacienda")}
+    ${Z("real-palapa",`<path class="shape" d="M130 148 L180 136 L230 148 V188 H130Z" fill="${C.comer}" stroke="#CFA27A"/>`,180,174,"Real Palapa")}
+    ${Z("jardin",`<rect class="shape" x="16" y="282" width="96" height="44" rx="8" fill="${C.comer}" stroke="#CFA27A"/>`,64,308,"Jardín")}
+    ${Z("miramar",`<rect class="shape" x="248" y="282" width="96" height="44" rx="8" fill="${C.comer}" stroke="#CFA27A"/>`,296,308,"Miramar")}
+    ${Z("teatro",`<path class="shape" d="M248 200 h96 v52 h-96z" rx="8" fill="${C.diversion}" stroke="#D99A6A"/>`,296,230,"Teatro")}
+    ${Z("alberca",`<path class="shape" d="M128 214 C150 196 214 198 232 220 C250 244 236 262 214 258 C196 255 196 280 176 286 C150 292 120 276 122 252 C123 236 116 226 128 214Z" fill="${C.albercas}" stroke="#3E8B93" stroke-width="1.5"/>`,178,244,"Alberca principal")}
+    ${Z("alberca-ninos",`<circle class="shape" cx="218" cy="298" r="17" fill="${C.albercas}" stroke="#3E8B93" stroke-width="1.5"/>`,218,328,"Chapoteadero")}
+    ${Z("viko",`<rect class="shape" x="16" y="334" width="96" height="40" rx="10" fill="${C.diversion}" stroke="#D99A6A"/>`,64,358,"Viko Club")}
+    ${Z("cafe-del-mar",`<rect class="shape" x="134" y="336" width="76" height="34" rx="8" fill="${C.comer}" stroke="#CFA27A"/>`,172,357,"Café del Mar")}
+    ${Z("snack-bar",`<rect class="shape" x="248" y="336" width="96" height="34" rx="8" fill="${C.comer}" stroke="#CFA27A"/>`,296,357,"Marisquería")}
+    <!-- usted está aquí -->
+    <g class="map-pin" transform="translate(270 168)"><circle r="9" fill="#D9774A" fill-opacity=".25"/><circle r="4.5" fill="#D9774A" stroke="#fff" stroke-width="1.5"/></g>
+    <text x="270" y="160" text-anchor="middle" font-family="Outfit,system-ui,sans-serif" font-size="8" font-weight="700" fill="#fff" class="map-pin">TU HAB.</text>
+    <!-- norte -->
+    <g transform="translate(336 452)" font-family="Outfit,system-ui,sans-serif"><circle r="12" fill="#fff" stroke="#9FB8BD"/><path d="M0 -8 L4 4 L0 1 L-4 4Z" fill="#13313D"/><text y="22" text-anchor="middle" font-size="7" font-weight="700" fill="#13313D">N</text></g>
+  </svg>`;
+}
+
+/* =====================================================================
+   SHEETS
+   ===================================================================== */
+function openSheet(html){
+  const s = $("#sheet"); s.innerHTML = `<div class="grab"></div>` + html;
+  s.classList.add("on"); $("#scrim").classList.add("on");
+  setTimeout(()=>{ const f = s.querySelector("input,select,textarea,button:not(.x)"); f && f.focus({preventScroll:true}); }, 280);
+}
+function closeSheet(){ $("#sheet").classList.remove("on"); $("#scrim").classList.remove("on"); }
+
+function reserveSheet(id){
+  const r = RESTAURANTES.find(x=>x.id===id);
+  const today = hotelNow().date;
+  openSheet(`
+    <div class="sheet-head"><div><span class="eyebrow">Pre-reservación</span><h2 id="sheetTitle">${esc(r.nombre)}</h2></div><button type="button" class="x" data-close aria-label="Cerrar">×</button></div>
+    <form id="fRes" data-rest="${r.id}" novalidate>
+      <div class="field"><span class="lbl">Día</span>
+        <div class="chips" role="group" data-optgroup="resDia" data-multi="0">${[0,1,2,3].map(i=>{const iso=addDays(today,i);return `<button type="button" class="chip" data-opt="${iso}" aria-pressed="${i===0}">${i===0?"Hoy":i===1?"Mañana":esc(fmtDay(iso,{weekday:"short"}))}<small>${esc(fmtDay(iso,{day:"numeric",month:"short"}))}</small></button>`;}).join("")}</div></div>
+      <div class="field"><span class="lbl">Hora</span>
+        <div class="chips" role="group" data-optgroup="resHora" data-multi="0">${r.slots.map((s,i)=>`<button type="button" class="chip" data-opt="${s}" aria-pressed="${i===2}">${s}</button>`).join("")}</div></div>
+      <div class="field"><span class="lbl">Personas</span>
+        <div class="stepper"><button type="button" data-step="-1" aria-label="Menos">−</button><output id="resN">2</output><button type="button" data-step="1" aria-label="Más">+</button></div></div>
+      <div class="field"><label for="resOcasion">Ocasión especial</label>
+        <select id="resOcasion"><option value="">Ninguna</option><option>Cumpleaños</option><option>Aniversario</option><option>Luna de miel</option><option>Celebración familiar</option></select></div>
+      <div class="field"><label for="resNotes">Notas</label><textarea id="resNotes" placeholder="Silla para bebé, alergias, mesa en terraza…"></textarea></div>
+      <p class="small muted">Consumo con costo adicional. El restaurante confirmará tu mesa por esta app o por WhatsApp.</p>
+      <button class="btn block" type="submit">Enviar pre-reservación</button>
+    </form>`);
+}
+
+function guestSheet(){
+  openSheet(`
+    <div class="sheet-head"><div><span class="eyebrow">Tu estancia</span><h2 id="sheetTitle">Datos de la habitación</h2></div><button type="button" class="x" data-close aria-label="Cerrar">×</button></div>
+    <form id="fGuest" novalidate>
+      <div class="field"><label for="gNombre">Nombre en la reservación</label><input type="text" id="gNombre" value="${esc(state.guest.nombre)}" autocomplete="name"></div>
+      <div class="field"><label for="gHab">Número de habitación</label><input type="text" id="gHab" inputmode="numeric" value="${esc(state.guest.habitacion)}"></div>
+      <div class="field"><label for="gSalida">Fecha de salida</label><input type="date" id="gSalida" value="${esc(state.guest.salida)}"></div>
+      <p class="small muted" id="gErr" hidden></p>
+      <button class="btn block" type="submit">Guardar</button>
+      <button class="btn ghost block" type="button" id="resetDemo">Borrar solicitudes de este teléfono</button>
+    </form>`);
+}
+
+function contactSheet(){
+  openSheet(`
+    <div class="sheet-head"><div><span class="eyebrow">Recepción 24 h</span><h2 id="sheetTitle">Hablar con el hotel</h2></div><button type="button" class="x" data-close aria-label="Cerrar">×</button></div>
+    ${contactBlock()}
+    <div class="list">
+      <div class="row"><span class="ic">${ICON.mail}</span><span class="txt"><b>Correo</b><span>${esc(CONFIG.email)}</span></span><button type="button" class="link" data-copy="${esc(CONFIG.email)}">Copiar</button></div>
+      <div class="row"><span class="ic">${ICON.pin}</span><span class="txt"><b>Dirección</b><span style="white-space:normal">${esc(CONFIG.direccion)}</span></span><span></span></div>
+    </div>`);
+}
+
+/* =====================================================================
+   RENDER + EVENTOS
+   ===================================================================== */
+function route(){ const h = (location.hash||"#inicio").slice(1); return VIEWS[h] ? h : "inicio"; }
+function render(keepScroll){
+  const r = route(); const y = window.scrollY;
+  $("#main").innerHTML = VIEWS[r]();
+  document.querySelectorAll(".tabbar a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===r || (r==="solicitudes"&&a.dataset.tab==="servicio") ? "page" : "false"));
+  $("#roomChipTxt").textContent = "Hab. " + state.guest.habitacion;
+  updateBadge();
+  if (keepScroll) window.scrollTo(0,y);
+}
+function go(view){ if (location.hash === "#"+view) { render(); window.scrollTo(0,0); } else location.hash = view; }
+function updateBadge(){ const n = activeCount(), b = $("#reqBadge"); b.textContent = n; b.hidden = !n; }
+
+let toastT;
+function toast(msg){ const t = $("#toast"); t.innerHTML = ICON.check.replace('<svg','<svg width="18" height="18" style="flex:none"') + `<span>${esc(msg)}</span>`; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("on"), 3200); }
+
+function picked(root, group){ return [...root.querySelectorAll(`[data-optgroup="${group}"] [aria-pressed="true"]`)].map(b=>b.dataset.opt); }
+function pickedLabels(root, group){ return [...root.querySelectorAll(`[data-optgroup="${group}"] [aria-pressed="true"]`)].map(b=>b.textContent.trim()); }
+
+window.addEventListener("hashchange", () => { closeSheet(); render(); window.scrollTo(0,0); });
+window.addEventListener("scroll", () => $("#topbar").classList.toggle("scrolled", window.scrollY > 4), {passive:true});
+$("#scrim").addEventListener("click", closeSheet);
+document.addEventListener("keydown", e => { if (e.key==="Escape") closeSheet();
+  if ((e.key==="Enter"||e.key===" ") && e.target.matches("g.zone")) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent("click",{bubbles:true})); } });
+$("#roomChip").addEventListener("click", guestSheet);
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("button,[data-zone],a[data-scroll]");
+  if (!el) return;
+  const d = el.dataset;
+
+  if (d.close !== undefined) return closeSheet();
+  if (d.go) return go(d.go);
+
+  if (d.action){
+    const a = d.action;
+    if (a==="mantenimiento"){ state.servTab="mantenimiento"; return go("servicio"); }
+    if (a==="desayuno"||a==="cena"){ state.servTab="roomservice"; if (state.rsMeal!==a) state.cart={}; state.rsMeal=a; return go("servicio"); }
+    if (a==="maletas"){ state.servTab="maletas"; return go("servicio"); }
+    if (a==="amenidades"){ state.servTab="amenidades"; return go("servicio"); }
+    if (a==="reservar") return go("restaurantes");
+    if (a==="mapa") return go("mapa");
+    if (a==="contacto") return contactSheet();
+  }
+  if (d.serv){ state.servTab = d.serv; return render(true); }
+  if (d.meal){ if (state.rsMeal!==d.meal) state.cart={}; state.rsMeal = d.meal; return render(true); }
+  if (d.cart){ const q = Math.max(0,(state.cart[d.cart]||0)+Number(d.d)); if (q) state.cart[d.cart]=q; else delete state.cart[d.cart]; return render(true); }
+  if (d.day){ state.actDay = Number(d.day); return render(true); }
+  if (d.actf){ state.actFilter = d.actf; return render(true); }
+  if (d.mapf){ state.mapFilter = d.mapf; return render(true); }
+  if (d.zone){ state.mapSel = d.zone; if (route()!=="mapa") return go("mapa"); render(true); const c = document.querySelector(".place-card"); c && c.scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
+  if (d.showmap){ state.mapSel = d.showmap; state.mapFilter="todos"; return go("mapa"); }
+  if (d.reserve) return reserveSheet(d.reserve);
+  if (d.scroll){ e.preventDefault(); location.hash="restaurantes"; setTimeout(()=>{ const t=document.getElementById(d.scroll); t && t.scrollIntoView({behavior:"smooth",block:"start"}); },60); return; }
+  if (d.remind){ const on = !state.reminders[d.remind]; if (on) state.reminders[d.remind]=1; else delete state.reminders[d.remind]; store.set("reminders",state.reminders);
+    el.setAttribute("aria-pressed",on); el.textContent = on?"Te avisamos":"Recordarme"; if (on) toast(`Te recordaremos “${d.name}” 15 minutos antes`); return; }
+  if (d.copy){ const v=d.copy; const ok=()=>toast("Correo copiado"); try{ navigator.clipboard.writeText(v).then(ok,()=>toast(v)); }catch(_){ toast(v); } return; }
+  if (d.step){ const out = el.parentElement.querySelector("output"); const max = out.id==="malN"?12:20; out.textContent = Math.min(max, Math.max(1, Number(out.textContent)+Number(d.step))); return; }
+  if (el.id==="resetDemo"){ state.requests=[]; store.set("requests",[]); closeSheet(); render(); toast("Solicitudes borradas de este teléfono"); return; }
+
+  if (d.opt){
+    const g = el.closest("[data-optgroup]"); if (!g) return;
+    if (g.dataset.multi==="1") el.setAttribute("aria-pressed", el.getAttribute("aria-pressed")!=="true");
+    else g.querySelectorAll("[data-opt]").forEach(b => b.setAttribute("aria-pressed", b===el));
+    return;
+  }
+});
+
+document.addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target; const btn = f.querySelector('[type="submit"]');
+  const lock = () => { btn.disabled = true; }; const unlock = () => { btn.disabled = false; };
+
+  if (f.id==="fMant"){
+    const tipo = pickedLabels(f,"mant")[0];
+    if (!tipo) return toast("Elige qué falla para avisar al técnico indicado");
+    const cuando = pickedLabels(f,"mantWhen")[0]; const desc = f.querySelector("#mantDesc").value.trim();
+    lock(); const ok = await sendRequest("mantenimiento", `Mantenimiento · ${tipo}`, cuando + (desc?` · ${desc}`:""), { categoria: picked(f,"mant")[0], cuando: picked(f,"mantWhen")[0], descripcion: desc }); unlock();
+    if (ok) go("solicitudes");
+  }
+  if (f.id==="fAmen"){
+    const items = pickedLabels(f,"amen"); const notes = f.querySelector("#amenNotes").value.trim();
+    if (!items.length && !notes) return toast("Elige al menos un artículo o escribe lo que necesitas");
+    lock(); const ok = await sendRequest("amenidades", items.length ? items.join(", ") : "Ama de llaves", notes, { articulos: picked(f,"amen"), notas: notes }); unlock();
+    if (ok) go("solicitudes");
+  }
+  if (f.id==="fMal"){
+    const hora = picked(f,"malHora")[0]; const n = f.querySelector("#malN").textContent; const dest = f.querySelector("#malDest").value;
+    lock(); const ok = await sendRequest("maletas", `Recoger maletas (${n} pzs)`, `${hora} · ${dest}`, { hora, piezas:Number(n), destino:dest }); unlock();
+    if (ok) go("solicitudes");
+  }
+  if (f.id==="fRS"){
+    const items = Object.entries(state.cart).map(([id,q]) => ({ id, q, n: MENU[state.rsMeal].items.find(i=>i.id===id).n }));
+    if (!items.length) return toast("Agrega al menos un platillo");
+    const hora = picked(f,"rsHora")[0]; const notes = f.querySelector("#rsNotes").value.trim();
+    lock(); const ok = await sendRequest("roomservice", `Room service · ${state.rsMeal==="desayuno"?"Desayuno":"Cena"}`, `${hora} · ${items.map(i=>`${i.q}× ${i.n}`).join(", ")}`, { comida: state.rsMeal, hora, platillos: items, notas: notes }); unlock();
+    if (ok){ state.cart = {}; go("solicitudes"); }
+  }
+  if (f.id==="fRes"){
+    const r = RESTAURANTES.find(x=>x.id===f.dataset.rest);
+    const dia = picked(f,"resDia")[0], hora = picked(f,"resHora")[0], n = f.querySelector("#resN").textContent;
+    const oc = f.querySelector("#resOcasion").value, notes = f.querySelector("#resNotes").value.trim();
+    if (!hora) return toast("Elige una hora");
+    lock(); const ok = await sendRequest("reserva", `Pre-reservación · ${r.nombre}`, `${fmtDay(dia,{weekday:"short",day:"numeric",month:"short"})} ${hora} · ${n} persona${n>1?"s":""}${oc?` · ${oc}`:""}`, { restaurante:r.id, fecha:dia, hora, personas:Number(n), ocasion:oc, notas:notes }); unlock();
+    if (ok){ closeSheet(); go("solicitudes"); }
+  }
+  if (f.id==="fGuest"){
+    const nombre = f.querySelector("#gNombre").value.trim(), hab = f.querySelector("#gHab").value.trim(), salida = f.querySelector("#gSalida").value;
+    const err = f.querySelector("#gErr");
+    if (!nombre || !/^\d{2,5}$/.test(hab)){ err.hidden=false; err.textContent = !nombre ? "Escribe el nombre de la reservación." : "El número de habitación debe tener de 2 a 5 dígitos."; return; }
+    state.guest = { nombre, habitacion: hab, salida: salida || state.guest.salida }; store.set("guest", state.guest);
+    closeSheet(); render(true); toast("Datos de la estancia actualizados");
+  }
+});
+
+render();
+setInterval(() => { if (!$("#sheet").classList.contains("on") && !document.activeElement.matches("input,textarea,select")) render(true); }, 60000);
+</script>
+</body>
+</html>
