@@ -1,5 +1,7 @@
 # App de huéspedes · Hotel Fontán Ixtapa
 
+> **Esta carpeta es la primera versión (demo sin backend).** La app actual, con cuentas, puntos, pre-check-in y panel del personal, vive en el repo `xzenauto/xzenstudio-web`, carpeta `app/fontan/`, y se publica en https://xzenstudio.com/app/fontan/
+
 Web app móvil (un solo archivo, sin dependencias) para que el huésped, desde su teléfono:
 
 - **Pida mantenimiento** (A/C, TV, baño, luz, caja de seguridad, puerta, WiFi…).
