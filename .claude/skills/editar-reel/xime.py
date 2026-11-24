@@ -94,14 +94,18 @@ def sub_img(txt_):
         k = norm(w) in KEYS
         parts.append((w.upper() if k else w, YEL if k else WHITE, int((112 if k else 96) * U)))
     sp = 22 * U; tot = sum(tw(p, font(F900, s)) for p, _, s in parts) + sp * (len(parts) - 1)
-    hh = int(150 * U); im = Image.new("RGBA", (int(tot + 80 * U), hh), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    hh = int(200 * U); im = Image.new("RGBA", (int(tot + 80 * U), hh), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     x = 40 * U
     for p, c, s in parts:
-        f = font(F900, s); d.text((x, hh * .56), p, font=f, fill=c, anchor="ls", stroke_width=0); x += tw(p, f) + sp
+        f = font(F900, s); d.text((x, hh * .66), p, font=f, fill=c, anchor="ls", stroke_width=0); x += tw(p, f) + sp
     # sombra suave (sin contorno) como en el ejemplo
-    sh_ = Image.new("RGBA", im.size, (0, 0, 0, 0)); sh_.paste((0, 0, 0, 150), (0, 0), im.getchannel("A"))
-    sh_ = sh_.filter(ImageFilter.GaussianBlur(9 * U)); out = Image.new("RGBA", im.size, (0, 0, 0, 0))
-    out.alpha_composite(sh_, (0, int(4 * U))); out.alpha_composite(im); return out
+    # "sub_shadow" (0–255) más alto en fondos claros (pared blanca)
+    op = int(plan.get("sub_shadow", 150)); sh_ = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    sh_.paste((0, 0, 0, 255), (0, 0), im.getchannel("A")); out = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    for blur, k in ((14 * U, op / 255), (4 * U, op / 255 * .55)):
+        g = sh_.filter(ImageFilter.GaussianBlur(blur)); g.putalpha(g.getchannel("A").point(lambda v: int(min(255, v * k * 1.6))))
+        out.alpha_composite(g, (0, int(4 * U)))
+    out.alpha_composite(im); return out
 
 NW = int(plan.get("sub_words", 2)); CH = []
 i = 0
@@ -157,8 +161,11 @@ def pill(text, emoji, style, size=54):
     d.text((x, h / 2), text, font=f, fill=fg, anchor="lm"); return with_shadow(im, 16, 70, 8)
 @lru_cache(None)
 def card(emoji, title, text):
-    w = int(860 * U); ft = font(F900, int(60 * U)); fx = font(F800, int(40 * U))
-    lines = wrap(text, fx, w - 260 * U) if text else []
+    e0 = emoji_img(emoji, int(96 * U)); ft = font(F900, int(60 * U)); fx = font(F800, int(40 * U))
+    need = 120 * U + e0.width + max(tw(title, ft), tw(text, fx) if text else 0)           # ancho según el texto
+    if need > 1000 * U: ft = font(F900, int(60 * U * (1000 * U - 120 * U - e0.width) / (need - 120 * U - e0.width) + .5))
+    w = int(min(1000 * U, max(600 * U, need)))
+    lines = wrap(text, fx, w - 120 * U - e0.width) if text else []
     h = int(max(190 * U, 70 * U + 70 * U + 52 * U * len(lines)))
     im = rrect(w, h, int(42 * U), (255, 255, 255, 238)).copy(); d = ImageDraw.Draw(im)
     e = emoji_img(emoji, int(96 * U)); im.alpha_composite(e, (int(40 * U), h // 2 - e.height // 2))

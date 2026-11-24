@@ -1,0 +1,10 @@
+{"keywords": ["14", "noviembre", "norma", "hoteles", "aerolíneas", "parentesco", "niños", "acta", "nacimiento", "hijos"],
+ "sub_words": 2, "sub_shadow": 200, "sub_y": 0.775,
+ "items": [
+  {"type": "fecha", "t0": 0.80, "t1": 3.85, "day": "14", "month": "NOV", "label": "Nueva norma", "y": 0.13},
+  {"type": "card", "t0": 3.95, "t1": 6.85, "emoji": "🏨✈️", "title": "Hoteles y aerolíneas", "text": "Están obligados a verificar", "y": 0.11},
+  {"type": "card", "t0": 6.95, "t1": 9.85, "emoji": "👨‍👩‍👧", "title": "Parentesco de los niños", "text": "Con su acta de nacimiento", "y": 0.11},
+  {"type": "lista", "t0": 10.0, "t1": 13.45, "title": "Si viajas con tus hijos", "emoji": "🧳", "items": [[11.95, "Acta de nacimiento"]], "y": 0.11},
+  {"type": "pill", "t0": 13.55, "t1": 15.85, "text": "PAPELES COMPLETOS", "emoji": "⚠️", "style": "red", "size": 66, "y": 0.42},
+  {"type": "pill", "t0": 13.85, "t1": 15.85, "text": "Que nadie se quede sin vacaciones", "emoji": "✈️", "style": "white", "size": 50, "y": 0.515}
+ ]}
