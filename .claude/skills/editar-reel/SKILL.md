@@ -300,6 +300,28 @@ Hecho para "Xzen Pádel" a partir de un PDF de la app. Formato 4:3 (1440x1080), 
 5. **Audio**: voz + `musica_motivacional.py` (0.06, ducking) + whoosh en cada escena + pops en cada pieza
    (los tiempos salen en `salida.mkv.events.json`).
 
+## 3d. Formato "edición Xime" (vertical 9:16) (`xime.py`)
+
+Pedido por el usuario a partir de un reel de referencia (agencia de creadores "Silvia"). Cuando diga **"edición Xime"**:
+- **Subtítulos palabra a palabra** (`sub_words` 1–3), encima de la cabeza. La posición sale automática con MediaPipe
+  (o se fija con `sub_y`).
+  - Fuente: Nunito Black blanca, sin contorno y con sombra suave.
+  - **Lo importante en MAYÚSCULAS y amarillo**, más grande y en su propio golpe (`keywords`).
+- **"Globitos" visuales** arriba (y ≈ 0.17), que entran con rebote y flotan:
+  - `lista`: tarjeta blanca de requisitos; cada ítem entra cuando lo dice y se marca ✅.
+  - `fecha`: calendario, p. ej. "14 NOV · Fecha límite".
+  - `card`: emoji + título + texto, p. ej. "👵👴 Con los abuelos".
+  - `pill` (dark / yellow / white / red / green): avisos cortos como "⚠️ Papeles completos".
+  - `chat`: tarjeta tipo WhatsApp.
+  - `cta`: píldora amarilla "Comenta PALABRA 👇" + "Te escribo al privado".
+- Emojis a color con Noto Color Emoji.
+- Flujo:
+  1. Whisper medium → `words.json` (corrige nombres y fechas a mano).
+  2. Escribe `plan.json` con los requisitos, las personas, las fechas y los avisos que diga.
+  3. Revisa con `xime.py ... --prev t1,t2,... hoja.png`.
+  4. Render con `xime.py src words.json plan.json out.mkv` y codifica el final con crf 15 + `loudnorm I=-14`.
+  5. Sin música, salvo que la pida.
+
 ## 4. Ajustes rápidos (constantes al principio de `reel_subs.py`)
 
 | Constante | Valor | Qué controla |
