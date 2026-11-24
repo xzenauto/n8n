@@ -190,10 +190,18 @@ def fecha(day, month, label):
     return with_shadow(im)
 def lista(it, t):
     """tarjeta de requisitos: los ítems entran en su tiempo y se marcan con ✅ al entrar el siguiente (o a los 0.6 s)"""
-    w = int(900 * U); rowh = int(92 * U); n = len(it["items"]); h = int(150 * U + rowh * n)
+    e = emoji_img(it.get("emoji", "📋"), int(66 * U)); title = it.get("title", "Requisitos")
+    # ancho según el texto más largo (máx. 1000); si no cabe, se reduce la letra
+    fs_t, fs_i = 62, 50
+    need = max(110 * U + e.width + tw(title, font(F900, int(fs_t * U))), 200 * U + max(tw(x, font(F800, int(fs_i * U))) for _, x in it["items"]))
+    k_ = min(1.0, 1000 * U / need); fs_t, fs_i = int(fs_t * k_ + .5), int(fs_i * k_ + .5)
+    w = int(min(1000 * U, max(700 * U, need))); rowh = int(92 * U); n = len(it["items"])
+    # la tarjeta crece con cada ítem que entra (no se queda vacía esperando)
+    vis = sum(ease((t - ti) / .25) for ti, _ in it["items"] if t >= ti)
+    h = int(150 * U + rowh * vis) if vis > 0 else int(140 * U)
     im = rrect(w, h, int(44 * U), (255, 255, 255, 240)).copy(); d = ImageDraw.Draw(im)
-    e = emoji_img(it.get("emoji", "📋"), int(66 * U)); im.alpha_composite(e, (int(40 * U), int(38 * U)))
-    d.text((int(60 * U + e.width), int(74 * U)), it.get("title", "Requisitos"), font=font(F900, int(62 * U)), fill=DARK, anchor="lm")
+    im.alpha_composite(e, (int(40 * U), int(38 * U)))
+    d.text((int(60 * U + e.width), int(74 * U)), title, font=font(F900, int(fs_t * U)), fill=DARK, anchor="lm")
     for k, (ti, txt_) in enumerate(it["items"]):
         y = int(150 * U + rowh * k + rowh / 2)
         if t < ti: continue
@@ -207,7 +215,7 @@ def lista(it, t):
             im.alpha_composite(ck, (bx + int(29 * U) - ck.width // 2, y - ck.height // 2))
         else:
             d.rounded_rectangle([bx, y - 29 * U, bx + 58 * U, y + 29 * U], int(14 * U), outline=(200, 204, 214), width=int(5 * U))
-        d.text((bx + 90 * U, y), txt_, font=font(F800, int(50 * U)), fill=col, anchor="lm")
+        d.text((bx + 90 * U, y), txt_, font=font(F800, int(fs_i * U)), fill=col, anchor="lm")
     return with_shadow(im)
 @lru_cache(None)
 def chat(name, msgs):

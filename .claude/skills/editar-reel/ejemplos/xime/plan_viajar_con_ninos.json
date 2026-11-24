@@ -1,0 +1,178 @@
+{
+ "keywords": [
+  "hijos",
+  "sobrinos",
+  "nietos",
+  "ley",
+  "vacaciones",
+  "14",
+  "noviembre",
+  "hoteles",
+  "aerolíneas",
+  "parentesco",
+  "actas",
+  "nacimiento",
+  "identificación",
+  "abuelos",
+  "tíos",
+  "ojo",
+  "ine",
+  "carta",
+  "notariada",
+  "incompletos",
+  "negar",
+  "seguridad",
+  "prevenir",
+  "papeles"
+ ],
+ "sub_words": 2,
+ "sub_shadow": 200,
+ "sub_y": 0.775,
+ "items": [
+  {
+   "type": "card",
+   "t0": 0.6,
+   "t1": 3.6,
+   "emoji": "🇲🇽",
+   "title": "Viajas por México con niños",
+   "text": "Hijos, sobrinos o nietos",
+   "y": 0.11
+  },
+  {
+   "type": "pill",
+   "t0": 4.6,
+   "t1": 7.5,
+   "text": "LA LEY CAMBIÓ",
+   "emoji": "🚨",
+   "style": "red",
+   "size": 60,
+   "y": 0.09
+  },
+  {
+   "type": "pill",
+   "t0": 6.2,
+   "t1": 7.5,
+   "text": "Que nadie arruine tus vacaciones",
+   "emoji": "✈️",
+   "style": "white",
+   "size": 44,
+   "y": 0.165
+  },
+  {
+   "type": "fecha",
+   "t0": 8.2,
+   "t1": 11.0,
+   "day": "14",
+   "month": "NOV",
+   "label": "Nueva norma",
+   "y": 0.13
+  },
+  {
+   "type": "card",
+   "t0": 11.0,
+   "t1": 14.85,
+   "emoji": "🏨✈️",
+   "title": "Hoteles y aerolíneas",
+   "text": "Verifican el parentesco de los niños",
+   "y": 0.11
+  },
+  {
+   "type": "lista",
+   "t0": 14.95,
+   "t1": 19.8,
+   "title": "Si viajas con tus hijos",
+   "emoji": "👨‍👩‍👧",
+   "items": [
+    [
+     16.8,
+     "Actas de nacimiento"
+    ],
+    [
+     18.1,
+     "INE de ambos papás"
+    ]
+   ],
+   "y": 0.12
+  },
+  {
+   "type": "card",
+   "t0": 19.95,
+   "t1": 23.15,
+   "emoji": "👵👴",
+   "title": "¡OJO! Si viajan con…",
+   "text": "Abuelos, tíos o un solo papá",
+   "y": 0.11
+  },
+  {
+   "type": "lista",
+   "t0": 23.25,
+   "t1": 30.6,
+   "title": "Documentos que debes llevar",
+   "emoji": "📂",
+   "items": [
+    [
+     25.35,
+     "Actas de nacimiento"
+    ],
+    [
+     26.6,
+     "Copia de la INE de los 2 papás"
+    ],
+    [
+     28.5,
+     "Carta de autorización firmada y notariada"
+    ]
+   ],
+   "y": 0.135
+  },
+  {
+   "type": "pill",
+   "t0": 31.5,
+   "t1": 35.8,
+   "text": "PAPELES INCOMPLETOS",
+   "emoji": "⚠️",
+   "style": "red",
+   "size": 58,
+   "y": 0.09
+  },
+  {
+   "type": "pill",
+   "t0": 34.1,
+   "t1": 35.8,
+   "text": "Te pueden negar hotel o vuelo",
+   "emoji": "🚫",
+   "style": "dark",
+   "size": 46,
+   "y": 0.165
+  },
+  {
+   "type": "card",
+   "t0": 36.0,
+   "t1": 38.3,
+   "emoji": "🛡️",
+   "title": "Por la seguridad de tus niños",
+   "text": "Más vale prevenir",
+   "y": 0.11
+  },
+  {
+   "type": "pill",
+   "t0": 39.3,
+   "t1": 42.6,
+   "text": "TODOS LOS PAPELES",
+   "emoji": "📂",
+   "style": "yellow",
+   "size": 60,
+   "y": 0.09
+  },
+  {
+   "type": "pill",
+   "t0": 40.7,
+   "t1": 42.6,
+   "text": "Que nadie arruine tus vacaciones",
+   "emoji": "✈️",
+   "style": "white",
+   "size": 44,
+   "y": 0.165
+  }
+ ]
+}

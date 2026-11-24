@@ -320,7 +320,9 @@ Pedido por el usuario a partir de un reel de referencia (agencia de creadores "S
   2. Escribe `plan.json` con los requisitos, las personas, las fechas y los avisos que diga.
   3. Revisa con `xime.py ... --prev t1,t2,... hoja.png`.
   4. Render con `xime.py src words.json plan.json out.mkv` y codifica el final con crf 15 + `loudnorm I=-14`.
-  5. Sin música, salvo que la pida.
+  5. Sin música, salvo que la pida. Zoom-in alternado (+10 %) en cada frase nueva (scale eval=frame + crop).
+  6. En fondo claro (pared blanca), los subtítulos van sobre la ropa (`sub_y` 0.775) con `sub_shadow` 200.
+     Si la cara queda arriba, las tarjetas van en y 0.09–0.13. Las listas crecen al entrar cada ítem.
 
 ## 4. Ajustes rápidos (constantes al principio de `reel_subs.py`)
 
